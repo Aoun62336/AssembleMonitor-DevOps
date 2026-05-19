@@ -1,6 +1,6 @@
 # AssembleMonitor
 
-AssembleMonitor is a comprehensive construction management platform designed to track projects, manage tasks, monitor inventory, oversee expenses, and capture site photos. 
+AssembleMonitor is a smart construction site management platform designed to track projects, manage tasks, monitor inventory, oversee expenses, and capture site photos. 
 
 The application is split into two main components:
 - **`backend/`**: A high-performance REST API built with FastAPI, SQLAlchemy, and PostgreSQL.
