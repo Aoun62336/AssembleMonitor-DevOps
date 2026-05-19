@@ -15,6 +15,9 @@ AssembleMonitor/
 ├── backend/          # FastAPI application, database models, and API logic
 ├── frontend/         # React, Vite, components, pages, and static assets
 ├── docs/             # Project documentation and schema files
+├── k8s/              # Kubernetes deployment manifests
+├── terraform/        # Infrastructure as Code (IaC) for cloud provisioning
+├── Jenkinsfile       # CI/CD pipeline configuration
 └── README.md         # Project overview and setup instructions
 ```
 
@@ -114,6 +117,12 @@ The frontend is a Vite-powered React application. It uses a proxy to automatical
 - **Routing**: React Router v6
 - **Styling**: Custom CSS and Material Symbols
 - **Charting**: Chart.js
+
+**DevOps & Infrastructure:**
+- **Containerization**: Docker & Docker Compose
+- **Orchestration**: Kubernetes (k8s)
+- **Infrastructure as Code**: Terraform
+- **CI/CD**: Jenkins
 
 ---
 
