@@ -39,6 +39,7 @@ htmlcov/
 
 # Uploads (runtime-generated)
 uploads/
+backend/uploads/
 
 # OS
 .DS_Store
