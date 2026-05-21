@@ -125,4 +125,4 @@ docker exec -it assemblemonitor_api python seed_admin.py
 
 ## License
 
-All rights reserved. AssembleMonitor.
+All rights reserved. AssembleMonitor by The Great MD.
