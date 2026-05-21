@@ -17,8 +17,8 @@ WORKDIR /build
 
 # Install system build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
+    build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and activate virtual environment
@@ -34,11 +34,12 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
     PATH="/opt/venv/bin:$PATH"
 
 # Runtime system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq5 \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security

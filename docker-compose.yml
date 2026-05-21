@@ -1,0 +1,92 @@
+# ============================================================
+# AssembleMonitor — Root Docker Compose
+# Full local stack: Frontend + Backend + PostgreSQL + Adminer
+# ============================================================
+
+services:
+
+  # ----------------------------------------------------------
+  # PostgreSQL Database
+  # ----------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: assemblemonitor_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-assembleuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assemblepass}
+      POSTGRES_DB: ${POSTGRES_DB:-assemblemonitor}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-assembleuser} -d ${POSTGRES_DB:-assemblemonitor}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - assemblemonitor_net
+
+  # ----------------------------------------------------------
+  # FastAPI Backend
+  # ----------------------------------------------------------
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: assemblemonitor_api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-assembleuser}:${POSTGRES_PASSWORD_ENCODED:-assemblepass}@db:5432/${POSTGRES_DB:-assemblemonitor}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - assemblemonitor_net
+
+  # ----------------------------------------------------------
+  # Frontend
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: assemblemonitor_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - assemblemonitor_net
+
+  # ----------------------------------------------------------
+  # Adminer Database GUI
+  # ----------------------------------------------------------
+  adminer:
+    image: adminer:latest
+    container_name: assemblemonitor_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - assemblemonitor_net
+
+volumes:
+  postgres_data:
+
+networks:
+  assemblemonitor_net:
+    driver: bridge

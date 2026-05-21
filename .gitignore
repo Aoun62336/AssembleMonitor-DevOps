@@ -69,3 +69,6 @@ Thumbs.db
 
 #docs
 docs/
+
+backend/uploads/
+uploads/
