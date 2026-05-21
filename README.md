@@ -1,130 +1,128 @@
 # AssembleMonitor
 
-AssembleMonitor is a smart construction site management platform designed to track projects, manage tasks, monitor inventory, oversee expenses, and capture site photos. 
-
-The application is split into two main components:
-- **`backend/`**: A high-performance REST API built with FastAPI, SQLAlchemy, and PostgreSQL.
-- **`frontend/`**: A dynamic and responsive UI built with React and Vite.
+AssembleMonitor is a smart construction site management platform designed to track projects, manage tasks, monitor inventory, oversee expenses, and capture site photos.
 
 ---
 
-## Project Structure
+## Directory Structure
 
 ```text
 AssembleMonitor/
-├── backend/          # FastAPI application, database models, and API logic
-├── frontend/         # React, Vite, components, pages, and static assets
-├── docs/             # Project documentation and schema files
-├── k8s/              # Kubernetes deployment manifests
-├── terraform/        # Infrastructure as Code (IaC) for cloud provisioning
-├── Jenkinsfile       # CI/CD pipeline configuration
-└── README.md         # Project overview and setup instructions
+├── backend/
+├── frontend/
+├── docs/
+├── k8s/
+├── terraform/
+└── Jenkinsfile
 ```
+
+* **`backend/`** — High-performance REST API built with FastAPI, SQLAlchemy, and PostgreSQL.
+* **`frontend/`** — Modern and responsive user interface built with React and Vite.
+* **`docs/`** — Project documentation and database schemas.
+* **`k8s/`** — Kubernetes manifests for container orchestration.
+* **`terraform/`** — Infrastructure as Code (IaC) for cloud resource provisioning.
+* **`Jenkinsfile`** — CI/CD automation pipeline.
 
 ---
 
 ## Prerequisites
 
-To run this project locally, you will need:
-- **Node.js** (v18+) and **npm** for the frontend.
-- **Python** (3.11+) for the backend.
-- **PostgreSQL** (v14+) running locally (or via Docker) for the database.
-- **Docker** & **Docker Compose** (optional, but recommended for easy backend deployment).
+Ensure you have the following installed:
+* **Docker & Docker Compose** (Recommended containerized setup)
+* **Node.js (v18+) & npm** (Optional: for local frontend development outside containers)
+* **Python (v3.11+) & PostgreSQL (v14+)** (Optional: for local backend development outside containers)
 
 ---
 
-## Quick Start: Backend
+## Setup & Execution
 
-The backend provides the RESTful API and manages the database.
+### 1. Environment Configuration
 
-### Option 1: Using Docker Compose (Recommended)
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Copy the environment variables example file:
-   ```bash
-   copy .env.example .env     # On Windows
-   # cp .env.example .env     # On macOS/Linux
-   ```
-3. Open `.env` and fill in your desired `SECRET_KEY` and database credentials.
-4. Spin up the API and PostgreSQL containers:
-   ```bash
-   docker compose up --build
-   ```
-5. The API will be available at `http://localhost:8000/api/docs`.
+* **Root Directory (`.env`):**
+  Create a `.env` file at the project root for container runtime variables:
+  ```env
+  POSTGRES_USER=your_postgres_user
+  POSTGRES_PASSWORD=your_secure_password
+  POSTGRES_PASSWORD_ENCODED=your_secure_password_url_encoded
+  POSTGRES_DB=your_database_name
+  ```
 
-### Option 2: Local Setup (Without Docker)
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate      # On Windows
-   # source .venv/bin/activate # On macOS/Linux
-   ```
-3. Install the dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Set up your `.env` file from `.env.example` and configure your local PostgreSQL credentials.
-5. Run the database migrations:
-   ```bash
-   alembic upgrade head
-   ```
-6. Start the server:
-   ```bash
-   uvicorn app.main:app --reload --port 8000
-   ```
+* **Backend Directory (`backend/.env`):**
+  Create the backend configuration file from the template:
+  ```bash
+  # Windows
+  copy backend\.env.example backend\.env
 
-*(For more details, see the `backend/README.md` file.)*
+  # macOS / Linux
+  cp backend/.env.example backend/.env
+  ```
+  *(Open `backend/.env` and update credentials such as DB URL, S3 credentials, and JWT keys).*
 
 ---
 
-## Quick Start: Frontend
+### 2. Run with Docker Compose
 
-The frontend is a Vite-powered React application. It uses a proxy to automatically route `/api` requests to the backend.
+Build, start, and initialize the stack in a single sequence of commands:
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install the Node.js dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. Open your browser and navigate to `http://localhost:5173`.
+```bash
+# 1. Start all containers in the background
+docker compose up --build -d
+
+# 2. Apply database migrations
+docker exec -it assemblemonitor_api alembic upgrade head
+
+# 3. Seed default admin credentials
+docker exec -it assemblemonitor_api python seed_admin.py
+```
 
 ---
 
-## Architecture & Tech Stack
+## Service Endpoints
 
-**Backend:**
-- **Framework**: FastAPI (Async)
-- **Database**: PostgreSQL with SQLAlchemy 2.0 ORM
-- **Migrations**: Alembic
-- **Auth**: JWT via python-jose & bcrypt
+Once the services are active, the following endpoints are available:
 
-**Frontend:**
-- **Framework**: React 18
-- **Build Tool**: Vite
-- **Routing**: React Router v6
-- **Styling**: Custom CSS and Material Symbols
-- **Charting**: Chart.js
+| Service | Port | Endpoint URL |
+| :--- | :--- | :--- |
+| **Frontend UI** | `3000` | [http://localhost:3000](http://localhost:3000) |
+| **Backend API** | `8000` | [http://localhost:8000](http://localhost:8000) |
+| **API Documentation** | `8000` | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| **Adminer (Database GUI)** | `8080` | [http://localhost:8080](http://localhost:8080) |
+| **PostgreSQL Database** | `5432` | `localhost:5432` |
 
-**DevOps & Infrastructure:**
-- **Containerization**: Docker & Docker Compose
-- **Orchestration**: Kubernetes (k8s)
-- **Infrastructure as Code**: Terraform
-- **CI/CD**: Jenkins
+---
+
+## Management Operations
+
+### Stopping Services
+To stop running containers and preserve data:
+```bash
+docker compose down
+```
+
+### Resetting the Database
+To purge all data, reset database schemas, and seed a clean instance:
+```bash
+# Stop containers and delete volumes
+docker compose down -v
+
+# Start services
+docker compose up -d
+
+# Run migrations and seed admin user
+docker exec -it assemblemonitor_api alembic upgrade head
+docker exec -it assemblemonitor_api python seed_admin.py
+```
+
+---
+
+## Tech Stack
+
+* **Backend:** FastAPI, SQLAlchemy 2.0, Alembic, python-jose, bcrypt
+* **Frontend:** React 18, Vite, React Router v6, Chart.js, Vanilla CSS
+* **DevOps:** Docker, Docker Compose, Kubernetes, Terraform, Jenkins
 
 ---
 
 ## License
+
 All rights reserved. AssembleMonitor.
