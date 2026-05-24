@@ -53,18 +53,31 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     #  CORS                                                                #
     # ------------------------------------------------------------------ #
-    CORS_ORIGINS: List[str] = [
+    CORS_ORIGINS: str | List[str] = [
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost:5173",
-    "http://127.0.0.1:5173"
+        "http://127.0.0.1:5173",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def _parse_cors(cls, v: object) -> object:
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            # Clean up outer quotes and whitespace
+            val = v.strip().strip("'\"").strip()
+            # If it is formatted as a JSON array
+            if val.startswith("[") and val.endswith("]"):
+                try:
+                    import json
+                    parsed = json.loads(val)
+                    if isinstance(parsed, list):
+                        return [str(x).strip().strip("'\"") for x in parsed]
+                except Exception:
+                    pass
+            # Fall back to splitting by comma (and strip brackets/quotes if any)
+            clean_val = val.lstrip("[").rstrip("]")
+            return [origin.strip().strip("'\"") for origin in clean_val.split(",") if origin.strip()]
         return v
 
     # ------------------------------------------------------------------ #
