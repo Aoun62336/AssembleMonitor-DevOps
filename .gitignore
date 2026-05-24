@@ -50,12 +50,12 @@ migration_log.txt
 migration_error.txt
 
 # Test / debug scripts (root-level one-offs)
-test_*.py
-check_*.py
-reset_*.py
-get_*.py
-seed_*.py
-debug_*.py
+/test_*.py
+/check_*.py
+/reset_*.py
+/get_*.py
+/seed_*.py
+/debug_*.py
 
 # OS
 .DS_Store
