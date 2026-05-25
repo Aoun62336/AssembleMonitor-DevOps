@@ -6,7 +6,7 @@ Values are read from a .env file (or real environment) at startup.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List
+from typing import Any, List
 
 from pydantic import AnyHttpUrl, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     #  CORS                                                                #
     # ------------------------------------------------------------------ #
-    CORS_ORIGINS: str | List[str] = [
+    CORS_ORIGINS: Any = [
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost:5173",
