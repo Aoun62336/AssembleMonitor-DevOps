@@ -1,0 +1,14 @@
+aws_region        = "ap-south-1"
+project_name      = "assemblemonitor"
+environment       = "dev"
+
+ec2_instance_type = "t3.micro"
+ec2_key_name      = "your-existing-key-pair-name"
+my_ip_cidr        = "YOUR_PUBLIC_IP/32"
+
+db_instance_class = "db.t4g.micro"
+db_name           = "assemblemonitor"
+db_username       = "assembleuser"
+db_password       = "change-this-password"
+
+s3_bucket_name    = "assemblemonitor-dev-uploads-yourname"
