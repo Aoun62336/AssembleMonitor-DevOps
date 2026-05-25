@@ -34,10 +34,10 @@ backend/
 │   ├── schemas/            ← Pydantic request/response schemas
 │   ├── routers/
 │   │   ├── health.py       ← GET /api/health  ✅ implemented
-│   │   ├── auth.py         ← placeholder
-│   │   ├── users.py        ← placeholder
-│   │   ├── projects.py     ← placeholder
-│   │   └── tasks.py        ← placeholder
+│   │   ├── auth.py         ← ✅ implemented
+│   │   ├── users.py        ← ✅ implemented
+│   │   ├── projects.py     ← ✅ implemented
+│   │   └── tasks.py        ← ✅ implemented
 │   ├── utils/
 │   │   ├── datetime_utils.py
 │   │   └── pagination.py
@@ -153,8 +153,8 @@ Key variables:
 | Method | Path | Status |
 |---|---|---|
 | GET | `/api/health` | ✅ Implemented |
-| POST | `/api/v1/auth/login` | 🔲 Planned |
-| POST | `/api/v1/auth/refresh` | 🔲 Planned |
-| GET | `/api/v1/users` | 🔲 Planned |
-| GET/POST | `/api/v1/projects` | 🔲 Planned |
-| GET/POST | `/api/v1/tasks` | 🔲 Planned |
+| POST | `/api/v1/auth/login` | ✅ Implemented |
+| POST | `/api/v1/auth/refresh` | ✅ Implemented |
+| GET | `/api/v1/users` | ✅ Implemented |
+| GET/POST | `/api/v1/projects` | ✅ Implemented |
+| GET/POST | `/api/v1/tasks` | ✅ Implemented |
