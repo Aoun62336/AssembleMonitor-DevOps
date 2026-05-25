@@ -85,7 +85,7 @@ Once the services are active, the following endpoints are available:
 | :--- | :--- | :--- |
 | **Frontend UI** | `3000` | [http://localhost:3000](http://localhost:3000) |
 | **Backend API** | `8000` | [http://localhost:8000](http://localhost:8000) |
-| **API Documentation** | `8000` | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| **API Documentation** | `8000` | [http://localhost:8000/api/docs](http://localhost:8000/api/docs) |
 | **Adminer (Database GUI)** | `8080` | [http://localhost:8080](http://localhost:8080) |
 | **PostgreSQL Database** | `5432` | `localhost:5432` |
 
