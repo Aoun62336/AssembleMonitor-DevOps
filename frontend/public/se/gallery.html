@@ -170,8 +170,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Fetch projects assigned to the Site Engineer
   try {
-    const projects = await apiFetch('/v1/projects');
-    projects.forEach(p => {
+    const [projects, tasks] = await Promise.all([
+      apiFetch('/v1/projects'),
+      apiFetch('/v1/tasks/assigned')
+    ]);
+    
+    // Only show projects where the user has at least one assigned task
+    const assignedProjectIds = new Set(tasks.map(t => t.project_id));
+    const filteredProjects = projects.filter(p => assignedProjectIds.has(p.id));
+    
+    filteredProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = p.name;

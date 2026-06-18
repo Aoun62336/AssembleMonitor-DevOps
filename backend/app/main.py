@@ -109,3 +109,5 @@ def create_app() -> FastAPI:
 
 
 app: FastAPI = create_app()
+# Trigger reload to load SMTP settings from .env
+

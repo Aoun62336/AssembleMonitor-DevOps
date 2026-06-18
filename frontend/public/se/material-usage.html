@@ -132,10 +132,18 @@
         // Set default date to today
         document.getElementById('usageDate').value = new Date().toISOString().split('T')[0];
 
-        // Fetch projects
-        const projects = await apiFetch('/v1/projects');
+        // Fetch projects and tasks
+        const [projects, tasks] = await Promise.all([
+          apiFetch('/v1/projects'),
+          apiFetch('/v1/tasks/assigned')
+        ]);
+        
+        // Only show projects where the user has at least one assigned task
+        const assignedProjectIds = new Set(tasks.map(t => t.project_id));
+        const filteredProjects = projects.filter(p => assignedProjectIds.has(p.id));
+        
         const projectSelect = document.getElementById('usageProjectSelect');
-        projects.forEach(p => {
+        filteredProjects.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.id;
           opt.textContent = p.name;
