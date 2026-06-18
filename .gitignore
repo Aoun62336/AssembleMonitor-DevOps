@@ -18,6 +18,9 @@ terraform.tfvars
 *.tfvars
 *.tfvars.json
 
+backend/.venv.venv/
+backend/.venv/
+
 # Python cache
 __pycache__/
 *.py[cod]

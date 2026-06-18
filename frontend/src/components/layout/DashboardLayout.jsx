@@ -95,10 +95,6 @@ export default function DashboardLayout({ role, page, sidebarOpen, setSidebarOpe
             </div>
           </div>
           <div className="topbar-right">
-            <button type="button" className="topbar-icon-btn">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="topbar-badge" />
-            </button>
             <div className="topbar-avatar">{user.initials}</div>
           </div>
         </header>

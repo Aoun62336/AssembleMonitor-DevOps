@@ -27,13 +27,21 @@ async def list_all_tasks(
     
     if current_user.role == "admin":
         result = await db.execute(select(Task).options(selectinload(Task.phase), selectinload(Task.assignee)))
-    else:
+    elif current_user.role == "project_manager":
         query = (
             select(Task)
             .options(selectinload(Task.phase), selectinload(Task.assignee))
             .join(Phase, Task.phase_id == Phase.id)
             .join(ProjectAssignment, Phase.project_id == ProjectAssignment.project_id)
             .where(ProjectAssignment.user_id == current_user.id)
+        )
+        result = await db.execute(query)
+    else:
+        # Site engineers only see their assigned tasks
+        query = (
+            select(Task)
+            .options(selectinload(Task.phase), selectinload(Task.assignee))
+            .where(Task.assigned_to == current_user.id)
         )
         result = await db.execute(query)
     
@@ -187,6 +195,10 @@ async def list_tasks(
     await _verify_task_access(db, phase_id, current_user)
 
     query = select(Task).options(selectinload(Task.phase), selectinload(Task.assignee)).where(Task.phase_id == phase_id)
+    
+    if current_user.role == "site_engineer":
+        query = query.where(Task.assigned_to == current_user.id)
+        
     if status:
         query = query.where(Task.status == status)
     if priority:

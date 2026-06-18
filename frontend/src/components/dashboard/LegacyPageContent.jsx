@@ -1072,7 +1072,9 @@ function initGanttChart(root, showToast, navigate) {
         </div>`;
       }
 
-      const todayX = toX(now.toISOString().split('T')[0]);
+      const d = now;
+      const localStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      const todayX = toX(localStr);
       rulerHtml += `<div style="position:absolute;left:${todayX}px;top:0;bottom:0;width:2px;background:var(--danger,#e74c3c);opacity:0.6;z-index:2;" title="Today"></div>`;
 
       const grouped = {};
@@ -2008,7 +2010,8 @@ function initSeDashboard(root, showToast, navigate) {
 
       // Stat 2: Attendance Status
       const myAttendance = Array.isArray(allAttendance) ? allAttendance : [];
-      const todayStr = new Date().toISOString().split('T')[0];
+      const d = new Date();
+      const todayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       const todayRec = myAttendance.find(a => (a.attendance_date || '').startsWith(todayStr));
       
       if (todayRec) {
@@ -2874,7 +2877,7 @@ function initExpenseEntry(root, showToast, navigate) {
       title: root.querySelector('#expTitle')?.value?.trim() || 'Untitled Expense',
       description: invoice ? `Invoice: ${invoice}` : null,
       amount: parseFloat(root.querySelector('#expAmount')?.value || '0'),
-      expense_date: root.querySelector('#expDate')?.value || new Date().toISOString().split('T')[0],
+      expense_date: root.querySelector('#expDate')?.value || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })(),
       category: root.querySelector('#expCategory')?.value || 'Miscellaneous',
       project_id: pid,
       phase_id: phaseId || null,
@@ -2891,7 +2894,10 @@ function initExpenseEntry(root, showToast, navigate) {
       await apiFetch('/v1/expenses', { method: 'POST', body: JSON.stringify(payload) }, navigate);
       showToast('Expense logged successfully!', 'success');
       form.reset();
-      if (root.querySelector('#expDate')) root.querySelector('#expDate').value = new Date().toISOString().split('T')[0];
+      if (root.querySelector('#expDate')) {
+        const d = new Date();
+        root.querySelector('#expDate').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
     } catch (err) {
       showToast(err.message || 'Failed to log expense', 'danger');
     } finally {
@@ -3192,7 +3198,7 @@ function initMaterialStock(root, showToast, navigate) {
         body: JSON.stringify({
           material_id: materialSelect.value,
           quantity: parseFloat(root.querySelector('#stockQty')?.value || '0'),
-          received_date: root.querySelector('#stockDate')?.value || new Date().toISOString().split('T')[0],
+          received_date: root.querySelector('#stockDate')?.value || (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })(),
           supplier: root.querySelector('#stockSupplier')?.value || 'Unknown',
           notes: root.querySelector('#stockNotes')?.value || null
         })
@@ -3539,8 +3545,18 @@ function initPhotoGallery(root, showToast, navigate, role = 'admin') {
   if (projectSelect) {
     apiFetch('/v1/projects', {}, navigate).then(projects => {
       if (!projects || !Array.isArray(projects)) return;
-      projectSelect.innerHTML = '<option value="">All Projects</option>';
-      projects.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; projectSelect.appendChild(opt); });
+      
+      if (role === 'se') {
+        apiFetch('/v1/tasks/assigned', {}, navigate).then(tasks => {
+          const assignedProjectIds = new Set(tasks.map(t => t.project_id));
+          const filteredProjects = projects.filter(p => assignedProjectIds.has(p.id));
+          projectSelect.innerHTML = '<option value="">All Projects</option>';
+          filteredProjects.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; projectSelect.appendChild(opt); });
+        }).catch(err => console.error(err));
+      } else {
+        projectSelect.innerHTML = '<option value="">All Projects</option>';
+        projects.forEach(p => { const opt = document.createElement('option'); opt.value = p.id; opt.textContent = p.name; projectSelect.appendChild(opt); });
+      }
     });
     projectSelect.addEventListener('change', renderPhotos);
   }
@@ -3738,7 +3754,8 @@ function initCheckIn(root, showToast, navigate) {
     currentProjectId = proj.id;
 
     apiFetch(`/v1/attendance/project/${currentProjectId}`, {}, navigate).then(records => {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const d = new Date();
+      const todayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
       const todayAttendance = records.find(r => r.user_id === user.id && r.attendance_date === todayStr);
 
       if (todayAttendance) {
@@ -3815,16 +3832,29 @@ function initMaterialUsage(root, showToast, navigate) {
   const dateInput = root.querySelector('#usageDate');
 
   if (!projectSelect || !form) return undefined;
-  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+  if (dateInput) {
+    const d = new Date();
+    dateInput.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
 
-  apiFetch('/v1/projects', {}, navigate).then(projects => {
+  Promise.all([
+    apiFetch('/v1/projects', {}, navigate),
+    apiFetch('/v1/tasks/assigned', {}, navigate)
+  ]).then(([projects, tasks]) => {
+    // Collect all project IDs from the assigned tasks
+    // Fallback to fetching phase if project_id is somehow missing, but backend sets it.
+    const assignedProjectIds = new Set(tasks.map(t => t.project_id));
+    
+    // Only show projects where the user has at least one assigned task
+    const filteredProjects = projects.filter(p => assignedProjectIds.has(p.id));
+    
     projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
-    projects.forEach(p => {
+    filteredProjects.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id; opt.textContent = p.name;
       projectSelect.appendChild(opt);
     });
-  });
+  }).catch(err => console.error('Failed to load projects for material usage', err));
 
   const loadProjectData = async () => {
     const pid = projectSelect.value;
@@ -3870,7 +3900,10 @@ function initMaterialUsage(root, showToast, navigate) {
       await apiFetch('/v1/material-usage', { method: 'POST', body: JSON.stringify(payload) }, navigate);
       showToast('Usage logged', 'success');
       form.reset();
-      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+      if (dateInput) {
+        const d = new Date();
+        dateInput.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
       loadProjectData();
     } catch (err) { showToast(err.message, 'danger'); }
   };

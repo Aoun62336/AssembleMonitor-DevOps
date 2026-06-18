@@ -16,6 +16,10 @@ build/
 *.egg
 .eggs/
 
+# Python virtual environments
+.venv/
+.venv.venv/
+
 # Virtual environments
 venv/
 .venv/

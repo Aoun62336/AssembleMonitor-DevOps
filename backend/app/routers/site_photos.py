@@ -24,12 +24,25 @@ async def _verify_project_access(db: AsyncSession, project_id: Union[UUID, str],
             project_id = UUID(project_id)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid project ID format")
-    result = await db.execute(
-        select(ProjectAssignment)
-        .where(ProjectAssignment.project_id == project_id, ProjectAssignment.user_id == user.id)
-    )
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not assigned to this project.")
+    if user.role == "site_engineer":
+        from app.models.task import Task
+        from app.models.phase import Phase
+        # For site engineers, access is granted only if they have an assigned task in this project
+        task_check = await db.execute(
+            select(Task.id)
+            .join(Phase, Task.phase_id == Phase.id)
+            .where(Phase.project_id == project_id, Task.assigned_to == user.id)
+            .limit(1)
+        )
+        if not task_check.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No assigned tasks in this project.")
+    else:
+        result = await db.execute(
+            select(ProjectAssignment)
+            .where(ProjectAssignment.project_id == project_id, ProjectAssignment.user_id == user.id)
+        )
+        if not result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not assigned to this project.")
 
 
 def _attach_presigned_urls(photos: Sequence[SitePhoto]) -> List[SitePhotoResponse]:
@@ -153,7 +166,16 @@ async def list_all_site_photos(
         .order_by(SitePhoto.created_at.desc())
     )
 
-    if current_user.role != "admin":
+    if current_user.role == "site_engineer":
+        from app.models.task import Task
+        from app.models.phase import Phase
+        subq = (
+            select(Phase.project_id)
+            .join(Task, Task.phase_id == Phase.id)
+            .where(Task.assigned_to == current_user.id)
+        )
+        query = query.where(SitePhoto.project_id.in_(subq))
+    elif current_user.role != "admin":
         query = (
             query
             .join(ProjectAssignment, SitePhoto.project_id == ProjectAssignment.project_id)
