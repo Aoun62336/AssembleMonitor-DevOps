@@ -1,14 +1,14 @@
 services:
   api:
     image: fire2686/assemblemonitor-backend:v1
-    container_name: assemblemonitor_api
+    container_name: AM_Backend
     restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
       PYTHONPATH: /app
     ports:
-      - "127.0.0.1:8000:8000"   
+      - "127.0.0.1:8000:8000"
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -16,7 +16,7 @@ services:
 
   frontend:
     image: fire2686/assemblemonitor-frontend:v1
-    container_name: assemblemonitor_frontend
+    container_name: AM_Frontend
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80"
@@ -31,4 +31,3 @@ volumes:
 networks:
   assemblemonitor_net:
     driver: bridge
-
