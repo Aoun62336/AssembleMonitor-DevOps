@@ -1,14 +1,7 @@
-# ============================================================
-# AssembleMonitor — Terraform Infrastructure
-# EC2 + RDS PostgreSQL + S3 + Security Groups
-# ============================================================
-
-# Get default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
-# Get subnets from default VPC
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
@@ -16,10 +9,9 @@ data "aws_subnets" "default" {
   }
 }
 
-# Get latest Ubuntu 22.04 AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -27,9 +19,6 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-# ------------------------------------------------------------
-# EC2 Security Group
-# ------------------------------------------------------------
 resource "aws_security_group" "ec2_sg" {
   name        = "${var.project_name}-${var.environment}-ec2-sg"
   description = "Security group for AssembleMonitor EC2"
@@ -43,7 +32,6 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# SSH from your IP only
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
   security_group_id = aws_security_group.ec2_sg.id
   cidr_ipv4         = var.my_ip_cidr
@@ -52,7 +40,6 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
   to_port           = 22
 }
 
-# HTTP public
 resource "aws_vpc_security_group_ingress_rule" "ec2_http" {
   security_group_id = aws_security_group.ec2_sg.id
   cidr_ipv4         = "0.0.0.0/0"
@@ -61,16 +48,12 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_http" {
   to_port           = 80
 }
 
-# All outbound traffic
 resource "aws_vpc_security_group_egress_rule" "ec2_all_outbound" {
   security_group_id = aws_security_group.ec2_sg.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
 
-# ------------------------------------------------------------
-# RDS Security Group
-# ------------------------------------------------------------
 resource "aws_security_group" "rds_sg" {
   name        = "${var.project_name}-${var.environment}-rds-sg"
   description = "Security group for AssembleMonitor RDS"
@@ -84,7 +67,6 @@ resource "aws_security_group" "rds_sg" {
   }
 }
 
-# Allow PostgreSQL only from EC2 security group
 resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_ec2" {
   security_group_id            = aws_security_group.rds_sg.id
   referenced_security_group_id = aws_security_group.ec2_sg.id
@@ -93,16 +75,24 @@ resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_ec2" {
   to_port                      = 5432
 }
 
-# RDS outbound
 resource "aws_vpc_security_group_egress_rule" "rds_all_outbound" {
   security_group_id = aws_security_group.rds_sg.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
 
-# ------------------------------------------------------------
-# EC2 Instance
-# ------------------------------------------------------------
+resource "aws_db_subnet_group" "default" {
+  name       = "${var.project_name}-${var.environment}-db-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-db-subnet-group"
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}
+
 resource "aws_instance" "app_server" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = var.ec2_instance_type
@@ -122,9 +112,6 @@ resource "aws_instance" "app_server" {
   }
 }
 
-# ------------------------------------------------------------
-# RDS PostgreSQL
-# ------------------------------------------------------------
 resource "aws_db_instance" "postgres" {
   identifier             = "${var.project_name}-${var.environment}-postgres"
   engine                 = "postgres"
@@ -152,22 +139,6 @@ resource "aws_db_instance" "postgres" {
   }
 }
 
-# RDS subnet group
-resource "aws_db_subnet_group" "default" {
-  name       = "${var.project_name}-${var.environment}-db-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-db-subnet-group"
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-  }
-}
-
-# ------------------------------------------------------------
-# S3 Bucket
-# ------------------------------------------------------------
 resource "aws_s3_bucket" "uploads" {
   bucket = var.s3_bucket_name
 
