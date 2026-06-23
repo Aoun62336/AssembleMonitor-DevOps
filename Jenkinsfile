@@ -77,6 +77,15 @@ pipeline {
                 '''
             }
         }
+	stage('SSH Test Public') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                   sh '''
+                       ssh -o StrictHostKeyChecking=no ubuntu@3.90.162.172 "hostname"
+                   '''
+                  }
+               }
+           }
 
         stage('Deploy to EC2') {
             steps {
