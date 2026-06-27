@@ -2,7 +2,7 @@
 # AssembleMonitor — Dockerfile (production-ready)
 # ============================================================
 # Multi-stage build:
-#   Stage 1 (builder) — install deps into a virtual env
+#   Stage 1 (builder) — install deps into a virtual environment
 #   Stage 2 (runtime) — copy venv, run as non-root user
 
 # ---- Stage 1: builder -------------------------------------------------------

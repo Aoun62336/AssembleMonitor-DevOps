@@ -6,7 +6,9 @@ pipeline {
         BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        EC2_HOST = '98.92.225.249'
+        
+	// update the ip address
+	EC2_HOST = '98.92.225.249' 
         EC2_USER = 'ubuntu'
         EC2_PROJECT_DIR = '/home/ubuntu/AssebmleMonitor-DevOps'
     }
