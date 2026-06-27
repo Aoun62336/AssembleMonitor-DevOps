@@ -8,7 +8,7 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}"
         
 	// update the ip address
-	EC2_HOST = '98.92.225.249' 
+	EC2_HOST = '172.31.29.103' 
         EC2_USER = 'ubuntu'
         EC2_PROJECT_DIR = '/home/ubuntu/AssebmleMonitor-DevOps'
     }
