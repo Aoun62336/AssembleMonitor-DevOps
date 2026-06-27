@@ -6,9 +6,9 @@ pipeline {
         BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
-        EC2_HOST = '3.90.162.172'
+        EC2_HOST = '98.92.225.249'
         EC2_USER = 'ubuntu'
-        EC2_PROJECT_DIR = '/home/ubuntu/AssebmleMonitor-DevOps'
+        EC2_PROJECT_DIR = '/home/ubuntu/AssembleMonitor-DevOps'
     }
 
     stages {
@@ -77,15 +77,6 @@ pipeline {
                 '''
             }
         }
-	stage('SSH Test Public') {
-            steps {
-                sshagent(credentials: ['ec2-ssh-key']) {
-                   sh '''
-                       ssh -o StrictHostKeyChecking=no ubuntu@3.90.162.172 "hostname"
-                   '''
-                  }
-               }
-           }
 
         stage('Deploy to EC2') {
             steps {
