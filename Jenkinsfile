@@ -2,11 +2,14 @@ pipeline {
     agent any
 
     environment {
+        // Define Docker Hub credentials and image repository details
         DOCKERHUB_USERNAME = 'fire2686'
         BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-backend"
         FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-frontend"
+        // Use the Jenkins build number to tag images uniquely
         IMAGE_TAG = "${BUILD_NUMBER}"
         
+        // EC2 deployment server configuration
 	// update the ip address
 	EC2_HOST = '172.31.29.103' 
         EC2_USER = 'ubuntu'
@@ -16,12 +19,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                // Pull the latest source code from the configured SCM (e.g., Git)
                 checkout scm
             }
         }
 
         stage('Show Workspace') {
             steps {
+                // Debugging step to verify the current working directory and its contents
                 sh '''
                     echo "Current directory:"
                     pwd
@@ -34,6 +39,7 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
+                // Build the FastAPI backend image and tag it with both the build number and 'latest'
                 sh '''
                     docker build \
                       -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
@@ -45,6 +51,7 @@ pipeline {
 
         stage('Build Frontend Image') {
             steps {
+                // Build the React frontend image and tag it with both the build number and 'latest'
                 sh '''
                     docker build \
                       -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
@@ -56,6 +63,7 @@ pipeline {
 
         stage('Login to Docker Hub') {
             steps {
+                // Securely fetch Docker Hub credentials from Jenkins and log in
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
                     usernameVariable: 'DOCKER_USER',
@@ -70,6 +78,7 @@ pipeline {
 
         stage('Push Images') {
             steps {
+                // Push all newly built and tagged images to the Docker Hub registry
                 sh '''
                     docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
                     docker push ${BACKEND_IMAGE}:latest
@@ -82,7 +91,9 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
+                // Connect to the EC2 instance via SSH using the configured Jenkins credentials
                 sshagent(credentials: ['ec2-ssh-key']) {
+                    // Pull new images, start containers, run DB migrations, and clean up dangling images
                     sh '''
                         ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
                             cd ${EC2_PROJECT_DIR} &&
@@ -98,6 +109,7 @@ pipeline {
     }
 
     post {
+        // Actions to perform depending on the pipeline outcome
         success {
             echo 'CI/CD pipeline completed successfully.'
         }
@@ -107,6 +119,7 @@ pipeline {
         }
 
         always {
+            // Ensure Docker logs out regardless of build success or failure to avoid leaving stale credentials
             sh 'docker logout || true'
         }
     }
