@@ -123,6 +123,45 @@ docker exec -it assemblemonitor_api python seed_admin.py
 
 ---
 
+## CI/CD Pipeline (Jenkins)
+
+This project uses Jenkins for continuous integration and continuous deployment.
+
+* **Jenkins URL**: `[Insert Jenkins URL]`
+* **Docker Hub Images**:
+  * Backend: `<your-dockerhub-username>/assemblemonitor-backend`
+  * Frontend: `<your-dockerhub-username>/assemblemonitor-frontend`
+* **Pipeline Stages**:
+  1. `Checkout`: Pulls the latest code from the repository.
+  2. `Show Workspace`: Debug stage to verify project files.
+  3. `Build Backend Image`: Builds the Docker image for the FastAPI backend.
+  4. `Build Frontend Image`: Builds the Docker image for the React frontend.
+  5. `Login to Docker Hub`: Authenticates using Jenkins credentials.
+  6. `Push Images`: Pushes the built images to Docker Hub (tagged with build number and `latest`).
+  7. `Deploy to EC2`: Connects to the EC2 instance via SSH and deploys the new images.
+
+### Deployment Method
+The Jenkins pipeline connects to the production EC2 instance over SSH. It navigates to the project directory, pulls the latest Docker images from Docker Hub, and spins them up using Docker Compose. Finally, it executes database migrations.
+
+### EC2 Deploy Command
+The core command executed on the EC2 instance during deployment is:
+```bash
+ssh -o StrictHostKeyChecking=no <EC2_USER>@<EC2_HOST> "
+    cd <EC2_PROJECT_DIR> &&
+    docker compose -f docker-compose.rds.yml pull &&
+    docker compose -f docker-compose.rds.yml up -d &&
+    docker compose -f docker-compose.rds.yml exec -T api alembic upgrade head &&
+    docker image prune -f
+"
+```
+
+### Rollback Method
+To perform a rollback:
+1. **Via Jenkins**: Re-run a previously successful Jenkins build pipeline.
+2. **Manual Rollback**: SSH into the EC2 instance, modify the `.env` or `docker-compose.rds.yml` to point to a previous, known-good image tag, and re-run `docker compose -f docker-compose.rds.yml up -d`.
+
+---
+
 ## License
 
 All rights reserved. AssembleMonitor by The Great MD.
