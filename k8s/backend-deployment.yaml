@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: assemblemonitor
+  labels:
+    app: backend
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+      - name: backend
+        image: fire2686/assemblemonitor-backend:7
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 8000
+
+        envFrom:
+        - configMapRef:
+            name: assemblemonitor-config
+        - secretRef:
+            name: assemblemonitor-secret
+
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

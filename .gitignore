@@ -75,3 +75,7 @@ docs/
 
 backend/uploads/
 uploads/
+
+#kubernetes
+secret.yaml
+k8s/secret.yaml
