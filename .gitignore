@@ -49,6 +49,7 @@ override.tf.json
 *_override.tf.json
 
 # Kubernetes secrets
+secret.yaml
 k8s/secret.yaml
 *kubeconfig*
 *.kubeconfig
@@ -85,7 +86,22 @@ Thumbs.db
 
 # Docs
 docs/
-<<<<<<< HEAD
+
+# Package Manager Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / Coverage Data
+coverage/
+.coverage
+htmlcov/
+.nyc_output/
+
+# MacOS
+._*
+.AppleDouble
 
 backend/uploads/
 uploads/
@@ -93,5 +109,3 @@ uploads/
 #kubernetes
 secret.yaml
 k8s/secret.yaml
-=======
->>>>>>> 9c4e7c7 (updated gitignore and docker rds yaml file)
