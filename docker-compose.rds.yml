@@ -1,6 +1,6 @@
 services:
   api:
-    image: fire2686/assemblemonitor-backend:v1
+    image: fire2686/assemblemonitor-backend:7
     container_name: AM_Backend
     restart: unless-stopped
     env_file:
@@ -15,7 +15,7 @@ services:
       - assemblemonitor_net
 
   frontend:
-    image: fire2686/assemblemonitor-frontend:v1
+    image: fire2686/assemblemonitor-frontend:7
     container_name: AM_Frontend
     restart: unless-stopped
     ports:

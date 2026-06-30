@@ -18,6 +18,12 @@ terraform.tfvars
 *.tfvars
 *.tfvars.json
 
+# AWS / SSH keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+
 backend/.venv.venv/
 backend/.venv/
 
@@ -42,10 +48,17 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Kubernetes secrets
+k8s/secret.yaml
+*kubeconfig*
+*.kubeconfig
+
 # Docker / local volumes
 docker-data/
 postgres-data/
 pgdata/
+backend/uploads/
+uploads/
 
 # Logs & temp files
 *.log
@@ -70,8 +83,9 @@ Thumbs.db
 *.swp
 *.swo
 
-#docs
+# Docs
 docs/
+<<<<<<< HEAD
 
 backend/uploads/
 uploads/
@@ -79,3 +93,5 @@ uploads/
 #kubernetes
 secret.yaml
 k8s/secret.yaml
+=======
+>>>>>>> 9c4e7c7 (updated gitignore and docker rds yaml file)
