@@ -23,6 +23,8 @@ from app.core.config import settings
 from app.db.session import engine
 from app.routers import auth, health, projects, tasks, users, phases, materials, attendance, expenses, site_photos, analytics, admin, notifications
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -70,6 +72,9 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         lifespan=lifespan,
     )
+
+    # Add Prometheus instrumentation
+    Instrumentator().instrument(app).expose(app)
 
     # ---- CORS ---------------------------------------------------------------
     app.add_middleware(

@@ -33,6 +33,10 @@ python-slugify==8.0.4
 pillow==12.2.0                     # image processing (photo uploads)
 boto3==1.36.19                     # AWS S3 client
 
+#Prometheus metric url
+prometheus-fastapi-instrumentator
+
+
 # ============================================================
 # Development / testing (install separately via requirements-dev.txt)
 # ============================================================
