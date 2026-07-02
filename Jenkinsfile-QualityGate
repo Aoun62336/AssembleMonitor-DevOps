@@ -1,0 +1,173 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_USERNAME = 'fire2686'
+
+        BACKEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-backend"
+        FRONTEND_IMAGE = "${DOCKERHUB_USERNAME}/assemblemonitor-frontend"
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
+
+        EC2_HOST = 'YOUR_EC2_PUBLIC_IP'
+        EC2_USER = 'ubuntu'
+        EC2_PROJECT_DIR = '/home/ubuntu/AssembleMonitor-DevOps'
+        APP_HEALTH_URL = "http://${EC2_HOST}/api/health"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Show Build Info') {
+            steps {
+                sh '''
+                    echo "===== Build Information ====="
+                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Frontend Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Workspace:"
+                    pwd
+                    echo "Files:"
+                    ls -la
+                '''
+            }
+        }
+
+        stage('Backend Compile Check') {
+            steps {
+                sh '''
+                    echo "===== Backend Compile Check ====="
+
+                    docker build \
+                      -t assemblemonitor-backend-compile-check:${IMAGE_TAG} \
+                      ./backend
+
+                    docker run --rm \
+                      assemblemonitor-backend-compile-check:${IMAGE_TAG} \
+                      python -m compileall app
+                '''
+            }
+        }
+
+        stage('Frontend Build Check') {
+            steps {
+                sh '''
+                    echo "===== Frontend Build Check ====="
+
+                    docker build \
+                      -t assemblemonitor-frontend-build-check:${IMAGE_TAG} \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Build Backend Image') {
+            steps {
+                sh '''
+                    echo "===== Building Backend Image ====="
+
+                    docker build \
+                      -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${BACKEND_IMAGE}:latest \
+                      ./backend
+                '''
+            }
+        }
+
+        stage('Build Frontend Image') {
+            steps {
+                sh '''
+                    echo "===== Building Frontend Image ====="
+
+                    docker build \
+                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${FRONTEND_IMAGE}:latest \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    sh '''
+                        echo "===== Docker Hub Login ====="
+                        echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                sh '''
+                    echo "===== Pushing Images ====="
+
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        echo "===== Deploying to EC2 ====="
+
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                            cd ${EC2_PROJECT_DIR} &&
+                            docker compose -f docker-compose.rds.yml pull &&
+                            docker compose -f docker-compose.rds.yml up -d &&
+                            docker compose -f docker-compose.rds.yml exec -T api alembic upgrade head &&
+                            docker image prune -f
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Post Deployment Health Check') {
+            steps {
+                sh '''
+                    echo "===== Post Deployment Health Check ====="
+
+                    echo "Waiting for app to become ready..."
+                    sleep 20
+
+                    curl -f ${APP_HEALTH_URL}
+
+                    echo "Health check passed: ${APP_HEALTH_URL}"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI/CD pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'CI/CD pipeline failed. Check the failed stage logs.'
+        }
+
+        always {
+            sh '''
+                docker logout || true
+                docker image prune -f || true
+            '''
+        }
+    }
+}
