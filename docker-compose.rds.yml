@@ -1,6 +1,6 @@
 services:
   api:
-    image: fire2686/assemblemonitor-backend:7
+    image: fire2686/assemblemonitor-backend:latest
     container_name: AM_Backend
     restart: unless-stopped
     env_file:

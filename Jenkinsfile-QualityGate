@@ -9,7 +9,7 @@ pipeline {
 
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        EC2_HOST = 'YOUR_EC2_PUBLIC_IP'
+        EC2_HOST = '34.227.58.171'
         EC2_USER = 'ubuntu'
         EC2_PROJECT_DIR = '/home/ubuntu/AssembleMonitor-DevOps'
         APP_HEALTH_URL = "http://${EC2_HOST}/api/health"
