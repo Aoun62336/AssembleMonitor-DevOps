@@ -28,8 +28,7 @@ scrape_configs:
       - targets: ["localhost:9100"]
         labels:
           instance_name: "prometheus-server"
-      # Removed: 34.228.71.80:9100 — same machine, self-scrape via public IP doesn't work on AWS
-
+      
   - job_name: "assemblemonitor_backend"
     scrape_interval: 10s
     static_configs:
