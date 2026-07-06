@@ -1,4 +1,4 @@
-# AssembleMonitor — DevOps Enabled Construction Site Management System
+# AssembleMonitor — Cloud-Native Construction Site Management System
 
 ## Overview
 
