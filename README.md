@@ -1,167 +1,161 @@
-# AssembleMonitor
+# AssembleMonitor — DevOps Enabled Construction Site Management System
 
-AssembleMonitor is a smart construction site management platform designed to track projects, manage tasks, monitor inventory, oversee expenses, and capture site photos.
+AssembleMonitor is a full-stack construction site management system built with a FastAPI backend, PostgreSQL database, AWS S3 file storage, and a Vite/React-based frontend. The project was enhanced with end-to-end DevOps practices including Docker, Docker Compose, AWS deployment, RDS, Nginx reverse proxy, Jenkins CI/CD, Terraform IaC, Kubernetes manifests, monitoring, security hardening, backup planning, and cost optimization.
 
----
+## Project Objective
 
-## Directory Structure
+The goal of this project is to demonstrate practical DevOps implementation on a real full-stack application instead of a sample or dummy app. The system was containerized, deployed on a multi-server AWS architecture, connected to managed cloud services, automated through Jenkins, and documented for operational readiness.
+
+## Application Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, Vanilla JavaScript, React/Vite for routing |
+| Backend | Python FastAPI |
+| Database | PostgreSQL |
+| ORM/Migrations | SQLAlchemy, Alembic |
+| Storage | AWS S3 |
+| Authentication | JWT |
+| Web Server / Proxy | Nginx |
+
+## DevOps Tech Stack
+
+| Area | Tools |
+|---|---|
+| Version Control | Git, GitHub |
+| Containerization | Docker |
+| Local Orchestration | Docker Compose |
+| Image Registry | Docker Hub |
+| Cloud Platform | AWS |
+| Compute | AWS EC2 (Multiple c7i-flex.large servers) |
+| Managed Database | AWS RDS PostgreSQL |
+| Object Storage | AWS S3 |
+| Reverse Proxy | Nginx |
+| CI/CD | Jenkins |
+| Infrastructure as Code | Terraform |
+| Kubernetes | Kubernetes manifests |
+| Monitoring | Prometheus, Grafana, Node Exporter, Docker logs, Nginx logs |
+| Testing | k6 performance tests, CI quality gates |
+
+## DevOps Implementation Summary
+
+- Containerized FastAPI backend and Vite/React frontend using Docker.
+- Created Docker Compose setup for local full-stack development.
+- Pushed backend and frontend images to Docker Hub.
+- Deployed a multi-server architecture on AWS EC2 (Jenkins Server, App/Monitoring Server, Kubernetes Server).
+- Migrated PostgreSQL database from container to AWS RDS.
+- Integrated AWS S3 for site photo/file storage.
+- Configured Nginx reverse proxy for clean access through port 80.
+- Created Jenkins CI/CD pipeline for Docker build, push, deployment, migration, and health checks on a dedicated CI/CD server.
+- Prepared Terraform configuration for EC2 instances, RDS, S3, and security groups.
+- Created Kubernetes manifests for frontend/backend deployments, services, ConfigMap, and Secrets.
+- Added comprehensive monitoring with Prometheus, Grafana, and Node Exporter alongside logging, troubleshooting, backup, rollback, security, performance, and cost optimization documentation.
+
+## Architecture
+
+The cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns.
 
 ```text
-AssembleMonitor/
-├── backend/
-├── frontend/
-├── docs/
-├── k8s/
-├── terraform/
-└── Jenkinsfile
+User Browser
+    |
+    v
+App Server EC2 Public IP / Nginx Reverse Proxy :80
+    |
+    ├── Frontend Container
+    |
+    ├── Backend FastAPI Container
+    |       |
+    |       ├── AWS RDS PostgreSQL
+    |       └── AWS S3 Bucket
+    |
+    └── Native System Services (Prometheus, Grafana, Node Exporter)
+
+Jenkins Server EC2
+    └── CI/CD Automation (Build, Push, SSH Deploy to App Server)
+
+Kubernetes Server EC2
+    └── K8s Orchestration (Frontend/Backend Deployments, Services)
 ```
 
-* **`backend/`** — High-performance REST API built with FastAPI, SQLAlchemy, and PostgreSQL.
-* **`frontend/`** — Modern and responsive user interface built with React and Vite.
-* **`docs/`** — Project documentation and database schemas.
-* **`k8s/`** — Kubernetes manifests for container orchestration.
-* **`terraform/`** — Infrastructure as Code (IaC) for cloud resource provisioning.
-* **`Jenkinsfile`** — CI/CD automation pipeline.
+## Local Docker Setup
 
----
-
-## Prerequisites
-
-Ensure you have the following installed:
-* **Docker & Docker Compose** (Recommended containerized setup)
-* **Node.js (v18+) & npm** (Optional: for local frontend development outside containers)
-* **Python (v3.11+) & PostgreSQL (v14+)** (Optional: for local backend development outside containers)
-
----
-
-## Setup & Execution
-
-### 1. Environment Configuration
-
-* **Root Directory (`.env`):**
-  Create a `.env` file at the project root for container runtime variables:
-  ```env
-  POSTGRES_USER=your_postgres_user
-  POSTGRES_PASSWORD=your_secure_password
-  POSTGRES_PASSWORD_ENCODED=your_secure_password_url_encoded
-  POSTGRES_DB=your_database_name
-  ```
-
-* **Backend Directory (`backend/.env`):**
-  Create the backend configuration file from the template:
-  ```bash
-  # Windows
-  copy backend\.env.example backend\.env
-
-  # macOS / Linux
-  cp backend/.env.example backend/.env
-  ```
-  *(Open `backend/.env` and update credentials such as DB URL, S3 credentials, and JWT keys).*
-
----
-
-### 2. Run with Docker Compose
-
-Build, start, and initialize the stack in a single sequence of commands:
+For local development, use Docker Compose:
 
 ```bash
-# 1. Start all containers in the background
 docker compose up --build -d
-
-# 2. Apply database migrations
-docker exec -it assemblemonitor_api alembic upgrade head
-
-# 3. Seed default admin credentials
-docker exec -it assemblemonitor_api python seed_admin.py
 ```
 
----
+- **Backend Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Adminer**: [http://localhost:8080](http://localhost:8080)
 
-## Service Endpoints
+## AWS Deployment
 
-Once the services are active, the following endpoints are available:
+The application is deployed on AWS using a multi-server approach:
+- **App Server**: EC2 instance running Docker Compose for the Frontend, Backend, and Nginx. Prometheus, Grafana, and Node Exporter run as native systemd services on this server.
+- **RDS**: Managed PostgreSQL database.
+- **S3**: File storage for uploads.
 
-| Service | Port | Endpoint URL |
-| :--- | :--- | :--- |
-| **Frontend UI** | `3000` | [http://localhost:3000](http://localhost:3000) |
-| **Backend API** | `8000` | [http://localhost:8000](http://localhost:8000) |
-| **API Documentation** | `8000` | [http://localhost:8000/api/docs](http://localhost:8000/api/docs) |
-| **Adminer (Database GUI)** | `8080` | [http://localhost:8080](http://localhost:8080) |
-| **PostgreSQL Database** | `5432` | `localhost:5432` |
+Public access: `http://APP_SERVER_EC2_PUBLIC_IP`
+Health check: `http://APP_SERVER_EC2_PUBLIC_IP/api/health`
 
----
+## CI/CD Pipeline
 
-## Management Operations
+Jenkins is hosted on its own dedicated EC2 server. The pipeline stages include:
+- Checkout source code
+- Backend compile check & Frontend build validation
+- Docker image build
+- Docker Hub login & Push backend/frontend images
+- SSH deployment to the App Server EC2
+- Alembic migration
+- Post-deployment health check
 
-### Stopping Services
-To stop running containers and preserve data:
-```bash
-docker compose down
-```
+## Infrastructure as Code
 
-### Resetting the Database
-To purge all data, reset database schemas, and seed a clean instance:
-```bash
-# Stop containers and delete volumes
-docker compose down -v
+Terraform configuration provisions:
+- Multiple EC2 instances
+- Security groups
+- RDS PostgreSQL
+- S3 bucket
 
-# Start services
-docker compose up -d
+Terraform is validated using `terraform init`, `terraform fmt`, `terraform validate`, and `terraform plan`.
 
-# Run migrations and seed admin user
-docker exec -it assemblemonitor_api alembic upgrade head
-docker exec -it assemblemonitor_api python seed_admin.py
-```
+## Kubernetes Deployment
 
----
+While the main app currently runs via Docker Compose on the App Server, it is also fully containerized for Kubernetes. The setup can be seamlessly launched on the dedicated K8s Server. Manifests are provided for Deployments, Services, ConfigMaps, and Secrets.
 
-## Tech Stack
+## Monitoring and Logging
 
-* **Backend:** FastAPI, SQLAlchemy 2.0, Alembic, python-jose, bcrypt
-* **Frontend:** React 18, Vite, React Router v6, Chart.js, Vanilla CSS
-* **DevOps:** Docker, Docker Compose, Kubernetes, Terraform, Jenkins
+The monitoring stack includes:
+- **Prometheus** for metrics collection.
+- **Grafana** for visualizations and dashboards.
+- **Node Exporter** for server-level metrics.
+- Logs are managed via Docker logs and Nginx access/error logs.
 
----
+## Security Practices
 
-## CI/CD Pipeline (Jenkins)
+Security is enforced through IAM restrictions, private RDS access, restricted EC2 security groups, Jenkins credential management, exclusion of secrets from Git, and S3 Block Public Access. Detailed in `docs/SECURITY_CHECKLIST.md`.
 
-This project uses Jenkins for continuous integration and continuous deployment.
+## Backup and Rollback
 
-* **Jenkins URL**: `[Insert Jenkins URL]`
-* **Docker Hub Images**:
-  * Backend: `<your-dockerhub-username>/assemblemonitor-backend`
-  * Frontend: `<your-dockerhub-username>/assemblemonitor-frontend`
-* **Pipeline Stages**:
-  1. `Checkout`: Pulls the latest code from the repository.
-  2. `Show Workspace`: Debug stage to verify project files.
-  3. `Build Backend Image`: Builds the Docker image for the FastAPI backend.
-  4. `Build Frontend Image`: Builds the Docker image for the React frontend.
-  5. `Login to Docker Hub`: Authenticates using Jenkins credentials.
-  6. `Push Images`: Pushes the built images to Docker Hub (tagged with build number and `latest`).
-  7. `Deploy to EC2`: Connects to the EC2 instance via SSH and deploys the new images.
+Rollbacks can be performed manually by changing image tags in `docker-compose.rds.yml` or via Jenkins by redeploying a previous build. Backups are managed using RDS snapshots and manual `pg_dump`. Detailed in `docs/BACKUP_RECOVERY.md` and `docs/ROLLBACK_PLAN.md`.
 
-### Deployment Method
-The Jenkins pipeline connects to the production EC2 instance over SSH. It navigates to the project directory, pulls the latest Docker images from Docker Hub, and spins them up using Docker Compose. Finally, it executes database migrations.
+## Performance Testing
 
-### EC2 Deploy Command
-The core command executed on the EC2 instance during deployment is:
-```bash
-ssh -o StrictHostKeyChecking=no <EC2_USER>@<EC2_HOST> "
-    cd <EC2_PROJECT_DIR> &&
-    docker compose -f docker-compose.rds.yml pull &&
-    docker compose -f docker-compose.rds.yml up -d &&
-    docker compose -f docker-compose.rds.yml exec -T api alembic upgrade head &&
-    docker image prune -f
-"
-```
+Performance and load testing are conducted using `k6` against key endpoints (Health, Frontend, Login). Details in `docs/PERFORMANCE_TESTING.md`.
 
-### Rollback Method
-To perform a rollback:
-1. **Via Jenkins**: Re-run a previously successful Jenkins build pipeline.
-2. **Manual Rollback**: SSH into the EC2 instance, modify the `.env` or `docker-compose.rds.yml` to point to a previous, known-good image tag, and re-run `docker compose -f docker-compose.rds.yml up -d`.
+## Cost Optimization
 
----
+AWS costs are minimized by actively stopping idle EC2 instances, managing RDS snapshots, releasing unused Elastic IPs, and utilizing AWS Budget alerts. Details in `docs/COST_OPTIMIZATION.md`.
 
-## License
+## Screenshots
 
-All rights reserved. AssembleMonitor by The Great MD.
+Please see `docs/SCREENSHOTS.md` for a visual overview of the application, Jenkins pipelines, Kubernetes pods, AWS resources, and Grafana monitoring dashboards.
+
+## Project Status
+
+This project is built as a practical DevOps portfolio project for learning, college demonstration, and fresher Cloud/DevOps Engineer job preparation. It is fully operational and demo-ready.
+
+## Resume Highlights
+
+Please see `docs/RESUME_POINTS.md` for resume-ready bullet points highlighting the comprehensive DevOps achievements in this project.
