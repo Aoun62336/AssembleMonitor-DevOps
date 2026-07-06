@@ -61,6 +61,11 @@ pgdata/
 backend/uploads/
 uploads/
 
+# Database backups
+*.sql
+db-backups/
+backups/
+
 # Logs & temp files
 *.log
 migration_log.txt
@@ -84,9 +89,6 @@ Thumbs.db
 *.swp
 *.swo
 
-# Docs
-docs/
-
 # Package Manager Logs
 npm-debug.log*
 yarn-debug.log*
@@ -103,9 +105,5 @@ htmlcov/
 ._*
 .AppleDouble
 
-backend/uploads/
-uploads/
-
-#kubernetes
-secret.yaml
-k8s/secret.yaml
+# Docs (Temporarily Ignored)
+docs/
