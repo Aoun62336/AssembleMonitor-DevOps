@@ -2,55 +2,51 @@
 
 ## Overview
 
-AssembleMonitor is a full-stack construction site management system built with a FastAPI backend, PostgreSQL database, AWS S3 file storage, and a Vite/React-based frontend. The primary goal of this project is to demonstrate practical, end-to-end DevOps implementation on a real application, moving from local containers to a distributed, highly-available cloud architecture.
+AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate enterprise-grade DevOps and Cloud practices. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed on AWS. 
 
 ## DevOps Implementation
 
-This project demonstrates end-to-end DevOps practices on a real full-stack application:
+This project was built from the ground up with a focus on automation, scalability, and observability, implementing the following core DevOps practices:
 
-- Dockerized the FastAPI backend and Vite/React frontend.
-- Created a Docker Compose setup for local development.
-- Pushed Docker images to Docker Hub.
-- Deployed containers across a multi-server AWS EC2 architecture (`c7i-flex.large`).
-- Used AWS RDS PostgreSQL for a managed, scalable database.
-- Used AWS S3 for secure object and file storage.
-- Configured an Nginx reverse proxy.
-- Implemented a Jenkins CI/CD pipeline for automated testing and deployment.
-- Prepared Terraform IaC configuration for infrastructure provisioning.
-- Created Kubernetes manifests for orchestration practice.
-- Added comprehensive monitoring (Prometheus, Grafana, Node Exporter) natively on the App Server.
-- Configured security, backup, rollback, performance testing, and cost optimization documentation.
+- **Cloud Infrastructure**: Architected a distributed microservices environment across optimized AWS EC2 compute nodes (`c7i-flex.large`).
+- **Database Decoupling**: Integrated a highly available AWS RDS PostgreSQL instance to decouple database state and ensure reliable data persistence.
+- **Storage**: Implemented AWS S3 for secure, scalable object storage (e.g., site photos).
+- **Traffic Routing**: Configured Nginx as an edge reverse proxy to route external traffic securely to backend containers.
+- **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The pipeline is auto-triggered via GitHub Webhooks to build, test, and deploy seamlessly.
+- **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (EC2, Security Groups, RDS, S3) using Terraform.
+- **Container Orchestration**: Orchestrated the full-stack application using Kubernetes, leveraging Deployments, Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
+- **Observability**: Deployed Prometheus, Grafana, and Node Exporter natively on the App Server to achieve deep, centralized system and application monitoring.
 
 ## Features
 
-- **Role-Based Access Control**: Separate dashboards for Admin, Project Manager, Site Engineer, and Client.
+- **Role-Based Access Control (RBAC)**: Secure, distinct dashboards for Admins, Project Managers, Site Engineers, and Clients.
 - **Phase & Task Management**: Break down construction projects into trackable phases and executable tasks.
-- **Material Management**: Track inventory deliveries, stock levels, and daily usage.
-- **Site Photos**: Direct upload of construction progress photos to AWS S3.
+- **Material Management**: Monitor inventory deliveries, stock levels, and daily resource consumption.
+- **Site Photos**: Direct, secure upload of construction progress photos to AWS S3.
 - **Attendance & Expenses**: Track engineer working hours and log non-material project expenses.
 
 ## Application Tech Stack
 
-- **Frontend**: HTML, CSS, Vanilla JavaScript, React/Vite
-- **Backend**: Python FastAPI, SQLAlchemy, Alembic
+- **Frontend**: React, Vite, HTML, CSS, Vanilla JavaScript
+- **Backend API**: Python FastAPI, SQLAlchemy, Alembic (Migrations)
 - **Database**: PostgreSQL (AWS RDS)
 - **Storage**: AWS S3
-- **Authentication**: JWT Auth
+- **Authentication**: JWT (JSON Web Tokens)
 - **Reverse Proxy**: Nginx
 
 ## DevOps Tech Stack
 
 - **Containerization**: Docker, Docker Compose, Docker Hub
-- **Cloud Platform**: AWS (EC2, RDS, S3, Security Groups, IAM)
-- **CI/CD**: Jenkins
+- **Cloud Provider**: AWS (EC2, RDS, S3, Security Groups, IAM)
+- **CI/CD Automation**: Jenkins, GitHub Webhooks
 - **Infrastructure as Code**: Terraform
-- **Orchestration**: Kubernetes
-- **Monitoring & Observability**: Prometheus, Grafana, Node Exporter
+- **Orchestration**: Kubernetes (K8s)
+- **Observability**: Prometheus, Grafana, Node Exporter
 - **Performance Testing**: k6
 
 ## Architecture
 
-The cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns safely.
+The production cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns, isolate workloads, and maximize security.
 
 ```text
 User Browser
@@ -58,25 +54,25 @@ User Browser
     v
 App Server EC2 Public IP / Nginx Reverse Proxy :80
     |
-    ├── Frontend Container
+    ├── Frontend Container (React)
     |
-    ├── Backend FastAPI Container
+    ├── Backend API Container (FastAPI)
     |       |
-    |       ├── AWS RDS PostgreSQL
-    |       └── AWS S3 Bucket
+    |       ├── AWS RDS PostgreSQL (Managed Database)
+    |       └── AWS S3 Bucket (Object Storage)
     |
-    └── Native System Services (Prometheus, Grafana, Node Exporter)
+    └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
 
 Jenkins Server EC2
-    └── CI/CD Automation (Build, Push, SSH Deploy to App Server)
+    └── CI/CD Automation (Auto-triggered via Webhooks -> Build, Push, SSH Deploy)
 
 Kubernetes Server EC2
-    └── K8s Orchestration (Frontend/Backend Deployments, Services)
+    └── K8s Orchestration (Frontend/Backend Deployments, ConfigMaps, Secrets, Probes)
 ```
 
-## Local Setup
+## Local Development Environment
 
-For local development, use the provided Docker Compose setup:
+For rapid local testing and development, the application utilizes a streamlined Docker Compose environment:
 
 ```bash
 docker compose up --build -d
@@ -89,60 +85,63 @@ docker compose exec api alembic upgrade head
 
 ## AWS Deployment
 
-The application is deployed on AWS using a robust multi-server approach:
-- **App Server**: An EC2 instance running Docker Compose for the Frontend, Backend, and Nginx. Prometheus, Grafana, and Node Exporter run as native systemd services on this server for performance.
-- **RDS**: Managed PostgreSQL database allowing decoupled state management.
-- **S3**: Secure file storage for uploads.
+The application utilizes a multi-node AWS deployment strategy:
+- **App Server**: A powerful EC2 node running the primary Frontend, Backend, and Nginx containers. To minimize overhead and maximize visibility, Prometheus, Grafana, and Node Exporter are installed natively as systemd services on this host.
+- **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management.
+- **S3**: Secure file storage utilizing IAM roles and policies to govern upload access.
 
 ## CI/CD Pipeline
 
-Jenkins is hosted on its own dedicated EC2 server. The pipeline automates:
-1. Source code checkout
-2. Code compilation and frontend build validation
-3. Docker image building (Backend & Frontend)
-4. Docker Hub authentication and image pushing
-5. SSH deployment to the App Server EC2
-6. Alembic database migration execution
-7. Post-deployment health checks
+A dedicated Jenkins server powers the automated CI/CD lifecycle. Triggered by GitHub Webhooks on every push, the pipeline executes:
+1. Source code checkout and validation.
+2. Building Frontend assets and Backend Python environments.
+3. Building immutable Docker images and pushing them to Docker Hub.
+4. Secure SSH deployment to the live App Server.
+5. Automated Alembic database schema migrations.
+6. Post-deployment health checks to ensure service stability.
 
 ## Terraform IaC
 
-Terraform configuration is prepared to automate the provisioning of:
-- Multiple EC2 instances
-- Security groups
-- RDS PostgreSQL
-- S3 bucket
+Terraform is actively utilized to codify and automate the provisioning of the entire AWS environment, including:
+- Stateful and stateless EC2 instances
+- Strict Security Group rules
+- The RDS PostgreSQL database
+- The S3 Bucket
 
 ## Kubernetes
 
-While the live app runs via Docker Compose on the App Server, it is also fully containerized for Kubernetes. Manifests (Deployments, Services, ConfigMaps, Secrets) are provided to seamlessly launch the stack on the dedicated K8s Server.
+While the application can run in a streamlined Docker Compose setup, it is fully architected for Kubernetes. Manifests provided in the `k8s/` directory leverage advanced orchestration features:
+- **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods.
+- **Self-Healing**: Configured `livenessProbe` and `readinessProbe` to automatically restart unhealthy containers and drop them from the traffic pool.
+- **Resource Management**: Implemented CPU/Memory requests and limits (`requests: 100m, limits: 500m`) to prevent node starvation.
+- **Configuration Management**: Decoupled environment variables via ConfigMaps and Secrets.
 
 ## Monitoring and Operations
 
-- **Prometheus**: Metrics collection.
-- **Grafana**: Visualizations and dashboards.
-- **Node Exporter**: Server-level metrics.
-- Monitoring services are installed natively on the EC2 instances. Configuration files are version-controlled in the `monitoring/` directory.
+- **Prometheus**: Aggregates time-series metrics from both the application and the underlying infrastructure.
+- **Grafana**: Provides centralized visual dashboards for real-time alerting and deep system introspection.
+- **Node Exporter**: Exposes deep hardware and OS-level metrics.
+- *Configuration files (`prometheus.yml`, `grafana.ini`, `systemd` services) are version-controlled in the `monitoring/` directory following Configuration as Code best practices.*
 
 ## Security and Cost Optimization
 
-- **Security**: Enforced through IAM restrictions, private RDS access, restricted EC2 security groups, Jenkins credential management, and S3 Block Public Access.
-- **Cost**: Optimized by actively stopping idle EC2 instances, managing RDS snapshots, releasing unused Elastic IPs, and utilizing AWS Budget alerts.
+- **Security**: Enforced through least-privilege IAM roles, private RDS network isolation, strictly scoped EC2 security groups, secure Jenkins credential injection, and S3 Block Public Access.
+- **Cost**: Actively optimized by suspending idle EC2 instances, managing RDS snapshot retention, releasing unused Elastic IPs, and configuring granular AWS Budget alerts.
 
 ## Screenshots
 
-Please see the `docs/screenshots/` directory and `docs/SCREENSHOTS.md` for visual proof of the application, CI/CD pipelines, Kubernetes pods, AWS resources, and Grafana monitoring dashboards.
+Please see the `docs/screenshots/` directory and `docs/SCREENSHOTS.md` for visual proof of the application UI, Jenkins CI/CD pipeline executions, Kubernetes pod statuses, AWS resource topology, and Grafana monitoring dashboards.
 
 ## Documentation
 
-Extensive operational documentation can be found in the `docs/` folder:
-- Architecture Details
-- CI/CD Pipelines
-- Deployment Guides
-- Terraform & Kubernetes setups
-- Security Checklists
-- Backup & Rollback plans
+Extensive operational runbooks and architectural documentation can be found in the `docs/` folder:
+- Architecture Design Details
+- CI/CD Pipeline Flows
+- Step-by-Step Deployment Guides
+- Terraform & Kubernetes Initialization
+- Security & Hardening Checklists
+- Backup, Restore & Rollback Plans
 
 ## Resume Highlights
 
-Please see `docs/RESUME_POINTS.md` for strong, action-oriented bullet points tailored for a Cloud/DevOps Engineer resume based on this project.
+Please refer to `docs/RESUME_POINTS.md` for high-impact, quantifiable bullet points tailored for Cloud and DevOps Engineering resumes based on this infrastructure.
