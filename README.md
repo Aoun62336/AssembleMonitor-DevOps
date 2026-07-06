@@ -1,59 +1,56 @@
 # AssembleMonitor — DevOps Enabled Construction Site Management System
 
-AssembleMonitor is a full-stack construction site management system built with a FastAPI backend, PostgreSQL database, AWS S3 file storage, and a Vite/React-based frontend. The project was enhanced with end-to-end DevOps practices including Docker, Docker Compose, AWS deployment, RDS, Nginx reverse proxy, Jenkins CI/CD, Terraform IaC, Kubernetes manifests, monitoring, security hardening, backup planning, and cost optimization.
+## Overview
 
-## Project Objective
+AssembleMonitor is a full-stack construction site management system built with a FastAPI backend, PostgreSQL database, AWS S3 file storage, and a Vite/React-based frontend. The primary goal of this project is to demonstrate practical, end-to-end DevOps implementation on a real application, moving from local containers to a distributed, highly-available cloud architecture.
 
-The goal of this project is to demonstrate practical DevOps implementation on a real full-stack application instead of a sample or dummy app. The system was containerized, deployed on a multi-server AWS architecture, connected to managed cloud services, automated through Jenkins, and documented for operational readiness.
+## DevOps Implementation
+
+This project demonstrates end-to-end DevOps practices on a real full-stack application:
+
+- Dockerized the FastAPI backend and Vite/React frontend.
+- Created a Docker Compose setup for local development.
+- Pushed Docker images to Docker Hub.
+- Deployed containers across a multi-server AWS EC2 architecture (`c7i-flex.large`).
+- Used AWS RDS PostgreSQL for a managed, scalable database.
+- Used AWS S3 for secure object and file storage.
+- Configured an Nginx reverse proxy.
+- Implemented a Jenkins CI/CD pipeline for automated testing and deployment.
+- Prepared Terraform IaC configuration for infrastructure provisioning.
+- Created Kubernetes manifests for orchestration practice.
+- Added comprehensive monitoring (Prometheus, Grafana, Node Exporter) natively on the App Server.
+- Configured security, backup, rollback, performance testing, and cost optimization documentation.
+
+## Features
+
+- **Role-Based Access Control**: Separate dashboards for Admin, Project Manager, Site Engineer, and Client.
+- **Phase & Task Management**: Break down construction projects into trackable phases and executable tasks.
+- **Material Management**: Track inventory deliveries, stock levels, and daily usage.
+- **Site Photos**: Direct upload of construction progress photos to AWS S3.
+- **Attendance & Expenses**: Track engineer working hours and log non-material project expenses.
 
 ## Application Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | HTML, CSS, Vanilla JavaScript, React/Vite for routing |
-| Backend | Python FastAPI |
-| Database | PostgreSQL |
-| ORM/Migrations | SQLAlchemy, Alembic |
-| Storage | AWS S3 |
-| Authentication | JWT |
-| Web Server / Proxy | Nginx |
+- **Frontend**: HTML, CSS, Vanilla JavaScript, React/Vite
+- **Backend**: Python FastAPI, SQLAlchemy, Alembic
+- **Database**: PostgreSQL (AWS RDS)
+- **Storage**: AWS S3
+- **Authentication**: JWT Auth
+- **Reverse Proxy**: Nginx
 
 ## DevOps Tech Stack
 
-| Area | Tools |
-|---|---|
-| Version Control | Git, GitHub |
-| Containerization | Docker |
-| Local Orchestration | Docker Compose |
-| Image Registry | Docker Hub |
-| Cloud Platform | AWS |
-| Compute | AWS EC2 (Multiple c7i-flex.large servers) |
-| Managed Database | AWS RDS PostgreSQL |
-| Object Storage | AWS S3 |
-| Reverse Proxy | Nginx |
-| CI/CD | Jenkins |
-| Infrastructure as Code | Terraform |
-| Kubernetes | Kubernetes manifests |
-| Monitoring | Prometheus, Grafana, Node Exporter, Docker logs, Nginx logs |
-| Testing | k6 performance tests, CI quality gates |
-
-## DevOps Implementation Summary
-
-- Containerized FastAPI backend and Vite/React frontend using Docker.
-- Created Docker Compose setup for local full-stack development.
-- Pushed backend and frontend images to Docker Hub.
-- Deployed a multi-server architecture on AWS EC2 (Jenkins Server, App/Monitoring Server, Kubernetes Server).
-- Migrated PostgreSQL database from container to AWS RDS.
-- Integrated AWS S3 for site photo/file storage.
-- Configured Nginx reverse proxy for clean access through port 80.
-- Created Jenkins CI/CD pipeline for Docker build, push, deployment, migration, and health checks on a dedicated CI/CD server.
-- Prepared Terraform configuration for EC2 instances, RDS, S3, and security groups.
-- Created Kubernetes manifests for frontend/backend deployments, services, ConfigMap, and Secrets.
-- Added comprehensive monitoring with Prometheus, Grafana, and Node Exporter alongside logging, troubleshooting, backup, rollback, security, performance, and cost optimization documentation.
+- **Containerization**: Docker, Docker Compose, Docker Hub
+- **Cloud Platform**: AWS (EC2, RDS, S3, Security Groups, IAM)
+- **CI/CD**: Jenkins
+- **Infrastructure as Code**: Terraform
+- **Orchestration**: Kubernetes
+- **Monitoring & Observability**: Prometheus, Grafana, Node Exporter
+- **Performance Testing**: k6
 
 ## Architecture
 
-The cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns.
+The cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns safely.
 
 ```text
 User Browser
@@ -77,85 +74,75 @@ Kubernetes Server EC2
     └── K8s Orchestration (Frontend/Backend Deployments, Services)
 ```
 
-## Local Docker Setup
+## Local Setup
 
-For local development, use Docker Compose:
+For local development, use the provided Docker Compose setup:
 
 ```bash
 docker compose up --build -d
+docker compose exec api alembic upgrade head
 ```
 
-- **Backend Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Adminer**: [http://localhost:8080](http://localhost:8080)
+- **Frontend**: `http://localhost:3000`
+- **Backend API Docs**: `http://localhost:8000/docs`
+- **Adminer DB UI**: `http://localhost:8080`
 
 ## AWS Deployment
 
-The application is deployed on AWS using a multi-server approach:
-- **App Server**: EC2 instance running Docker Compose for the Frontend, Backend, and Nginx. Prometheus, Grafana, and Node Exporter run as native systemd services on this server.
-- **RDS**: Managed PostgreSQL database.
-- **S3**: File storage for uploads.
-
-Public access: `http://APP_SERVER_EC2_PUBLIC_IP`
-Health check: `http://APP_SERVER_EC2_PUBLIC_IP/api/health`
+The application is deployed on AWS using a robust multi-server approach:
+- **App Server**: An EC2 instance running Docker Compose for the Frontend, Backend, and Nginx. Prometheus, Grafana, and Node Exporter run as native systemd services on this server for performance.
+- **RDS**: Managed PostgreSQL database allowing decoupled state management.
+- **S3**: Secure file storage for uploads.
 
 ## CI/CD Pipeline
 
-Jenkins is hosted on its own dedicated EC2 server. The pipeline stages include:
-- Checkout source code
-- Backend compile check & Frontend build validation
-- Docker image build
-- Docker Hub login & Push backend/frontend images
-- SSH deployment to the App Server EC2
-- Alembic migration
-- Post-deployment health check
+Jenkins is hosted on its own dedicated EC2 server. The pipeline automates:
+1. Source code checkout
+2. Code compilation and frontend build validation
+3. Docker image building (Backend & Frontend)
+4. Docker Hub authentication and image pushing
+5. SSH deployment to the App Server EC2
+6. Alembic database migration execution
+7. Post-deployment health checks
 
-## Infrastructure as Code
+## Terraform IaC
 
-Terraform configuration provisions:
+Terraform configuration is prepared to automate the provisioning of:
 - Multiple EC2 instances
 - Security groups
 - RDS PostgreSQL
 - S3 bucket
 
-Terraform is validated using `terraform init`, `terraform fmt`, `terraform validate`, and `terraform plan`.
+## Kubernetes
 
-## Kubernetes Deployment
+While the live app runs via Docker Compose on the App Server, it is also fully containerized for Kubernetes. Manifests (Deployments, Services, ConfigMaps, Secrets) are provided to seamlessly launch the stack on the dedicated K8s Server.
 
-While the main app currently runs via Docker Compose on the App Server, it is also fully containerized for Kubernetes. The setup can be seamlessly launched on the dedicated K8s Server. Manifests are provided for Deployments, Services, ConfigMaps, and Secrets.
+## Monitoring and Operations
 
-## Monitoring and Logging
+- **Prometheus**: Metrics collection.
+- **Grafana**: Visualizations and dashboards.
+- **Node Exporter**: Server-level metrics.
+- Monitoring services are installed natively on the EC2 instances. Configuration files are version-controlled in the `monitoring/` directory.
 
-The monitoring stack includes:
-- **Prometheus** for metrics collection.
-- **Grafana** for visualizations and dashboards.
-- **Node Exporter** for server-level metrics.
-- Logs are managed via Docker logs and Nginx access/error logs.
+## Security and Cost Optimization
 
-## Security Practices
-
-Security is enforced through IAM restrictions, private RDS access, restricted EC2 security groups, Jenkins credential management, exclusion of secrets from Git, and S3 Block Public Access. Detailed in `docs/SECURITY_CHECKLIST.md`.
-
-## Backup and Rollback
-
-Rollbacks can be performed manually by changing image tags in `docker-compose.rds.yml` or via Jenkins by redeploying a previous build. Backups are managed using RDS snapshots and manual `pg_dump`. Detailed in `docs/BACKUP_RECOVERY.md` and `docs/ROLLBACK_PLAN.md`.
-
-## Performance Testing
-
-Performance and load testing are conducted using `k6` against key endpoints (Health, Frontend, Login). Details in `docs/PERFORMANCE_TESTING.md`.
-
-## Cost Optimization
-
-AWS costs are minimized by actively stopping idle EC2 instances, managing RDS snapshots, releasing unused Elastic IPs, and utilizing AWS Budget alerts. Details in `docs/COST_OPTIMIZATION.md`.
+- **Security**: Enforced through IAM restrictions, private RDS access, restricted EC2 security groups, Jenkins credential management, and S3 Block Public Access.
+- **Cost**: Optimized by actively stopping idle EC2 instances, managing RDS snapshots, releasing unused Elastic IPs, and utilizing AWS Budget alerts.
 
 ## Screenshots
 
-Please see `docs/SCREENSHOTS.md` for a visual overview of the application, Jenkins pipelines, Kubernetes pods, AWS resources, and Grafana monitoring dashboards.
+Please see the `docs/screenshots/` directory and `docs/SCREENSHOTS.md` for visual proof of the application, CI/CD pipelines, Kubernetes pods, AWS resources, and Grafana monitoring dashboards.
 
-## Project Status
+## Documentation
 
-This project is built as a practical DevOps portfolio project for learning, college demonstration, and fresher Cloud/DevOps Engineer job preparation. It is fully operational and demo-ready.
+Extensive operational documentation can be found in the `docs/` folder:
+- Architecture Details
+- CI/CD Pipelines
+- Deployment Guides
+- Terraform & Kubernetes setups
+- Security Checklists
+- Backup & Rollback plans
 
 ## Resume Highlights
 
-Please see `docs/RESUME_POINTS.md` for resume-ready bullet points highlighting the comprehensive DevOps achievements in this project.
+Please see `docs/RESUME_POINTS.md` for strong, action-oriented bullet points tailored for a Cloud/DevOps Engineer resume based on this project.
