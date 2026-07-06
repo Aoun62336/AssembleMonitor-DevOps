@@ -46,7 +46,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 
 ## Architecture
 
-The production cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns, isolate workloads, and maximize security.
+The production-style cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns, isolate workloads, and maximize security.
 
 ```text
 User Browser
