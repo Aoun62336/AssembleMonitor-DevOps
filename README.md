@@ -130,7 +130,25 @@ While the application can run in a streamlined Docker Compose setup, it is fully
 
 ## Screenshots
 
-Please see the `docs/screenshots/` directory and `docs/SCREENSHOTS.md` for visual proof of the application UI, Jenkins CI/CD pipeline executions, Kubernetes pod statuses, AWS resource topology, and Grafana monitoring dashboards.
+Below is a highlight of the infrastructure and application. For the complete, comprehensive gallery covering all aspects (AWS, CI/CD, Kubernetes, Monitoring, Security), please see the full [Screenshots Checklist](docs/SCREENSHOTS.md) and the `docs/screenshots/` directory.
+
+### Architecture
+*(Add your architecture diagram here: `docs/screenshots/01-architecture-diagram.png`)*
+
+### Application
+*(Add your landing page or dashboard here: `docs/screenshots/02-landing-page.png`)*
+
+### AWS Infrastructure
+*(Add your EC2 instances or ALB screenshot here: `docs/screenshots/14-ec2-instances.png`)*
+
+### CI/CD
+*(Add your Jenkins pipeline success here: `docs/screenshots/27-jenkins-pipeline-success.png`)*
+
+### Kubernetes
+*(Add your cluster overview or pods here: `docs/screenshots/30-kubectl-get-pods.png`)*
+
+### Monitoring
+*(Add your Grafana dashboard here: `docs/screenshots/34-grafana-dashboard.png`)*
 
 ## Documentation
 
