@@ -43,7 +43,7 @@ usermod -aG docker ubuntu
 cd /home/ubuntu
 
 if [ ! -d "AssembleMonitor-DevOps" ]; then
-  git clone "${github_repo_url}"
+  git clone "${github_repo_url}" AssembleMonitor-DevOps
 fi
 
 cd /home/ubuntu/AssembleMonitor-DevOps

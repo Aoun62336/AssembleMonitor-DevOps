@@ -103,6 +103,19 @@ resource "aws_autoscaling_group" "app_asg" {
   health_check_type         = "ELB"
   health_check_grace_period = 300
 
+  enabled_metrics = [
+    "GroupMinSize",
+    "GroupMaxSize",
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupPendingInstances",
+    "GroupStandbyInstances",
+    "GroupTerminatingInstances",
+    "GroupTotalInstances"
+  ]
+
+  metrics_granularity = "1Minute"
+
   launch_template {
     id      = aws_launch_template.app_lt.id
     version = "$Latest"
@@ -128,5 +141,12 @@ resource "aws_autoscaling_group" "app_asg" {
 
   lifecycle {
     create_before_destroy = true
+  }
+
+  instance_refresh {
+    strategy = "Rolling"
+    preferences {
+      min_healthy_percentage = 50
+    }
   }
 }
