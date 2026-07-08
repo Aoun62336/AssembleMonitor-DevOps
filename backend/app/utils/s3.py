@@ -7,16 +7,23 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-def get_s3_client():
+from typing import Any
+
+def get_s3_client() -> Any:
     if not settings.AWS_ACCESS_KEY_ID:
         logger.warning("AWS credentials not configured properly.")
     
     return boto3.client(
+        "s3",
+        region_name=settings.AWS_REGION
+    )
+    
+    """return boto3.client(
         's3',
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name=settings.AWS_REGION
-    )
+    )"""
 
 async def upload_file_to_s3(file: UploadFile, folder_prefix: str = "site-photos") -> str:
     """Upload file to S3 and return the full S3 URL.

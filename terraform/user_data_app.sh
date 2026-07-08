@@ -141,8 +141,25 @@ systemctl restart nginx
 docker compose -f docker-compose.alb.yml pull
 docker compose -f docker-compose.alb.yml up -d
 
-# Run migrations
-sleep 20
-docker compose -f docker-compose.alb.yml exec -T api sh -c "cd /app && alembic upgrade head" || true
+echo "Waiting for backend health..."
+
+for i in {1..30}; do
+  if curl -fsS http://127.0.0.1:8000/api/health; then
+    echo "Backend is healthy"
+    break
+  fi
+
+  echo "Backend not ready yet... attempt $i"
+  sleep 10
+done
+
+echo "Running Alembic migrations..."
+docker compose -f docker-compose.alb.yml exec -T api sh -c "cd /app && alembic upgrade head"
+
+echo "Final container status:"
+docker ps
+
+echo "Final Nginx health check:"
+curl -fsS http://127.0.0.1/api/health
 
 echo "===== AssembleMonitor user-data completed ====="
