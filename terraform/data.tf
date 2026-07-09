@@ -18,3 +18,7 @@ data "aws_ami" "ubuntu" {
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
 }
+
+data "aws_security_group" "k3s_sg" {
+  id = "<K3S_SG_ID>"
+}

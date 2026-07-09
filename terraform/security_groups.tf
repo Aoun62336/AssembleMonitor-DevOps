@@ -77,3 +77,11 @@ resource "aws_vpc_security_group_egress_rule" "rds_all_outbound" {
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
+
+resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_k3s_sg" {
+  security_group_id            = aws_security_group.rds_sg.id
+  referenced_security_group_id = data.aws_security_group.k3s_sg.id
+  from_port                    = 5432
+  ip_protocol                  = "tcp"
+  to_port                      = 5432
+}
