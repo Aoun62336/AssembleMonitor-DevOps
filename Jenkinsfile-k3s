@@ -1,0 +1,276 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1'
+
+        K3S_INSTANCE_NAME = 'assemblemonitor-k3s'
+        K3S_USER = 'ubuntu'
+        K3S_PROJECT_DIR = '/home/ubuntu/AssebmleMonitor-DevOps'
+
+        DOCKERHUB_USERNAME = 'fire2686'
+        BACKEND_IMAGE = 'fire2686/assemblemonitor-backend'
+        FRONTEND_IMAGE = 'fire2686/assemblemonitor-frontend'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+
+        K8S_NAMESPACE = 'assemblemonitor'
+        BACKEND_DEPLOYMENT = 'assemblemonitor-backend'
+        FRONTEND_DEPLOYMENT = 'assemblemonitor-frontend'
+        BACKEND_CONTAINER = 'backend'
+        FRONTEND_CONTAINER = 'frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Show Build Info') {
+            steps {
+                sh '''
+                    echo "===================================="
+                    echo "AssembleMonitor K3s CI/CD Pipeline"
+                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Frontend Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Workspace: $(pwd)"
+                    echo "===================================="
+                    ls -la
+                '''
+            }
+        }
+
+        stage('Docker Check') {
+            steps {
+                sh '''
+                    docker --version
+                    docker compose version || true
+                '''
+            }
+        }
+
+        stage('Backend Build Validation') {
+            steps {
+                sh '''
+                    docker build \
+                      -t assemblemonitor-backend-check:${IMAGE_TAG} \
+                      ./backend
+
+                    docker run --rm \
+                      assemblemonitor-backend-check:${IMAGE_TAG} \
+                      python -m compileall app
+                '''
+            }
+        }
+
+        stage('Frontend Build Validation') {
+            steps {
+                sh '''
+                    docker build \
+                      -t assemblemonitor-frontend-check:${IMAGE_TAG} \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Build Final Images') {
+            steps {
+                sh '''
+                    docker build \
+                      -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${BACKEND_IMAGE}:latest \
+                      ./backend
+
+                    docker build \
+                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${FRONTEND_IMAGE}:latest \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Docker Hub Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                sh '''
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Find K3s EC2') {
+            steps {
+                sh '''
+                    K3S_PUBLIC_IP=$(aws ec2 describe-instances \
+                      --region ${AWS_REGION} \
+                      --filters \
+                        "Name=tag:Name,Values=${K3S_INSTANCE_NAME}" \
+                        "Name=instance-state-name,Values=running" \
+                      --query "Reservations[0].Instances[0].PublicIpAddress" \
+                      --output text)
+
+                    if [ "$K3S_PUBLIC_IP" = "None" ] || [ -z "$K3S_PUBLIC_IP" ]; then
+                      echo "ERROR: Could not find running K3s EC2 instance"
+                      exit 1
+                    fi
+
+                    echo "K3S_PUBLIC_IP=$K3S_PUBLIC_IP"
+                    echo "$K3S_PUBLIC_IP" > k3s_public_ip.txt
+                '''
+            }
+        }
+
+        stage('Pre-Deploy K3s Check') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            kubectl get nodes &&
+                            kubectl get pods -n ${K8S_NAMESPACE} || true
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Update Repo on K3s Server') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            if [ ! -d ${K3S_PROJECT_DIR} ]; then
+                                cd /home/ubuntu &&
+                                git clone https://github.com/Aoun62336/AssebmleMonitor-DevOps.git
+                            fi
+
+                            cd ${K3S_PROJECT_DIR} &&
+                            git fetch origin &&
+                            git reset --hard origin/main
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Apply Kubernetes Manifests') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            cd ${K3S_PROJECT_DIR} &&
+                            kubectl apply -f k8s/
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Update Kubernetes Images') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            kubectl set image deployment/${BACKEND_DEPLOYMENT} \
+                              ${BACKEND_CONTAINER}=${BACKEND_IMAGE}:${IMAGE_TAG} \
+                              -n ${K8S_NAMESPACE}
+
+                            kubectl set image deployment/${FRONTEND_DEPLOYMENT} \
+                              ${FRONTEND_CONTAINER}=${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                              -n ${K8S_NAMESPACE}
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Wait for Rollout') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            kubectl rollout status deployment/${BACKEND_DEPLOYMENT} \
+                              -n ${K8S_NAMESPACE} \
+                              --timeout=180s
+
+                            kubectl rollout status deployment/${FRONTEND_DEPLOYMENT} \
+                              -n ${K8S_NAMESPACE} \
+                              --timeout=180s
+                        "
+                    '''
+                }
+            }
+        }
+
+        stage('Post-Deploy Verification') {
+            steps {
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh '''
+                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                            echo 'Pods:'
+                            kubectl get pods -n ${K8S_NAMESPACE} -o wide
+
+                            echo 'Services:'
+                            kubectl get svc -n ${K8S_NAMESPACE}
+
+                            echo 'Backend health from inside cluster:'
+                            kubectl run curl-check-${BUILD_NUMBER} \
+                              --namespace ${K8S_NAMESPACE} \
+                              --image=curlimages/curl \
+                              --rm -i \
+                              --restart=Never \
+                              -- curl -fsS http://assemblemonitor-backend-service:8000/api/health
+                        "
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'K3s deployment completed successfully.'
+        }
+
+        failure {
+            echo 'K3s deployment failed. Check the failed stage logs.'
+        }
+
+        always {
+            sh '''
+                docker logout || true
+                docker image prune -f || true
+            '''
+        }
+    }
+}
