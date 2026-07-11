@@ -6,14 +6,14 @@ pipeline {
 
         K3S_INSTANCE_NAME = 'assemblemonitor-k3s'
         K3S_USER = 'ubuntu'
-        K3S_PROJECT_DIR = '/home/ubuntu/AssebmleMonitor-DevOps'
+        K3S_PROJECT_DIR = '/home/ubuntu/AssembleMonitor-DevOps'
 
         DOCKERHUB_USERNAME = 'fire2686'
         BACKEND_IMAGE = 'fire2686/assemblemonitor-backend'
         FRONTEND_IMAGE = 'fire2686/assemblemonitor-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        K8S_NAMESPACE = 'assemblemonitor'
+        K8S_NAMESPACE = 'assemblemonitor-adv-dev'
         BACKEND_DEPLOYMENT = 'assemblemonitor-backend'
         FRONTEND_DEPLOYMENT = 'assemblemonitor-frontend'
         BACKEND_CONTAINER = 'backend'
