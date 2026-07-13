@@ -45,6 +45,7 @@
         path: /etc/sysctl.conf
         line: 'vm.max_map_count=262144'
         state: present
+        create: yes
 
     # Finally, downloads and starts the SonarQube application as a Docker container.
     # It exposes port 9000 and is set to restart automatically unless explicitly stopped.
