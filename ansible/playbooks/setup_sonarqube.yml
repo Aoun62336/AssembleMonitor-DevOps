@@ -1,0 +1,56 @@
+---
+# The name of this playbook, describing its overall purpose.
+- name: Install Docker and run SonarQube on the dedicated SonarQube EC2
+
+  # The target group of servers from the inventory file where this playbook will run.
+  hosts: sonarqube
+  # 'become: true' means execute all tasks with root privileges (sudo), like an administrator.
+  become: true
+
+  # A list of sequential actions (tasks) to perform on the target servers.
+  tasks:
+    # Updates the package list on the Ubuntu system so it knows about the latest available software versions.
+    - name: Update the apt package index
+      apt:
+        update_cache: yes
+
+    # Installs the Docker software engine.
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    # Ensures the Docker service starts automatically when the server boots up and is currently running.
+    - name: Enable and start the Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    # Adds the 'ubuntu' user to the 'docker' group so it can run Docker commands without needing 'sudo' every time.
+    - name: Add the ubuntu user to the docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # SonarQube requires a specific system parameter (vm.max_map_count) to be increased for its built-in database (Elasticsearch) to work. This command applies it immediately to the running system.
+    - name: Set vm.max_map_count for the running kernel
+      command: sysctl -w vm.max_map_count=262144
+      changed_when: true
+
+    # This ensures the vm.max_map_count setting survives a server restart by adding it to a configuration file.
+    - name: Persist vm.max_map_count in /etc/sysctl.conf
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: 'vm.max_map_count=262144'
+        state: present
+
+    # Finally, downloads and starts the SonarQube application as a Docker container.
+    # It exposes port 9000 and is set to restart automatically unless explicitly stopped.
+    - name: Run the SonarQube container
+      command: docker run -d --name sonarqube -p 9000:9000 --restart unless-stopped sonarqube:lts-community
+      register: sonarqube_run
+      # These two lines define success/failure conditions. It succeeds if the command runs properly (rc == 0). It only fails if it doesn't run properly AND the error isn't just that the container name is 'already in use'.
+      failed_when: sonarqube_run.rc != 0 and 'already in use' not in sonarqube_run.stderr
+      changed_when: sonarqube_run.rc == 0
