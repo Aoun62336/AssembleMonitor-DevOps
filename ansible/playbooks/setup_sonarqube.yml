@@ -50,7 +50,7 @@
     # Finally, downloads and starts the SonarQube application as a Docker container.
     # It exposes port 9000 and is set to restart automatically unless explicitly stopped.
     - name: Run the SonarQube container
-      command: docker run -d --name sonarqube -p 9000:9000 --restart unless-stopped sonarqube:lts-community
+      command: docker run -d --name sonarqube -p 9000:9000 --restart unless-stopped sonarqube:community
       register: sonarqube_run
       # These two lines define success/failure conditions. It succeeds if the command runs properly (rc == 0). It only fails if it doesn't run properly AND the error isn't just that the container name is 'already in use'.
       failed_when: sonarqube_run.rc != 0 and 'already in use' not in sonarqube_run.stderr

@@ -51,6 +51,44 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis - Backend') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh '''
+                        cd backend
+                        sonar-scanner \
+                          -Dsonar.projectKey=assemblemonitor-backend \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('SonarQube Analysis - Frontend') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh '''
+                        cd frontend
+                        sonar-scanner \
+                          -Dsonar.projectKey=assemblemonitor-frontend \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Backend Build Validation') {
             steps {
                 sh '''
