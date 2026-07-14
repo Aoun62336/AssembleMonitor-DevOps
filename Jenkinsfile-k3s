@@ -192,7 +192,7 @@ pipeline {
         stage('Find K3s EC2') {
             steps {
                 sh '''
-                    K3S_PUBLIC_IP=$(aws ec2 describe-instances \
+                    K3S_PRIVATE_IP=$(aws ec2 describe-instances \
                       --region ${AWS_REGION} \
                       --filters \
                         "Name=tag:Name,Values=${K3S_INSTANCE_NAME}" \
@@ -200,13 +200,13 @@ pipeline {
                       --query "Reservations[0].Instances[0].PrivateIpAddress" \
                       --output text)
 
-                    if [ "$K3S_PUBLIC_IP" = "None" ] || [ -z "$K3S_PUBLIC_IP" ]; then
+                    if [ "$K3S_PRIVATE_IP" = "None" ] || [ -z "$K3S_PRIVATE_IP" ]; then
                       echo "ERROR: Could not find running K3s EC2 instance"
                       exit 1
                     fi
 
-                    echo "K3S_PUBLIC_IP=$K3S_PUBLIC_IP"
-                    echo "$K3S_PUBLIC_IP" > k3s_public_ip.txt
+                    echo "K3S_PRIVATE_IP=$K3S_PRIVATE_IP"
+                    echo "$K3S_PRIVATE_IP" > k3s_private_ip.txt
                 '''
             }
         }
