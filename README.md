@@ -60,18 +60,19 @@ Kubernetes (K3s) Cluster EC2
     |
     ├── Frontend Pods (React/Nginx)
     |
-    ├── Backend API Pods (FastAPI)
-    |       |
-    |       ├── AWS RDS PostgreSQL (Managed Database)
-    |       └── AWS S3 Bucket (Object Storage)
-    |
-    └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
+    └── Backend API Pods (FastAPI)
+            |
+            ├── AWS RDS PostgreSQL (Managed Database)
+            └── AWS S3 Bucket (Object Storage)
 
 Jenkins Server EC2 (CI/CD Orchestrator)
     └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes K3s Rollout
 
 SonarQube Server EC2
     └── Performs Static Code Analysis and enforces Quality Gates
+
+Monitoring Server EC2 (Legacy App Server)
+    └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
 ```
 
 ## Local Development Environment
@@ -90,9 +91,10 @@ docker compose exec api alembic upgrade head
 ## AWS Deployment
 
 The application utilizes a distributed, multi-node AWS deployment strategy:
-- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the master cluster, running the primary Frontend and Backend pods. To minimize overhead and maximize visibility, Prometheus, Grafana, and Node Exporter are installed natively as systemd services on this host.
-- **Jenkins Server**: A dedicated EC2 node for pipeline execution and container building.
-- **SonarQube Server**: A dedicated EC2 node running static analysis via an embedded Elasticsearch database.
+- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the master cluster, running the primary Frontend and Backend pods via Kubernetes.
+- **Jenkins Server**: A dedicated EC2 node for CI/CD pipeline execution, Trivy vulnerability scanning, and container building.
+- **SonarQube Server**: A dedicated EC2 node running static code analysis via an embedded Elasticsearch database.
+- **Monitoring / App Server**: The original EC2 node. While no longer serving the monolithic Docker Compose app, it still actively runs Prometheus, Grafana, and Node Exporter as native systemd services to monitor the infrastructure.
 - **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management.
 - **S3**: Secure file storage utilizing IAM roles and policies to govern upload access.
 
