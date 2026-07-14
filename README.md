@@ -13,6 +13,8 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Storage**: Implemented AWS S3 for secure, scalable object storage (e.g., site photos).
 - **Traffic Routing**: Configured Nginx as an edge reverse proxy to route external traffic securely to backend containers.
 - **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The pipeline is auto-triggered via GitHub Webhooks to build, test, and deploy seamlessly.
+- **DevSecOps**: Enforced static code analysis (SonarQube) with strict Quality Gates and container vulnerability scanning (Trivy) in the CI pipeline to prevent insecure deployments.
+- **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
 - **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (EC2, Security Groups, RDS, S3) using Terraform.
 - **Container Orchestration**: Orchestrated the full-stack application using Kubernetes, leveraging Deployments, Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
 - **Observability**: Deployed Prometheus, Grafana, and Node Exporter natively on the App Server to achieve deep, centralized system and application monitoring.
@@ -39,7 +41,9 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Containerization**: Docker, Docker Compose, Docker Hub
 - **Cloud Provider**: AWS (EC2, RDS, S3, Security Groups, IAM)
 - **CI/CD Automation**: Jenkins, GitHub Webhooks
+- **DevSecOps**: SonarQube, Trivy
 - **Infrastructure as Code**: Terraform
+- **Configuration Management**: Ansible
 - **Orchestration**: Kubernetes (K8s)
 - **Observability**: Prometheus, Grafana, Node Exporter
 - **Performance Testing**: k6
