@@ -13,7 +13,7 @@ pipeline {
         FRONTEND_IMAGE = 'fire2686/assemblemonitor-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
 
-        K8S_NAMESPACE = 'assemblemonitor-adv-dev'
+        K8S_NAMESPACE = 'assemblemonitor'
         BACKEND_DEPLOYMENT = 'assemblemonitor-backend'
         FRONTEND_DEPLOYMENT = 'assemblemonitor-frontend'
         BACKEND_CONTAINER = 'backend'
@@ -197,7 +197,7 @@ pipeline {
                       --filters \
                         "Name=tag:Name,Values=${K3S_INSTANCE_NAME}" \
                         "Name=instance-state-name,Values=running" \
-                      --query "Reservations[0].Instances[0].PublicIpAddress" \
+                      --query "Reservations[0].Instances[0].PrivateIpAddress" \
                       --output text)
 
                     if [ "$K3S_PUBLIC_IP" = "None" ] || [ -z "$K3S_PUBLIC_IP" ]; then
@@ -235,7 +235,7 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
                             if [ ! -d ${K3S_PROJECT_DIR} ]; then
                                 cd /home/ubuntu &&
-                                git clone https://github.com/Aoun62336/AssebmleMonitor-DevOps.git
+                                git clone https://github.com/Aoun62336/AssembleMonitor-DevOps.git
                             fi
 
                             cd ${K3S_PROJECT_DIR} &&
