@@ -215,9 +215,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             kubectl get nodes &&
                             kubectl get pods -n ${K8S_NAMESPACE} || true
                         "
@@ -230,9 +230,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             if [ ! -d ${K3S_PROJECT_DIR} ]; then
                                 cd /home/ubuntu &&
                                 git clone https://github.com/Aoun62336/AssembleMonitor-DevOps.git
@@ -251,9 +251,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             cd ${K3S_PROJECT_DIR} &&
                             kubectl apply -f k8s/
                         "
@@ -266,9 +266,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             kubectl set image deployment/${BACKEND_DEPLOYMENT} \
                               ${BACKEND_CONTAINER}=${BACKEND_IMAGE}:${IMAGE_TAG} \
                               -n ${K8S_NAMESPACE}
@@ -286,9 +286,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             kubectl rollout status deployment/${BACKEND_DEPLOYMENT} \
                               -n ${K8S_NAMESPACE} \
                               --timeout=180s
@@ -306,9 +306,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh '''
-                        K3S_PUBLIC_IP=$(cat k3s_public_ip.txt)
+                        K3S_PRIVATE_IP=$(cat k3s_private_ip.txt)
 
-                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PUBLIC_IP} "
+                        ssh -o StrictHostKeyChecking=no ${K3S_USER}@${K3S_PRIVATE_IP} "
                             echo 'Pods:'
                             kubectl get pods -n ${K8S_NAMESPACE} -o wide
 
