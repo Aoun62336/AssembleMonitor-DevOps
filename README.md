@@ -2,7 +2,7 @@
 
 ## Overview
 
-AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate enterprise-grade DevOps and Cloud practices. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed on AWS. 
+AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate enterprise-grade DevOps and Cloud practices. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed natively on Kubernetes. 
 
 ## DevOps Implementation
 
@@ -11,13 +11,12 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Cloud Infrastructure**: Architected a distributed microservices environment across optimized AWS EC2 compute nodes (`c7i-flex.large`).
 - **Database Decoupling**: Integrated a highly available AWS RDS PostgreSQL instance to decouple database state and ensure reliable data persistence.
 - **Storage**: Implemented AWS S3 for secure, scalable object storage (e.g., site photos).
-- **Traffic Routing**: Configured Nginx as an edge reverse proxy to route external traffic securely to backend containers.
-- **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The pipeline is auto-triggered via GitHub Webhooks to build, test, and deploy seamlessly.
-- **DevSecOps**: Enforced static code analysis (SonarQube) with strict Quality Gates and container vulnerability scanning (Trivy) in the CI pipeline to prevent insecure deployments.
+- **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The pipeline automatically orchestrates zero-downtime rolling updates to the Kubernetes cluster.
+- **DevSecOps**: Enforced static code analysis (SonarQube) with strict, blocking Quality Gates, and container vulnerability scanning (Trivy) in the CI pipeline to prevent insecure deployments.
 - **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
 - **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (EC2, Security Groups, RDS, S3) using Terraform.
-- **Container Orchestration**: Orchestrated the full-stack application using Kubernetes, leveraging Deployments, Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
-- **Observability**: Deployed Prometheus, Grafana, and Node Exporter natively on the App Server to achieve deep, centralized system and application monitoring.
+- **Container Orchestration**: Orchestrated the full-stack application natively on a dedicated Kubernetes (K3s) cluster, leveraging Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
+- **Observability**: Deployed Prometheus, Grafana, and Node Exporter to achieve deep, centralized system and application monitoring.
 
 ## Features
 
@@ -34,7 +33,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Database**: PostgreSQL (AWS RDS)
 - **Storage**: AWS S3
 - **Authentication**: JWT (JSON Web Tokens)
-- **Reverse Proxy**: Nginx
+- **Web Server**: Nginx (Running inside the frontend Pod)
 
 ## DevOps Tech Stack
 
@@ -44,7 +43,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **DevSecOps**: SonarQube, Trivy
 - **Infrastructure as Code**: Terraform
 - **Configuration Management**: Ansible
-- **Orchestration**: Kubernetes (K8s)
+- **Orchestration**: Kubernetes (K3s)
 - **Observability**: Prometheus, Grafana, Node Exporter
 - **Performance Testing**: k6
 
@@ -55,23 +54,24 @@ The production-style cloud architecture is distributed across multiple AWS EC2 `
 ```text
 User Browser
     |
+    | HTTP (NodePort 30080 / 30081)
     v
-App Server EC2 Public IP / Nginx Reverse Proxy :80
+Kubernetes (K3s) Cluster EC2
     |
-    ├── Frontend Container (React)
+    ├── Frontend Pods (React/Nginx)
     |
-    ├── Backend API Container (FastAPI)
+    ├── Backend API Pods (FastAPI)
     |       |
     |       ├── AWS RDS PostgreSQL (Managed Database)
     |       └── AWS S3 Bucket (Object Storage)
     |
     └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
 
-Jenkins Server EC2
-    └── CI/CD Automation (Auto-triggered via Webhooks -> Build, Push, SSH Deploy)
+Jenkins Server EC2 (CI/CD Orchestrator)
+    └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes K3s Rollout
 
-Kubernetes Server EC2
-    └── K8s Orchestration (Frontend/Backend Deployments, ConfigMaps, Secrets, Probes)
+SonarQube Server EC2
+    └── Performs Static Code Analysis and enforces Quality Gates
 ```
 
 ## Local Development Environment
@@ -89,20 +89,22 @@ docker compose exec api alembic upgrade head
 
 ## AWS Deployment
 
-The application utilizes a multi-node AWS deployment strategy:
-- **App Server**: A powerful EC2 node running the primary Frontend, Backend, and Nginx containers. To minimize overhead and maximize visibility, Prometheus, Grafana, and Node Exporter are installed natively as systemd services on this host.
+The application utilizes a distributed, multi-node AWS deployment strategy:
+- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the master cluster, running the primary Frontend and Backend pods. To minimize overhead and maximize visibility, Prometheus, Grafana, and Node Exporter are installed natively as systemd services on this host.
+- **Jenkins Server**: A dedicated EC2 node for pipeline execution and container building.
+- **SonarQube Server**: A dedicated EC2 node running static analysis via an embedded Elasticsearch database.
 - **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management.
 - **S3**: Secure file storage utilizing IAM roles and policies to govern upload access.
 
-## CI/CD Pipeline
+## DevSecOps CI/CD Pipeline
 
-A dedicated Jenkins server powers the automated CI/CD lifecycle. Triggered by GitHub Webhooks on every push, the pipeline executes:
-1. Source code checkout and validation.
-2. Building Frontend assets and Backend Python environments.
-3. Building immutable Docker images and pushing them to Docker Hub.
-4. Secure SSH deployment to the live App Server.
-5. Automated Alembic database schema migrations.
-6. Post-deployment health checks to ensure service stability.
+A dedicated Jenkins server powers the automated CI/CD lifecycle. The pipeline (`Jenkinsfile-k3s`) executes:
+1. **Source Code Checkout** from GitHub.
+2. **SonarQube Static Analysis** and strict Quality Gate enforcement (pipeline aborts if code is insecure).
+3. **Docker Image Build** for the frontend and backend.
+4. **Trivy Container Scan** to detect HIGH and CRITICAL vulnerabilities in the built images.
+5. **Docker Hub Push** to the centralized image registry.
+6. **Kubernetes Rollout** to the K3s server via zero-downtime dynamic image tagging over the private AWS network.
 
 ## Terraform IaC
 
@@ -114,8 +116,8 @@ Terraform is actively utilized to codify and automate the provisioning of the en
 
 ## Kubernetes
 
-While the application can run in a streamlined Docker Compose setup, it is fully architected for Kubernetes. Manifests provided in the `k8s/` directory leverage advanced orchestration features:
-- **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods.
+The application is natively orchestrated via Kubernetes (K3s). Manifests provided in the `k8s/` directory leverage advanced orchestration features:
+- **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods, exposed publicly via NodePorts.
 - **Self-Healing**: Configured `livenessProbe` and `readinessProbe` to automatically restart unhealthy containers and drop them from the traffic pool.
 - **Resource Management**: Implemented CPU/Memory requests and limits (`requests: 100m, limits: 500m`) to prevent node starvation.
 - **Configuration Management**: Decoupled environment variables via ConfigMaps and Secrets.
@@ -129,7 +131,7 @@ While the application can run in a streamlined Docker Compose setup, it is fully
 
 ## Security and Cost Optimization
 
-- **Security**: Enforced through least-privilege IAM roles, private RDS network isolation, strictly scoped EC2 security groups, secure Jenkins credential injection, and S3 Block Public Access.
+- **Security**: Enforced through DevSecOps vulnerability scanning, least-privilege IAM roles, private RDS network isolation, strictly scoped EC2 security groups, secure Jenkins credential injection, and S3 Block Public Access.
 - **Cost**: Actively optimized by suspending idle EC2 instances, managing RDS snapshot retention, releasing unused Elastic IPs, and configuring granular AWS Budget alerts.
 
 ## Screenshots
