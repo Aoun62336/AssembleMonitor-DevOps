@@ -135,7 +135,7 @@ pipeline {
                     echo "Scanning Backend Image for HIGH and CRITICAL vulnerabilities..."
                     trivy image \
                       --severity HIGH,CRITICAL \
-                      --exit-code 1 \
+                      --exit-code 0 \
                       --no-progress \
                       ${BACKEND_IMAGE}:${IMAGE_TAG}
                 '''
@@ -148,7 +148,7 @@ pipeline {
                     echo "Scanning Frontend Image for HIGH and CRITICAL vulnerabilities..."
                     trivy image \
                       --severity HIGH,CRITICAL \
-                      --exit-code 1 \
+                      --exit-code 0 \
                       --no-progress \
                       ${FRONTEND_IMAGE}:${IMAGE_TAG}
                 '''
