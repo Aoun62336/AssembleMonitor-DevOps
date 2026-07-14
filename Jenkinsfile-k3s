@@ -129,6 +129,32 @@ pipeline {
             }
         }
 
+        stage('Trivy Scan - Backend') {
+            steps {
+                sh '''
+                    echo "Scanning Backend Image for HIGH and CRITICAL vulnerabilities..."
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      --no-progress \
+                      ${BACKEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Trivy Scan - Frontend') {
+            steps {
+                sh '''
+                    echo "Scanning Frontend Image for HIGH and CRITICAL vulnerabilities..."
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      --no-progress \
+                      ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
         stage('Docker Hub Login') {
             steps {
                 withCredentials([usernamePassword(
@@ -152,6 +178,14 @@ pipeline {
                     docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
                     docker push ${FRONTEND_IMAGE}:latest
                 '''
+            }
+        }
+
+        stage('Approve K3s Deploy') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input message: 'Deploy this build to the K3s cluster?'
+                }
             }
         }
 
