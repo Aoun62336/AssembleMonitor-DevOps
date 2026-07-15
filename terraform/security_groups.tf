@@ -40,13 +40,6 @@ resource "aws_vpc_security_group_ingress_rule" "app_http_from_alb" {
   to_port                      = 80
 }
 
-resource "aws_vpc_security_group_ingress_rule" "app_ssh_from_my_ip" {
-  security_group_id = aws_security_group.app_sg.id
-  cidr_ipv4         = var.my_ip_cidr
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-}
 
 resource "aws_vpc_security_group_egress_rule" "app_all_outbound" {
   security_group_id = aws_security_group.app_sg.id

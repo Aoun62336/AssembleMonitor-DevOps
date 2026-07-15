@@ -1,6 +1,6 @@
 resource "aws_db_subnet_group" "rds_subnet_group" {
   name       = "${local.name_prefix}-db-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
+  subnet_ids = [aws_subnet.app_private_a.id, aws_subnet.app_private_b.id]
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-db-subnet-group"

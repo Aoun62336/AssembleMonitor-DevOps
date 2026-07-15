@@ -52,7 +52,10 @@ resource "aws_launch_template" "app_lt" {
     name = aws_iam_instance_profile.app_instance_profile.name
   }
 
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
+  network_interfaces {
+    associate_public_ip_address = false
+    security_groups             = [aws_security_group.app_sg.id]
+  }
 
   user_data = base64encode(templatefile("${path.module}/user_data_app.sh", {
     github_repo_url = var.github_repo_url
@@ -98,7 +101,7 @@ resource "aws_autoscaling_group" "app_asg" {
   min_size                  = var.asg_min_size
   desired_capacity          = var.asg_desired_capacity
   max_size                  = var.asg_max_size
-  vpc_zone_identifier       = data.aws_subnets.default.ids
+  vpc_zone_identifier       = [aws_subnet.app_private_a.id, aws_subnet.app_private_b.id]
   target_group_arns         = [aws_lb_target_group.app_tg.arn]
   health_check_type         = "ELB"
   health_check_grace_period = 300
