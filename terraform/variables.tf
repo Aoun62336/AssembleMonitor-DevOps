@@ -22,10 +22,10 @@ variable "environment" {
   default     = "am-dev"
 }
 
-variable "my_ip_cidr" {
-  description = "Your public IP in CIDR format for SSH access"
-  type        = string
-}
+#variable "my_ip_cidr" {
+#  description = "Your public IP in CIDR format for SSH access"
+#  type        = string
+#}
 
 variable "key_pair_name" {
   description = "Existing EC2 key pair name"
