@@ -8,15 +8,16 @@ AssembleMonitor is a comprehensive, full-stack construction site management plat
 
 This project was built from the ground up with a focus on automation, scalability, and observability, implementing the following core DevOps practices:
 
-- **Cloud Infrastructure**: Architected a distributed microservices environment across optimized AWS EC2 compute nodes (`c7i-flex.large`).
+- **Cloud Infrastructure**: Architected a distributed microservices environment across optimized AWS EC2 compute nodes (`c7i-flex.large`), utilizing Auto Scaling Groups (ASG) and Application Load Balancers (ALB) for high availability.
+- **Security & Secrets**: Protected by an AWS Web Application Firewall (WAF) to mitigate common exploits. Secrets are securely managed via AWS Secrets Manager.
 - **Database Decoupling**: Integrated a highly available AWS RDS PostgreSQL instance to decouple database state and ensure reliable data persistence.
 - **Storage**: Implemented AWS S3 for secure, scalable object storage (e.g., site photos).
 - **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The pipeline automatically orchestrates zero-downtime rolling updates to the Kubernetes cluster.
 - **DevSecOps**: Enforced static code analysis (SonarQube) with strict, blocking Quality Gates, and container vulnerability scanning (Trivy) in the CI pipeline to prevent insecure deployments.
 - **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
-- **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (EC2, Security Groups, RDS, S3) using Terraform.
+- **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (VPC, EC2, ASG, ALB, WAF, RDS, S3, Secrets Manager, CloudWatch) using Terraform.
 - **Container Orchestration**: Orchestrated the full-stack application natively on a dedicated Kubernetes (K3s) cluster, leveraging Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
-- **Observability**: Deployed Prometheus, Grafana, and Node Exporter to achieve deep, centralized system and application monitoring.
+- **Observability**: Deployed Prometheus, Grafana, and Node Exporter for application metrics, alongside AWS CloudWatch for centralized logging and infrastructure alarms.
 
 ## Features
 
@@ -38,7 +39,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 ## DevOps Tech Stack
 
 - **Containerization**: Docker, Docker Compose, Docker Hub
-- **Cloud Provider**: AWS (EC2, RDS, S3, Security Groups, IAM)
+- **Cloud Provider**: AWS (EC2, VPC, ALB, ASG, WAF, RDS, S3, Secrets Manager, CloudWatch, IAM)
 - **CI/CD Automation**: Jenkins, GitHub Webhooks
 - **DevSecOps**: SonarQube, Trivy
 - **Infrastructure as Code**: Terraform
@@ -54,16 +55,29 @@ The production-style cloud architecture is distributed across multiple AWS EC2 `
 ```text
 User Browser
     |
-    | HTTP (NodePort 30080 / 30081)
+    | HTTP
     v
-Kubernetes (K3s) Cluster EC2
+AWS Web Application Firewall (WAF)
     |
-    ├── Frontend Pods (React/Nginx)
+    v
+AWS Application Load Balancer (ALB)
     |
-    └── Backend API Pods (FastAPI)
+    |-------------------------------------------------------|
+    v                                                       v
+Auto Scaling Group (App Servers in Private Subnets)     Kubernetes (K3s) Cluster EC2 (Staging)
+    |                                                       |
+    ├── Frontend Docker Container                           ├── Frontend Pods
+    |                                                       |
+    └── Backend FastAPI Docker Container                    └── Backend API Pods
+            |                                                       |
+            |-------------------------------------------------------|
+            v
+      AWS Secrets Manager (Credentials)
             |
-            ├── AWS RDS PostgreSQL (Managed Database)
-            └── AWS S3 Bucket (Object Storage)
+            |---------------------------------|
+            |                                 |
+            v                                 v
+      AWS RDS PostgreSQL                   AWS S3
 
 Jenkins Server EC2 (CI/CD Orchestrator)
     └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes K3s Rollout
@@ -71,8 +85,11 @@ Jenkins Server EC2 (CI/CD Orchestrator)
 SonarQube Server EC2
     └── Performs Static Code Analysis and enforces Quality Gates
 
-Monitoring Server EC2 (Legacy App Server)
+Monitoring Server EC2
     └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
+
+AWS CloudWatch
+    └── Centralized Infrastructure Logging and Alarms
 ```
 
 ## Local Development Environment
@@ -91,12 +108,14 @@ docker compose exec api alembic upgrade head
 ## AWS Deployment
 
 The application utilizes a distributed, multi-node AWS deployment strategy:
-- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the master cluster, running the primary Frontend and Backend pods via Kubernetes.
+- **Auto Scaling Group (ASG) & ALB**: The highly available production environment running the application natively via Docker on dynamically scaled EC2 instances in private subnets, protected by an AWS WAF.
+- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the Staging cluster, running the primary Frontend and Backend pods via Kubernetes.
 - **Jenkins Server**: A dedicated EC2 node for CI/CD pipeline execution, Trivy vulnerability scanning, and container building.
 - **SonarQube Server**: A dedicated EC2 node running static code analysis via an embedded Elasticsearch database.
-- **Monitoring / App Server**: The original EC2 node. While no longer serving the monolithic Docker Compose app, it still actively runs Prometheus, Grafana, and Node Exporter as native systemd services to monitor the infrastructure.
+- **Monitoring / App Server**: A standalone EC2 node actively running Prometheus, Grafana, and Node Exporter to monitor the infrastructure.
 - **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management.
 - **S3**: Secure file storage utilizing IAM roles and policies to govern upload access.
+- **Secrets Manager & CloudWatch**: Secure injection of credentials to the ASG instances and centralized monitoring.
 
 ## DevSecOps CI/CD Pipeline
 
@@ -111,10 +130,15 @@ A dedicated Jenkins server powers the automated CI/CD lifecycle. The pipeline (`
 ## Terraform IaC
 
 Terraform is actively utilized to codify and automate the provisioning of the entire AWS environment, including:
-- Stateful and stateless EC2 instances
+- Custom VPC, Public/Private Subnets, and NAT Gateway
+- Auto Scaling Groups (ASG) and Launch Templates using dynamic `user_data`
+- Application Load Balancers (ALB) and Web Application Firewalls (WAF)
+- Stateful and stateless EC2 instances (Jenkins, SonarQube, K3s, Monitoring)
 - Strict Security Group rules
 - The RDS PostgreSQL database
 - The S3 Bucket
+- AWS Secrets Manager and IAM Instance Profiles
+- CloudWatch Log Groups and Metric Alarms
 
 ## Kubernetes
 
