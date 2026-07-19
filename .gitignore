@@ -105,9 +105,8 @@ htmlcov/
 ._*
 .AppleDouble
 
-# Docs (Temporarily Ignored)
+# Docs
 docs/
-
 terraform_backup_folder/
 backup-k8s
 tf2-backup/

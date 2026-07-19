@@ -8,9 +8,9 @@
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 
-## 🎯 Business Objective
+## 🎯 Product Overview
 
-AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate **enterprise-grade DevOps and Cloud practices**. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed natively on Kubernetes.  
+AssembleMonitor is a cloud-native construction site management platform designed to provide high-availability, scalable, and secure operations for enterprise construction teams. The platform ensures zero-downtime rollouts and resilient state management by leveraging a distributed microservices architecture deployed natively on Kubernetes.
 
 ## ⚙️ DevOps Implementation
 
@@ -52,7 +52,7 @@ Modern DevOps requires understanding *why* a tool was chosen, not just how to us
 |---|---|---|
 | **Containerization** | Docker | Ensures absolute environment parity between local dev and production EKS. |
 | **Cloud Provider** | AWS | Industry leader; utilized specialized components (WAF, Secrets Manager) for enterprise security. |
-| **CI/CD Automation** | Jenkins | Demonstrates ability to manage self-hosted runners and complex, stateful deployment pipelines. |
+| **CI/CD Automation** | Jenkins | Provides a highly-customizable, stateful execution environment for complex deployment pipelines. |
 | **DevSecOps** | SonarQube, Trivy | Implements "Shift-Left" security, preventing vulnerable images from ever reaching the registry. |
 | **Infrastructure as Code** | Terraform | Provides declarative, reproducible, and version-controlled infrastructure scaling. |
 | **Orchestration** | Amazon EKS | Managed control plane reduces operational overhead while providing native HPA and auto-healing. |
@@ -184,12 +184,12 @@ The application is natively orchestrated via Amazon EKS. Manifests provided in t
 A critical part of engineering is understanding trade-offs. Throughout this project, several key decisions were made:
 
 - **EKS vs. K3s EC2**: Initially deployed on a single K3s EC2 instance to minimize AWS costs. However, as load testing (k6) revealed bottlenecks, the architecture was migrated to Amazon EKS. **Trade-off**: EKS incurs a higher baseline cost ($73/month control plane) but drastically reduces operational maintenance and provides superior Auto-Scaling (HPA).
-- **Jenkins EC2 vs. GitHub Actions**: Opted for a self-hosted Jenkins EC2 instance rather than managed GitHub Actions. **Trade-off**: Requires manual patching and security group management, but demonstrates deep knowledge of build server administration, agent configuration, and private network deployments.
+- **Jenkins EC2 vs. GitHub Actions**: Opted for a self-hosted Jenkins EC2 instance rather than managed GitHub Actions. **Trade-off**: Requires manual patching and security group management, but enables strict, private network control over build server administration and agent configuration.
 - **ALB NodePort vs. Ingress Controller**: Bypassed deploying an NGINX Ingress Controller inside EKS in favor of routing an external AWS ALB directly to Kubernetes NodePorts. **Trade-off**: Reduces in-cluster complexity and leverages native AWS WAF protection, though it couples the infrastructure heavily to Terraform rather than native Kubernetes YAML.
 
 ## 📸 Screenshots
 
-Below is a highlight of the infrastructure and application. For the complete, comprehensive gallery covering all aspects (AWS, CI/CD, Kubernetes, Monitoring, Security), please see the full [Screenshots Checklist](docs/SCREENSHOTS.md) and the `docs/screenshots/` directory.
+Below is a highlight of the infrastructure and application. For the complete, comprehensive gallery covering all aspects (AWS, CI/CD, Kubernetes, Monitoring, Security), please refer to the full [System Screenshots](docs/SCREENSHOTS.md) and the `docs/screenshots/` directory.
 
 ### Architecture
 *(Add your architecture diagram here: `docs/screenshots/01-architecture-diagram.png`)*
