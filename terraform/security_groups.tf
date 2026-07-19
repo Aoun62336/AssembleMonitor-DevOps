@@ -78,3 +78,19 @@ resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_k3s_sg" {
   ip_protocol                  = "tcp"
   to_port                      = 5432
 }
+
+resource "aws_vpc_security_group_ingress_rule" "rds_postgres_from_eks_nodes" {
+  security_group_id            = aws_security_group.rds_sg.id
+  referenced_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  from_port                    = 5432
+  ip_protocol                  = "tcp"
+  to_port                      = 5432
+}
+
+resource "aws_vpc_security_group_ingress_rule" "eks_nodes_from_alb" {
+  security_group_id            = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+  referenced_security_group_id = aws_security_group.alb_sg.id
+  from_port                    = 30080
+  ip_protocol                  = "tcp"
+  to_port                      = 30080
+}

@@ -32,6 +32,30 @@ data "aws_subnet" "default_a" {
   default_for_az = true
 }
 
+data "aws_subnet" "default_b" {
+  filter {
+    name   = "availability-zone"
+    values = ["${var.aws_region}b"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+  default_for_az = true
+}
+
+resource "aws_ec2_tag" "public_a_elb" {
+  resource_id = data.aws_subnet.default_a.id
+  key         = "kubernetes.io/role/elb"
+  value       = "1"
+}
+
+resource "aws_ec2_tag" "public_b_elb" {
+  resource_id = data.aws_subnet.default_b.id
+  key         = "kubernetes.io/role/elb"
+  value       = "1"
+}
+
 resource "aws_eip" "nat" {
   domain = "vpc"
 

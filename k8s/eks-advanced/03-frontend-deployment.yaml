@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assemblemonitor-frontend
+  namespace: assemblemonitor
+  labels:
+    app: assemblemonitor-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: assemblemonitor-frontend
+  template:
+    metadata:
+      labels:
+        app: assemblemonitor-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: fire2686/assemblemonitor-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "512Mi"
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: assemblemonitor-frontend-config

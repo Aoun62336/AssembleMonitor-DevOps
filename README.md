@@ -16,8 +16,8 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **DevSecOps**: Enforced static code analysis (SonarQube) with strict, blocking Quality Gates, and container vulnerability scanning (Trivy) in the CI pipeline to prevent insecure deployments.
 - **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
 - **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (VPC, EC2, ASG, ALB, WAF, RDS, S3, Secrets Manager, CloudWatch) using Terraform.
-- **Container Orchestration**: Orchestrated the full-stack application natively on a dedicated Kubernetes (K3s) cluster, leveraging Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and resource limits for self-healing.
-- **Observability**: Deployed Prometheus, Grafana, and Node Exporter for application metrics, alongside AWS CloudWatch for centralized logging and infrastructure alarms.
+- **Container Orchestration**: Orchestrated the full-stack application natively on a highly available Amazon EKS (Elastic Kubernetes Service) cluster, leveraging Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and Horizontal Pod Autoscalers (HPA).
+- **Observability**: Deployed Kubernetes Metrics Server for auto-scaling, alongside AWS CloudWatch for centralized logging and infrastructure alarms.
 
 ## Features
 
@@ -44,8 +44,8 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **DevSecOps**: SonarQube, Trivy
 - **Infrastructure as Code**: Terraform
 - **Configuration Management**: Ansible
-- **Orchestration**: Kubernetes (K3s)
-- **Observability**: Prometheus, Grafana, Node Exporter
+- **Orchestration**: Amazon EKS (Elastic Kubernetes Service), Kubernetes Metrics Server, Horizontal Pod Autoscaler (HPA)
+- **Observability**: AWS CloudWatch, Kubernetes Metrics Server
 - **Performance Testing**: k6
 
 ## Architecture
@@ -57,39 +57,30 @@ User Browser
     |
     | HTTP
     v
-AWS Web Application Firewall (WAF)
+AWS Web Application Firewall (WAF) [Inspects & Filters]
     |
     v
 AWS Application Load Balancer (ALB)
     |
-    |-------------------------------------------------------|
-    v                                                       v
-Auto Scaling Group (App Servers in Private Subnets)     Kubernetes (K3s) Cluster EC2 (Staging)
-    |                                                       |
-    ├── Frontend Docker Container                           ├── Frontend Pods
-    |                                                       |
-    └── Backend FastAPI Docker Container                    └── Backend API Pods
-            |                                                       |
-            |-------------------------------------------------------|
-            v
-      AWS Secrets Manager (Credentials)
-            |
-            |---------------------------------|
-            |                                 |
-            v                                 v
-      AWS RDS PostgreSQL                   AWS S3
+    | (Routes traffic via port 30080)
+    v
+Amazon EKS Managed Node Group (c7i-flex.large EC2 instances)
+    |
+    |-- Nginx Service (NodePort)
+    |       └── Frontend React Pods (Auto-scaled via HPA)
+    |
+    └── FastAPI Service (ClusterIP)
+            └── Backend API Pods (Auto-scaled via HPA)
+                    |
+                    |--> AWS Secrets Manager (Credentials)
+                    |--> AWS RDS PostgreSQL (Stateful Data)
+                    |--> AWS S3 (Site Photos)
 
 Jenkins Server EC2 (CI/CD Orchestrator)
-    └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes K3s Rollout
-
-SonarQube Server EC2
-    └── Performs Static Code Analysis and enforces Quality Gates
-
-Monitoring Server EC2
-    └── Native Observability Stack (Prometheus, Grafana, Node Exporter)
+    └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes EKS Rollout
 
 AWS CloudWatch
-    └── Centralized Infrastructure Logging and Alarms
+    └── Centralized Infrastructure Logging, WAF Metrics, and Alarms
 ```
 
 ## Local Development Environment
@@ -105,17 +96,25 @@ docker compose exec api alembic upgrade head
 - **Backend API Docs**: `http://localhost:8000/docs`
 - **Adminer DB UI**: `http://localhost:8080`
 
-## AWS Deployment
+## Deployment Architectures (Evolution)
 
-The application utilizes a distributed, multi-node AWS deployment strategy:
-- **Auto Scaling Group (ASG) & ALB**: The highly available production environment running the application natively via Docker on dynamically scaled EC2 instances in private subnets, protected by an AWS WAF.
-- **Kubernetes (K3s) Server**: A dedicated EC2 node acting as the Staging cluster, running the primary Frontend and Backend pods via Kubernetes.
+This project evolved through multiple deployment architectures, demonstrating progressive mastery of Cloud and DevOps engineering. Each strategy is fully documented in the `docs/deployments/` directory.
+
+| Architecture | Best For | Tech Stack | Complexity | Documentation |
+|---|---|---|---|---|
+| **Local Docker** | Rapid Prototyping / Development | Docker Compose | Low | [View Guide](docs/deployments/01-LOCAL-DOCKER.md) |
+| **Manual EC2 (Legacy)** | Staging / Pre-Kubernetes | Docker, AWS EC2, ASG, ALB | Medium | [View Guide](docs/deployments/02-MANUAL-EC2.md) |
+| **K3s Cluster** | Standalone Orchestration | Kubernetes (K3s), Jenkins | High | [View Guide](docs/deployments/03-K3S-CLUSTER.md) |
+| **Amazon EKS (Prod)** | Enterprise Production | EKS, ALB, AWS WAF, HPA | Very High | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
+
+### Enterprise Production Infrastructure (Amazon EKS)
+The primary, active production architecture utilizes a distributed, cloud-native AWS deployment strategy:
+- **Amazon EKS**: A highly available managed Kubernetes control plane with a managed Node Group (EC2 `c7i-flex.large`) running the Frontend and Backend pods. Protected by an AWS WAF and exposed securely via an Application Load Balancer (ALB) attached directly to the EKS NodePorts.
+- **Horizontal Pod Autoscaler (HPA)**: Dynamically scales the frontend and backend pods between 2 to 5 replicas based on CPU utilization provided by the Kubernetes Metrics Server.
 - **Jenkins Server**: A dedicated EC2 node for CI/CD pipeline execution, Trivy vulnerability scanning, and container building.
-- **SonarQube Server**: A dedicated EC2 node running static code analysis via an embedded Elasticsearch database.
-- **Monitoring / App Server**: A standalone EC2 node actively running Prometheus, Grafana, and Node Exporter to monitor the infrastructure.
-- **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management.
-- **S3**: Secure file storage utilizing IAM roles and policies to govern upload access.
-- **Secrets Manager & CloudWatch**: Secure injection of credentials to the ASG instances and centralized monitoring.
+- **RDS**: Managed PostgreSQL ensuring automated backups, high availability, and decoupled state management in private subnets.
+- **S3**: Secure file storage for construction site photos.
+- **Secrets Manager & CloudWatch**: Secure injection of database/JWT credentials to the EKS pods and centralized metrics/alarms.
 
 ## DevSecOps CI/CD Pipeline
 
@@ -125,7 +124,7 @@ A dedicated Jenkins server powers the automated CI/CD lifecycle. The pipeline (`
 3. **Docker Image Build** for the frontend and backend.
 4. **Trivy Container Scan** to detect HIGH and CRITICAL vulnerabilities in the built images.
 5. **Docker Hub Push** to the centralized image registry.
-6. **Kubernetes Rollout** to the K3s server via zero-downtime dynamic image tagging over the private AWS network.
+6. **Kubernetes Rollout** to the EKS cluster via zero-downtime dynamic image tagging over the private AWS network.
 
 ## Terraform IaC
 
@@ -140,13 +139,14 @@ Terraform is actively utilized to codify and automate the provisioning of the en
 - AWS Secrets Manager and IAM Instance Profiles
 - CloudWatch Log Groups and Metric Alarms
 
-## Kubernetes
+## Kubernetes (Amazon EKS)
 
-The application is natively orchestrated via Kubernetes (K3s). Manifests provided in the `k8s/` directory leverage advanced orchestration features:
-- **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods, exposed publicly via NodePorts.
-- **Self-Healing**: Configured `livenessProbe` and `readinessProbe` to automatically restart unhealthy containers and drop them from the traffic pool.
-- **Resource Management**: Implemented CPU/Memory requests and limits (`requests: 100m, limits: 500m`) to prevent node starvation.
-- **Configuration Management**: Decoupled environment variables via ConfigMaps and Secrets.
+The application is natively orchestrated via Amazon EKS. Manifests provided in the `k8s/eks-advanced/` directory leverage advanced enterprise orchestration features:
+- **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods. The frontend is exposed via a robust NodePort service directly bound to an external AWS Application Load Balancer.
+- **Auto-Scaling (HPA)**: Kubernetes Metrics Server feeds real-time CPU data to the Horizontal Pod Autoscaler, enabling the application to seamlessly absorb traffic spikes.
+- **Self-Healing**: Configured `livenessProbe` and `readinessProbe` to automatically restart unhealthy containers and drop them from the ALB traffic pool.
+- **Dynamic Configuration**: Nginx proxy configuration injected dynamically at runtime via `ConfigMaps` to ensure flawless backend routing without hardcoded images.
+- **Secrets Injection**: Decoupled environment variables injected via Kubernetes `Secrets`.
 
 ## Monitoring and Operations
 
