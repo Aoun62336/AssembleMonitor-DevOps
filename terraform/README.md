@@ -1,17 +1,19 @@
-# AssembleMonitor Infrastructure (Terraform)
+# 🏗️ AssembleMonitor Infrastructure (Terraform)
 
-This directory contains the Infrastructure as Code (IaC) configuration for deploying AssembleMonitor to AWS using Terraform. 
+> [!IMPORTANT]
+> This directory contains the Infrastructure as Code (IaC) configuration for deploying AssembleMonitor to AWS using Terraform. 
 
 ## 🏗️ Architecture & Resources Provisioned
 
 This setup provisions an advanced, production-ready AWS environment. The following core resources are created:
 
 - **Networking (VPC)**: A custom VPC with public and private subnets, Internet Gateway, and NAT Gateways.
-- **Compute (ASG & ALB)**: An Auto Scaling Group (ASG) running EC2 instances across multiple Availability Zones, placed behind an Application Load Balancer (ALB).
+- **Compute (Amazon EKS)**: An Amazon EKS cluster with managed Node Groups (`c7i-flex.large`) running across multiple Availability Zones.
+- **Ingress (ALB & WAF)**: An Application Load Balancer (ALB) routing traffic directly to the Kubernetes NodePorts, protected by an AWS Web Application Firewall (WAF).
 - **Database (RDS)**: A managed PostgreSQL database inside the private subnets.
 - **Storage (S3)**: An S3 bucket for storing site uploads and images.
-- **Security (Secrets Manager)**: Application secrets (DB URL, JWT Key, S3 Bucket) are securely stored in AWS Secrets Manager and dynamically injected into the EC2 instances at launch.
-- **IAM**: Necessary IAM Roles and Policies allowing the EC2 instances to read from Secrets Manager and interact with S3.
+- **Security (Secrets Manager)**: Application secrets (DB URL, JWT Key) are securely stored in AWS Secrets Manager and integrated directly into the Kubernetes cluster.
+- **IAM**: Necessary IAM Roles and Policies allowing the EKS Nodes and cluster to interact securely with underlying AWS services (like S3 and Secrets Manager).
 
 ## 📋 Prerequisites
 

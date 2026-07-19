@@ -1,10 +1,18 @@
 # AssembleMonitor — Cloud-Native Construction Site Management System
 
-## Overview
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 
-AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate enterprise-grade DevOps and Cloud practices. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed natively on Kubernetes. 
+## 🎯 Business Objective
 
-## DevOps Implementation
+AssembleMonitor is a comprehensive, full-stack construction site management platform engineered to demonstrate **enterprise-grade DevOps and Cloud practices**. The project showcases the complete lifecycle of a modern application: from a containerized local development environment to a highly available, distributed cloud architecture deployed natively on Kubernetes.  
+
+## ⚙️ DevOps Implementation
 
 This project was built from the ground up with a focus on automation, scalability, and observability, implementing the following core DevOps practices:
 
@@ -19,7 +27,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Container Orchestration**: Orchestrated the full-stack application natively on a highly available Amazon EKS (Elastic Kubernetes Service) cluster, leveraging Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and Horizontal Pod Autoscalers (HPA).
 - **Observability**: Deployed Kubernetes Metrics Server for auto-scaling, alongside AWS CloudWatch for centralized logging and infrastructure alarms.
 
-## Features
+## ✨ Features
 
 - **Role-Based Access Control (RBAC)**: Secure, distinct dashboards for Admins, Project Managers, Site Engineers, and Clients.
 - **Phase & Task Management**: Break down construction projects into trackable phases and executable tasks.
@@ -27,7 +35,7 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Site Photos**: Direct, secure upload of construction progress photos to AWS S3.
 - **Attendance & Expenses**: Track engineer working hours and log non-material project expenses.
 
-## Application Tech Stack
+## 💻 Application Tech Stack
 
 - **Frontend**: React, Vite, HTML, CSS, Vanilla JavaScript
 - **Backend API**: Python FastAPI, SQLAlchemy, Alembic (Migrations)
@@ -36,54 +44,62 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Authentication**: JWT (JSON Web Tokens)
 - **Web Server**: Nginx (Running inside the frontend Pod)
 
-## DevOps Tech Stack
+## 🛠️ DevOps Tech Stack & Justification
 
-- **Containerization**: Docker, Docker Compose, Docker Hub
-- **Cloud Provider**: AWS (EC2, VPC, ALB, ASG, WAF, RDS, S3, Secrets Manager, CloudWatch, IAM)
-- **CI/CD Automation**: Jenkins, GitHub Webhooks
-- **DevSecOps**: SonarQube, Trivy
-- **Infrastructure as Code**: Terraform
-- **Configuration Management**: Ansible
-- **Orchestration**: Amazon EKS (Elastic Kubernetes Service), Kubernetes Metrics Server, Horizontal Pod Autoscaler (HPA)
-- **Observability**: AWS CloudWatch, Kubernetes Metrics Server
-- **Performance Testing**: k6
+Modern DevOps requires understanding *why* a tool was chosen, not just how to use it.
 
-## Architecture
+| Category | Tool | Justification (The "Why") |
+|---|---|---|
+| **Containerization** | Docker | Ensures absolute environment parity between local dev and production EKS. |
+| **Cloud Provider** | AWS | Industry leader; utilized specialized components (WAF, Secrets Manager) for enterprise security. |
+| **CI/CD Automation** | Jenkins | Demonstrates ability to manage self-hosted runners and complex, stateful deployment pipelines. |
+| **DevSecOps** | SonarQube, Trivy | Implements "Shift-Left" security, preventing vulnerable images from ever reaching the registry. |
+| **Infrastructure as Code** | Terraform | Provides declarative, reproducible, and version-controlled infrastructure scaling. |
+| **Orchestration** | Amazon EKS | Managed control plane reduces operational overhead while providing native HPA and auto-healing. |
+| **Observability** | Prometheus/Grafana | Industry-standard metric aggregation providing real-time visibility into pod CPU/Memory and API latency. |
+| **Performance Testing**| k6 | Scriptable load testing to actively validate the HPA scaling policies under stress. |
+
+## 🏗️ Architecture
 
 The production-style cloud architecture is distributed across multiple AWS EC2 `c7i-flex.large` instances to separate concerns, isolate workloads, and maximize security.
 
-```text
-User Browser
-    |
-    | HTTP
-    v
-AWS Web Application Firewall (WAF) [Inspects & Filters]
-    |
-    v
-AWS Application Load Balancer (ALB)
-    |
-    | (Routes traffic via port 30080)
-    v
-Amazon EKS Managed Node Group (c7i-flex.large EC2 instances)
-    |
-    |-- Nginx Service (NodePort)
-    |       └── Frontend React Pods (Auto-scaled via HPA)
-    |
-    └── FastAPI Service (ClusterIP)
-            └── Backend API Pods (Auto-scaled via HPA)
-                    |
-                    |--> AWS Secrets Manager (Credentials)
-                    |--> AWS RDS PostgreSQL (Stateful Data)
-                    |--> AWS S3 (Site Photos)
+```mermaid
+flowchart TD
+    User([User Browser]) -->|HTTP/HTTPS| WAF{AWS WAF}
+    WAF -->|Filters Traffic| ALB[Application Load Balancer]
+    
+    subgraph Amazon EKS [Amazon EKS Cluster]
+        ALB -->|Port 30080| NodePort[Nginx NodePort Service]
+        
+        subgraph Frontend [Frontend React Pods]
+            NodePort --> React1[React Pod 1]
+            NodePort --> React2[React Pod 2]
+        end
+        
+        subgraph Backend [Backend API Pods]
+            React1 --> API[FastAPI ClusterIP Service]
+            React2 --> API
+            API --> Fast1[FastAPI Pod 1]
+            API --> Fast2[FastAPI Pod 2]
+        end
+    end
+    
+    Fast1 --> RDS[(AWS RDS PostgreSQL)]
+    Fast2 --> RDS
+    
+    Fast1 --> S3[(AWS S3 Bucket)]
+    Fast2 --> S3
+    
+    Fast1 --> Secrets[(AWS Secrets Manager)]
+    Fast2 --> Secrets
 
-Jenkins Server EC2 (CI/CD Orchestrator)
-    └── Builds Images -> Trivy Scan -> Pushes to Docker Hub -> Executes EKS Rollout
-
-AWS CloudWatch
-    └── Centralized Infrastructure Logging, WAF Metrics, and Alarms
+    subgraph CI/CD [DevSecOps Pipeline]
+        Jenkins[Jenkins EC2] -->|Build & Scan| DockerHub[(Docker Hub)]
+        Jenkins -->|kubectl set image| EKS
+    end
 ```
 
-## Local Development Environment
+## 🐳 Local Development Environment
 
 For rapid local testing and development, the application utilizes a streamlined Docker Compose environment:
 
@@ -96,7 +112,7 @@ docker compose exec api alembic upgrade head
 - **Backend API Docs**: `http://localhost:8000/docs`
 - **Adminer DB UI**: `http://localhost:8080`
 
-## Deployment Architectures (Evolution)
+## 🚀 Deployment Architectures (Evolution)
 
 This project evolved through multiple deployment architectures, demonstrating progressive mastery of Cloud and DevOps engineering. Each strategy is fully documented in the `docs/deployments/` directory.
 
@@ -116,7 +132,7 @@ The primary, active production architecture utilizes a distributed, cloud-native
 - **S3**: Secure file storage for construction site photos.
 - **Secrets Manager & CloudWatch**: Secure injection of database/JWT credentials to the EKS pods and centralized metrics/alarms.
 
-## DevSecOps CI/CD Pipeline
+## 🔄 DevSecOps CI/CD Pipeline
 
 A dedicated Jenkins server powers the automated CI/CD lifecycle. The pipeline (`Jenkinsfile-k3s`) executes:
 1. **Source Code Checkout** from GitHub.
@@ -126,7 +142,7 @@ A dedicated Jenkins server powers the automated CI/CD lifecycle. The pipeline (`
 5. **Docker Hub Push** to the centralized image registry.
 6. **Kubernetes Rollout** to the EKS cluster via zero-downtime dynamic image tagging over the private AWS network.
 
-## Terraform IaC
+## ☁️ Infrastructure as Code (Terraform)
 
 Terraform is actively utilized to codify and automate the provisioning of the entire AWS environment, including:
 - Custom VPC, Public/Private Subnets, and NAT Gateway
@@ -139,7 +155,7 @@ Terraform is actively utilized to codify and automate the provisioning of the en
 - AWS Secrets Manager and IAM Instance Profiles
 - CloudWatch Log Groups and Metric Alarms
 
-## Kubernetes (Amazon EKS)
+## ☸️ Kubernetes (Amazon EKS)
 
 The application is natively orchestrated via Amazon EKS. Manifests provided in the `k8s/eks-advanced/` directory leverage advanced enterprise orchestration features:
 - **Deployments & Services**: Managing the lifecycle of the FastAPI and React pods. The frontend is exposed via a robust NodePort service directly bound to an external AWS Application Load Balancer.
@@ -148,19 +164,30 @@ The application is natively orchestrated via Amazon EKS. Manifests provided in t
 - **Dynamic Configuration**: Nginx proxy configuration injected dynamically at runtime via `ConfigMaps` to ensure flawless backend routing without hardcoded images.
 - **Secrets Injection**: Decoupled environment variables injected via Kubernetes `Secrets`.
 
-## Monitoring and Operations
+## 📊 Monitoring and Operations
 
 - **Prometheus**: Aggregates time-series metrics from both the application and the underlying infrastructure.
 - **Grafana**: Provides centralized visual dashboards for real-time alerting and deep system introspection.
 - **Node Exporter**: Exposes deep hardware and OS-level metrics.
 - *Configuration files (`prometheus.yml`, `grafana.ini`, `systemd` services) are version-controlled in the `monitoring/` directory following Configuration as Code best practices.*
 
-## Security and Cost Optimization
+## 🔒 Security and FinOps
 
-- **Security**: Enforced through DevSecOps vulnerability scanning, least-privilege IAM roles, private RDS network isolation, strictly scoped EC2 security groups, secure Jenkins credential injection, and S3 Block Public Access.
-- **Cost**: Actively optimized by suspending idle EC2 instances, managing RDS snapshot retention, releasing unused Elastic IPs, and configuring granular AWS Budget alerts.
+> [!IMPORTANT]  
+> **Security:** Enforced through DevSecOps vulnerability scanning, least-privilege IAM roles, private RDS network isolation, strictly scoped EC2 security groups, secure Jenkins credential injection, and S3 Block Public Access.
 
-## Screenshots
+> [!TIP]
+> **FinOps & Cost Management:** Actively optimized by suspending idle environments via Terraform and auto-scaling efficiently with HPA and Cluster Autoscaler.
+
+## 🧠 Lessons Learned & Architectural Trade-offs
+
+A critical part of engineering is understanding trade-offs. Throughout this project, several key decisions were made:
+
+- **EKS vs. K3s EC2**: Initially deployed on a single K3s EC2 instance to minimize AWS costs. However, as load testing (k6) revealed bottlenecks, the architecture was migrated to Amazon EKS. **Trade-off**: EKS incurs a higher baseline cost ($73/month control plane) but drastically reduces operational maintenance and provides superior Auto-Scaling (HPA).
+- **Jenkins EC2 vs. GitHub Actions**: Opted for a self-hosted Jenkins EC2 instance rather than managed GitHub Actions. **Trade-off**: Requires manual patching and security group management, but demonstrates deep knowledge of build server administration, agent configuration, and private network deployments.
+- **ALB NodePort vs. Ingress Controller**: Bypassed deploying an NGINX Ingress Controller inside EKS in favor of routing an external AWS ALB directly to Kubernetes NodePorts. **Trade-off**: Reduces in-cluster complexity and leverages native AWS WAF protection, though it couples the infrastructure heavily to Terraform rather than native Kubernetes YAML.
+
+## 📸 Screenshots
 
 Below is a highlight of the infrastructure and application. For the complete, comprehensive gallery covering all aspects (AWS, CI/CD, Kubernetes, Monitoring, Security), please see the full [Screenshots Checklist](docs/SCREENSHOTS.md) and the `docs/screenshots/` directory.
 
@@ -182,16 +209,14 @@ Below is a highlight of the infrastructure and application. For the complete, co
 ### Monitoring
 *(Add your Grafana dashboard here: `docs/screenshots/34-grafana-dashboard.png`)*
 
-## Documentation
+## 📚 Documentation
 
 Extensive operational runbooks and architectural documentation can be found in the `docs/` folder:
-- Architecture Design Details
-- CI/CD Pipeline Flows
-- Step-by-Step Deployment Guides
-- Terraform & Kubernetes Initialization
-- Security & Hardening Checklists
-- Backup, Restore & Rollback Plans
+- [Architecture Design Details](docs/ARCHITECTURE.md)
+- [CI/CD Pipeline Flows](docs/CI_CD_PIPELINE.md)
+- [Step-by-Step Deployment Guides](docs/DEPLOYMENT_GUIDE.md)
+- [Infrastructure as Code (Terraform)](docs/INFRASTRUCTURE.md)
+- [Security Posture](docs/SECURITY.md)
+- [Operational Runbook & Disaster Recovery](docs/OPERATIONAL_RUNBOOK.md)
 
-## Resume Highlights
 
-Please refer to `docs/RESUME_POINTS.md` for high-impact, quantifiable bullet points tailored for Cloud and DevOps Engineering resumes based on this infrastructure.

@@ -1,9 +1,9 @@
-# AssembleMonitor — Backend API
+# ⚙️ AssembleMonitor — Backend API
 
-Production-ready FastAPI backend for the AssembleMonitor construction
-management platform.
+> [!NOTE]
+> Production-ready FastAPI backend for the AssembleMonitor construction management platform.
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Library |
 |---|---|
@@ -19,7 +19,7 @@ management platform.
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```
 backend/
@@ -57,7 +57,7 @@ backend/
 
 ---
 
-## Quick Start (Local — no Docker)
+## 💻 Quick Start (Local — no Docker)
 
 ### 1. Prerequisites
 - Python 3.11+
@@ -106,7 +106,7 @@ uvicorn app.main:app --reload --port 8000
 
 ---
 
-## Quick Start (Docker Compose)
+## 🐳 Quick Start (Docker Compose)
 
 ```bash
 cd backend
@@ -120,7 +120,7 @@ docker compose up --build
 
 ---
 
-## Running Migrations
+## 🔄 Running Migrations
 
 ```bash
 # After adding/modifying a model:
@@ -133,7 +133,7 @@ alembic downgrade -1
 
 ---
 
-## Environment Variables
+## 🔐 Environment Variables
 
 See [`.env.example`](.env.example) for the full list with descriptions.
 
@@ -148,7 +148,7 @@ Key variables:
 
 ---
 
-## API Endpoints
+## 🌐 API Endpoints
 
 | Method | Path | Status |
 |---|---|---|
