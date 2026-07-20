@@ -11,7 +11,6 @@
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=Prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=for-the-badge&logo=grafana&logoColor=white)
 ![SonarQube](https://img.shields.io/badge/SonarQube-black?style=for-the-badge&logo=sonarqube&logoColor=4E9BCD)
-![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 
 ## 🎯 Product Overview
@@ -26,26 +25,26 @@ The production-style cloud architecture is distributed across multiple AWS EC2 `
 flowchart TD
     User([User Browser]) -->|HTTP/HTTPS| WAF{AWS WAF}
     WAF -->|Filters Traffic| ALB[Application Load Balancer]
-    
+
     subgraph Amazon EKS [Amazon EKS Cluster]
         ALB -->|Port 30080| NodePort[Nginx NodePort Service]
-        
+
         subgraph Frontend [Frontend React Pods]
             NodePort --> React1[React Pod]
         end
-        
+
         subgraph Backend [Backend API Pods]
             React1 --> API[FastAPI ClusterIP Service]
             API --> Fast1[FastAPI Pod + IRSA Token]
         end
-        
+
         ArgoCD[ArgoCD Controller] -->|Syncs state to cluster| Frontend
         ArgoCD --> Backend
-        
+
         ESO[External Secrets Operator] -->|Syncs Secret| K8sSecret[Kubernetes Secret]
         K8sSecret -->|Injects ENV| Fast1
     end
-    
+
     Fast1 -->|IRSA Authenticated| RDS[(AWS RDS PostgreSQL)]
     Fast1 -->|IRSA Authenticated| S3[(AWS S3 Bucket)]
     ESO -->|IRSA Authenticated| Secrets[(AWS Secrets Manager)]
@@ -74,37 +73,38 @@ This project was built from the ground up with a focus on automation, scalabilit
 
 ## 🛠️ DevOps Tech Stack & Justification
 
-Modern DevOps requires understanding *why* a tool was chosen, not just how to use it.
+Modern DevOps requires understanding _why_ a tool was chosen, not just how to use it.
 
-| Category | Tool | Justification (The "Why") |
-|---|---|---|
-| **Containerization** | Docker | Ensures absolute environment parity between local dev and production EKS. |
-| **Cloud Provider** | AWS | Industry leader; utilized specialized components (WAF, Secrets Manager) for enterprise security. |
-| **CI Automation** | Jenkins | Provides a highly-customizable, stateful execution environment for complex security pipelines. |
-| **GitOps CD** | ArgoCD | Enforces Git as the single source of truth, drastically improving cluster stability and auditing. |
-| **Manifest Management**| Helm | Enables DRY (Don't Repeat Yourself) templating for complex, multi-environment Kubernetes yaml files. |
-| **DevSecOps** | SonarQube, Trivy | Implements "Shift-Left" security, preventing vulnerable code and images from reaching the registry. |
-| **Configuration** | Ansible | Ensures reproducible, idempotent OS-level configuration for dedicated CI and Security servers. |
-| **Infrastructure as Code** | Terraform | Provides declarative, reproducible, and version-controlled infrastructure scaling. |
-| **Orchestration** | Amazon EKS | Managed control plane reduces operational overhead while providing native HPA and auto-healing. |
-| **Observability** | Prometheus, Grafana | Industry-standard metric aggregation providing real-time visibility into pod CPU/Memory and API latency. |
-| **Secrets Management** | External Secrets Operator | Eliminates hardcoded Base64 Kubernetes secrets by natively syncing with AWS Secrets Manager. |
+| Category                   | Tool                      | Justification (The "Why")                                                                                |
+| -------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Containerization**       | Docker                    | Ensures absolute environment parity between local dev and production EKS.                                |
+| **Cloud Provider**         | AWS                       | Industry leader; utilized specialized components (WAF, Secrets Manager) for enterprise security.         |
+| **CI Automation**          | Jenkins                   | Provides a highly-customizable, stateful execution environment for complex security pipelines.           |
+| **GitOps CD**              | ArgoCD                    | Enforces Git as the single source of truth, drastically improving cluster stability and auditing.        |
+| **Manifest Management**    | Helm                      | Enables DRY (Don't Repeat Yourself) templating for complex, multi-environment Kubernetes yaml files.     |
+| **DevSecOps**              | SonarQube, Trivy          | Implements "Shift-Left" security, preventing vulnerable code and images from reaching the registry.      |
+| **Configuration**          | Ansible                   | Ensures reproducible, idempotent OS-level configuration for dedicated CI and Security servers.           |
+| **Infrastructure as Code** | Terraform                 | Provides declarative, reproducible, and version-controlled infrastructure scaling.                       |
+| **Orchestration**          | Amazon EKS                | Managed control plane reduces operational overhead while providing native HPA and auto-healing.          |
+| **Observability**          | Prometheus, Grafana       | Industry-standard metric aggregation providing real-time visibility into pod CPU/Memory and API latency. |
+| **Secrets Management**     | External Secrets Operator | Eliminates hardcoded Base64 Kubernetes secrets by natively syncing with AWS Secrets Manager.             |
 
 ## 🚀 Deployment Architectures
 
 This project supports multiple deployment architectures, ranging from local prototyping to full enterprise cloud orchestration. Each strategy is fully documented in the `docs/deployments/` directory.
 
-| Architecture | Best For | Tech Stack | Documentation |
-|---|---|---|---|
-| **Local Docker** | Rapid Prototyping | Docker Compose | [View Guide](docs/deployments/01-LOCAL-DOCKER.md) |
-| **Manual EC2 (Legacy)** | Pre-Kubernetes | AWS EC2, ASG, ALB | [View Guide](docs/deployments/02-MANUAL-EC2.md) |
-| **K3s Cluster** | Standalone Orchestration | Kubernetes (K3s), Jenkins | [View Guide](docs/deployments/03-K3S-CLUSTER.md) |
-| **Amazon EKS (Prod)** | Enterprise Cloud | EKS, ALB, AWS WAF, HPA | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
+| Architecture             | Best For                 | Tech Stack                  | Documentation                                     |
+| ------------------------ | ------------------------ | --------------------------- | ------------------------------------------------- |
+| **Local Docker**         | Rapid Prototyping        | Docker Compose              | [View Guide](docs/deployments/01-LOCAL-DOCKER.md) |
+| **Manual EC2 (Legacy)**  | Pre-Kubernetes           | AWS EC2, ASG, ALB           | [View Guide](docs/deployments/02-MANUAL-EC2.md)   |
+| **K3s Cluster**          | Standalone Orchestration | Kubernetes (K3s), Jenkins   | [View Guide](docs/deployments/03-K3S-CLUSTER.md)  |
+| **Amazon EKS (Prod)**    | Enterprise Cloud         | EKS, ALB, AWS WAF, HPA      | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
 | **GitOps Orchestration** | Zero-Downtime Enterprise | ArgoCD, Helm, Jenkins, IRSA | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
 
 ## 🔄 DevSecOps GitOps Pipeline
 
 The deployment lifecycle is fully automated via a GitOps methodology:
+
 1. **Source Code Checkout** from GitHub by Jenkins.
 2. **SonarQube Static Analysis** and Quality Gate enforcement.
 3. **Docker Image Build & Trivy Scan** to detect vulnerabilities.
@@ -131,22 +131,28 @@ A critical part of engineering is understanding trade-offs. Throughout this proj
 Below is a highlight of the infrastructure and application. For the complete, comprehensive gallery covering all aspects (AWS, CI/CD, Kubernetes, Monitoring, Security), please refer to the full [System Screenshots](docs/SCREENSHOTS.md) and the `docs/screenshots/` directory.
 
 ### Architecture
-*(Add your architecture diagram here: `docs/screenshots/01-architecture-diagram.png`)*
+
+_(Add your architecture diagram here: `docs/screenshots/01-architecture-diagram.png`)_
 
 ### Application
-*(Add your landing page or dashboard here: `docs/screenshots/02-landing-page.png`)*
+
+_(Add your landing page or dashboard here: `docs/screenshots/02-landing-page.png`)_
 
 ### AWS Infrastructure
-*(Add your EC2 instances or ALB screenshot here: `docs/screenshots/14-ec2-instances.png`)*
+
+_(Add your EC2 instances or ALB screenshot here: `docs/screenshots/14-ec2-instances.png`)_
 
 ### CI/CD & GitOps
-*(Add your Jenkins pipeline success and ArgoCD Sync here: `docs/screenshots/27-jenkins-pipeline-success.png`)*
+
+_(Add your Jenkins pipeline success and ArgoCD Sync here: `docs/screenshots/27-jenkins-pipeline-success.png`)_
 
 ### Kubernetes Auto-Scaling
-*(Add your cluster overview or pods here: `docs/screenshots/30-kubectl-get-pods.png`)*
+
+_(Add your cluster overview or pods here: `docs/screenshots/30-kubectl-get-pods.png`)_
 
 ### Monitoring
-*(Add your Grafana dashboard here: `docs/screenshots/34-grafana-dashboard.png`)*
+
+_(Add your Grafana dashboard here: `docs/screenshots/34-grafana-dashboard.png`)_
 
 ## ✨ Features
 
@@ -181,6 +187,7 @@ docker compose exec api alembic upgrade head
 ## 📚 Documentation
 
 Extensive operational runbooks and architectural documentation can be found in the `docs/` folder:
+
 - [Architecture Design Details](docs/ARCHITECTURE.md)
 - [CI/CD Pipeline Flows](docs/CI_CD_PIPELINE.md)
 - [Step-by-Step Deployment Guides](docs/DEPLOYMENT_GUIDE.md)
