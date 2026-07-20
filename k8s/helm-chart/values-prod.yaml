@@ -9,6 +9,7 @@ awsSecretName: assemblemonitor/dev/app-secrets  # Must match the name in AWS Sec
 awsRegion: us-east-1
 
 backend:
+  roleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-app-role"
   image:
     repository: fire2686/assemblemonitor-backend
     tag: latest

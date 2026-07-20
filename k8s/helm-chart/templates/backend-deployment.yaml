@@ -15,6 +15,7 @@ spec:
       labels:
         app: assemblemonitor-backend
     spec:
+      serviceAccountName: assemblemonitor-backend-sa
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
