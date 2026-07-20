@@ -12,8 +12,8 @@ This setup provisions an advanced, production-ready AWS environment. The followi
 - **Ingress (ALB & WAF)**: An Application Load Balancer (ALB) routing traffic directly to the Kubernetes NodePorts, protected by an AWS Web Application Firewall (WAF).
 - **Database (RDS)**: A managed PostgreSQL database inside the private subnets.
 - **Storage (S3)**: An S3 bucket for storing site uploads and images.
-- **Security (Secrets Manager)**: Application secrets (DB URL, JWT Key) are securely stored in AWS Secrets Manager and integrated directly into the Kubernetes cluster.
-- **IAM**: Necessary IAM Roles and Policies allowing the EKS Nodes and cluster to interact securely with underlying AWS services (like S3 and Secrets Manager).
+- **Secrets Management**: Secrets (database credentials, JWT keys) are managed in AWS Secrets Manager and synchronized into the Kubernetes cluster using the **External Secrets Operator (ESO)**.
+- **Identity and Access Management**: IAM policies enforce the principle of least privilege. **IAM Roles for Service Accounts (IRSA)** provides pod-level AWS access, while the EC2 Instance Metadata Service (IMDSv2) hop limit is restricted to prevent unauthorized credential retrieval.
 
 ## 📋 Prerequisites
 

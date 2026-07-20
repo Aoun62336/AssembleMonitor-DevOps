@@ -23,11 +23,11 @@ AssembleMonitor is a cloud-native construction site management platform designed
 This project was built from the ground up with a focus on automation, scalability, and observability, implementing the following core DevOps practices:
 
 - **Cloud Infrastructure**: Architected a distributed microservices environment across optimized AWS EC2 compute nodes (`c7i-flex.large`), utilizing Auto Scaling Groups (ASG) and Application Load Balancers (ALB) for high availability.
-- **Security & Secrets**: Protected by an AWS Web Application Firewall (WAF) to mitigate common exploits. Secrets are securely managed via AWS Secrets Manager and integrated into the cluster using the **External Secrets Operator (ESO)**. The underlying infrastructure enforces **Zero-Trust IRSA (IAM Roles for Service Accounts)** to firmly lock down instance metadata access.
+- **Security & Secrets**: Protected by an AWS Web Application Firewall (WAF) to mitigate common exploits. Secrets are securely managed via AWS Secrets Manager and integrated into the cluster using the **External Secrets Operator (ESO)**. The underlying infrastructure utilizes **IAM Roles for Service Accounts (IRSA)** to restrict instance metadata access and enforce least privilege.
 - **Database Decoupling**: Integrated a highly available AWS RDS PostgreSQL instance to decouple database state and ensure reliable data persistence.
 - **Storage**: Implemented AWS S3 for secure, scalable object storage (e.g., site photos).
-- **Continuous Integration / Continuous Deployment (CI/CD)**: Engineered an automated pipeline using a dedicated Jenkins build server. The CI pipeline seamlessly integrates with an enterprise **GitOps (ArgoCD)** deployment controller, establishing Git as the single source of truth for **Declarative Reconciliation** and zero-downtime rolling updates to the Kubernetes cluster.
-- **DevSecOps**: Enforced **"Shift-Left" Security** via strict static code analysis (SonarQube) with blocking Quality Gates, and deep container vulnerability scanning (Trivy) in the CI pipeline to absolutely prevent insecure deployments.
+- **Continuous Integration / Continuous Deployment (CI/CD)**: An automated pipeline is orchestrated by Jenkins. The deployment strategy utilizes GitOps via ArgoCD to continuously synchronize Kubernetes cluster state with the Git repository, enabling immutable rolling updates.
+- **DevSecOps**: Security validation is integrated into the CI pipeline (Shift-Left). SonarQube enforces static code analysis quality gates, and Trivy provides automated container vulnerability scanning prior to deployment.
 - **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
 - **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (VPC, EC2, ASG, ALB, WAF, RDS, S3, Secrets Manager, CloudWatch) using Terraform to guarantee environment parity and infrastructure version control.
 - **Container Orchestration**: Orchestrated the full-stack application natively on a highly available Amazon EKS (Elastic Kubernetes Service) cluster, leveraging **Helm** templates, Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and Horizontal Pod Autoscalers (HPA).
@@ -134,18 +134,18 @@ This project evolved through multiple deployment architectures, demonstrating pr
 
 ## 🔄 DevSecOps GitOps Pipeline
 
-The deployment lifecycle is 100% automated via a strict **Giterminism** methodology:
+The deployment lifecycle is fully automated via a GitOps methodology:
 1. **Source Code Checkout** from GitHub by Jenkins.
-2. **SonarQube Static Analysis** and strict Quality Gate enforcement (pipeline aborts if code is insecure).
-3. **Docker Image Build & Trivy Scan** to detect HIGH and CRITICAL vulnerabilities.
+2. **SonarQube Static Analysis** and Quality Gate enforcement.
+3. **Docker Image Build & Trivy Scan** to detect vulnerabilities.
 4. **Docker Hub Push** to the centralized image registry.
-5. **GitOps Manifest Update**: Jenkins securely updates the Helm `values-prod.yaml` in the GitHub repository with the newly built image tag.
-6. **ArgoCD Sync**: ArgoCD detects the change in GitHub and orchestrates a zero-downtime rolling update within the EKS cluster via Declarative Reconciliation.
+5. **GitOps Manifest Update**: Jenkins updates the Helm `values-prod.yaml` in the GitHub repository with the newly built image tag.
+6. **ArgoCD Sync**: ArgoCD detects the change in GitHub and orchestrates a rolling update within the EKS cluster.
 
-## 🔒 Enterprise Security (AWS IRSA)
+## 🔒 Security (AWS IRSA)
 
 > [!IMPORTANT]  
-> **Zero-Trust Security:** To strictly enforce the Principle of Least Privilege, the EKS EC2 instances have their metadata endpoint (`hop_limit = 1`) completely locked down to prevent pods from hijacking the server's IAM role. Instead, **IRSA (IAM Roles for Service Accounts)** is utilized to securely inject an OIDC-backed Web Identity Token directly into the backend Pod, granting it the exact permissions it needs to write to S3 and nothing more.
+> **Least Privilege Access:** To enforce the principle of least privilege, the EKS EC2 instances have their metadata endpoint (`hop_limit = 1`) restricted to prevent pods from assuming the server's IAM role. Instead, **IRSA (IAM Roles for Service Accounts)** is utilized to inject an OIDC-backed Web Identity Token directly into the backend Pod, granting it the specific permissions required to write to S3.
 
 ## 🧠 Lessons Learned & Architectural Trade-offs
 
