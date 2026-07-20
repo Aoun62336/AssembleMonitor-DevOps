@@ -41,19 +41,19 @@ variable "app_instance_type" {
 variable "asg_min_size" {
   description = "Minimum number of instances in ASG"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "asg_desired_capacity" {
   description = "Desired number of instances in ASG"
   type        = number
-  default     = 1
+  default     = 0
 }
 
 variable "asg_max_size" {
   description = "Maximum number of instances in ASG"
   type        = number
-  default     = 2
+  default     = 0
 }
 
 variable "github_repo_url" {
