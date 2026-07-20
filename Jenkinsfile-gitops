@@ -1,0 +1,232 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'us-east-1'
+
+        DOCKERHUB_USERNAME = 'fire2686'
+        BACKEND_IMAGE = 'fire2686/assemblemonitor-backend'
+        FRONTEND_IMAGE = 'fire2686/assemblemonitor-frontend'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        
+        GIT_REPO_URL = 'https://github.com/Aoun62336/AssembleMonitor-DevOps.git'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Show Build Info') {
+            steps {
+                sh '''
+                    echo "===================================="
+                    echo "AssembleMonitor EKS GitOps Pipeline"
+                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Backend Image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Frontend Image: ${FRONTEND_IMAGE}:${IMAGE_TAG}"
+                    echo "Workspace: $(pwd)"
+                    echo "===================================="
+                    ls -la
+                '''
+            }
+        }
+
+        stage('Docker Check') {
+            steps {
+                sh '''
+                    docker --version
+                    docker compose version || true
+                '''
+            }
+        }
+
+        stage('SonarQube Analysis - Backend') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh '''
+                        cd backend
+                        sonar-scanner \
+                          -Dsonar.projectKey=assemblemonitor-backend \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('SonarQube Analysis - Frontend') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh '''
+                        cd frontend
+                        sonar-scanner \
+                          -Dsonar.projectKey=assemblemonitor-frontend \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Backend Build Validation') {
+            steps {
+                sh '''
+                    docker build \
+                      -t assemblemonitor-backend-check:${IMAGE_TAG} \
+                      ./backend
+
+                    docker run --rm \
+                      assemblemonitor-backend-check:${IMAGE_TAG} \
+                      python -m compileall app
+                '''
+            }
+        }
+
+        stage('Frontend Build Validation') {
+            steps {
+                sh '''
+                    docker build \
+                      -t assemblemonitor-frontend-check:${IMAGE_TAG} \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Build Final Images') {
+            steps {
+                sh '''
+                    docker build \
+                      -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${BACKEND_IMAGE}:latest \
+                      ./backend
+
+                    docker build \
+                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                      -t ${FRONTEND_IMAGE}:latest \
+                      ./frontend
+                '''
+            }
+        }
+
+        stage('Trivy Scan - Backend') {
+            steps {
+                sh '''
+                    echo "Scanning Backend Image for HIGH and CRITICAL vulnerabilities..."
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 0 \
+                      --no-progress \
+                      ${BACKEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Trivy Scan - Frontend') {
+            steps {
+                sh '''
+                    echo "Scanning Frontend Image for HIGH and CRITICAL vulnerabilities..."
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 0 \
+                      --no-progress \
+                      ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Docker Hub Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    sh '''
+                        echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                sh '''
+                    docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${BACKEND_IMAGE}:latest
+
+                    docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    docker push ${FRONTEND_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Approve EKS GitOps Deploy') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input message: 'Update Helm Chart and Trigger ArgoCD Sync to EKS Production?'
+                }
+            }
+        }
+
+        stage('GitOps: Update Helm Values') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-creds', 
+                    passwordVariable: 'GIT_PASSWORD', 
+                    usernameVariable: 'GIT_USERNAME'
+                )]) {
+                    sh '''
+                        # Configure Git
+                        git config user.email "jenkins@assemblemonitor.com"
+                        git config user.name "Jenkins CI"
+
+                        # Ensure we are on the main branch
+                        git checkout main
+                        git pull origin main
+
+                        # Update the tags in values-prod.yaml using sed
+                        # This looks for the image block and replaces the tag
+                        sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" k8s/helm-chart/values-prod.yaml
+
+                        # Commit the changes
+                        git add k8s/helm-chart/values-prod.yaml
+                        git commit -m "GitOps: Update image tags to ${IMAGE_TAG} [skip ci]"
+
+                        # Push to GitHub
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Aoun62336/AssembleMonitor-DevOps.git HEAD:main
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'GitOps Pipeline completed successfully. ArgoCD will now sync the changes to EKS.'
+        }
+
+        failure {
+            echo 'GitOps Pipeline failed. Check the failed stage logs.'
+        }
+
+        always {
+            sh '''
+                docker logout || true
+                docker image prune -f || true
+            '''
+        }
+    }
+}

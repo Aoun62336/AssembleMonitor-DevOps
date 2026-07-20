@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: assemblemonitor-eks
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/Aoun62336/AssembleMonitor-DevOps.git'
+    targetRevision: HEAD
+    path: k8s/helm-chart
+    helm:
+      valueFiles:
+      - values-prod.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: assemblemonitor
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

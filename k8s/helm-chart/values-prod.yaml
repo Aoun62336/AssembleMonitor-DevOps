@@ -1,0 +1,74 @@
+# -----------------------------------------------------------------------------
+# VALUES-PROD.YAML
+# EKS Production Environment Values (ALB NodePort, HPA, External Secrets)
+# -----------------------------------------------------------------------------
+namespace: assemblemonitor
+
+# Secret Management (External Secrets Operator)
+awsSecretName: assemblemonitor/dev/app-secrets  # Must match the name in AWS Secrets Manager
+awsRegion: us-east-1
+
+backend:
+  image:
+    repository: fire2686/assemblemonitor-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1  # Base replicas (HPA will scale this up to 5)
+  containerPort: 8000
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  readinessProbe:
+    path: /api/health
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    path: /api/health
+    initialDelaySeconds: 40
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "768Mi"
+
+frontend:
+  image:
+    repository: fire2686/assemblemonitor-frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1  # Base replicas (HPA will scale this up to 5)
+  containerPort: 80
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "512Mi"
+  service:
+    type: NodePort
+    nodePort: 30080  # Required for the AWS ALB Target Group binding

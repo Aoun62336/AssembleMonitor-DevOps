@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: assemblemonitor-frontend-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    app: assemblemonitor-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: {{ .Values.frontend.containerPort }}
+      nodePort: {{ .Values.frontend.service.nodePort }}

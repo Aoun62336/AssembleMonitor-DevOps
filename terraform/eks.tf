@@ -109,7 +109,9 @@ resource "aws_eks_node_group" "main" {
     max_unavailable = 1
   }
 
-  tags = local.common_tags
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-eks-node"
+  })
 
   depends_on = [
     aws_iam_role_policy_attachment.eks_node_worker_policy,

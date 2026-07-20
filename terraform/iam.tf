@@ -70,3 +70,8 @@ resource "aws_iam_instance_profile" "app_instance_profile" {
   name = "${local.name_prefix}-app-instance-profile"
   role = aws_iam_role.app_role.name
 }
+
+resource "aws_iam_role_policy_attachment" "eks_node_app_policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = aws_iam_policy.app_policy.arn
+}
