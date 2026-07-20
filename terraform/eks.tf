@@ -109,8 +109,13 @@ resource "aws_eks_node_group" "main" {
     max_unavailable = 1
   }
 
+  launch_template {
+    name    = aws_launch_template.eks_node_lt.name
+    version = aws_launch_template.eks_node_lt.latest_version
+  }
+
   tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-eks-node"
+    Name = "${local.name_prefix}-eks-node-group"
   })
 
   depends_on = [
@@ -118,4 +123,65 @@ resource "aws_eks_node_group" "main" {
     aws_iam_role_policy_attachment.eks_node_cni_policy,
     aws_iam_role_policy_attachment.eks_node_ecr_policy,
   ]
+}
+
+resource "aws_launch_template" "eks_node_lt" {
+  name_prefix = "${local.name_prefix}-eks-node-lt-"
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(local.common_tags, {
+      Name = "${local.name_prefix}-eks-node"
+    })
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags = merge(local.common_tags, {
+      Name = "${local.name_prefix}-eks-node-volume"
+    })
+  }
+}
+
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_role" "eso_role" {
+  name = "${local.name_prefix}-eso-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:external-secrets:external-secrets"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "eso_secret_attach" {
+  role       = aws_iam_role.eso_role.name
+  policy_arn = aws_iam_policy.app_policy.arn
+}
+
+output "eso_role_arn" {
+  value = aws_iam_role.eso_role.arn
 }
