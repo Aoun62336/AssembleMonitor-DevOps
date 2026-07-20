@@ -6,7 +6,9 @@ metadata:
   labels:
     app: assemblemonitor-backend
 spec:
+  {{- if not .Values.backend.hpa }}
   replicas: {{ .Values.backend.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: assemblemonitor-backend

@@ -141,6 +141,12 @@ resource "aws_launch_template" "eks_node_lt" {
       Name = "${local.name_prefix}-eks-node-volume"
     })
   }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
 }
 
 data "tls_certificate" "eks" {
