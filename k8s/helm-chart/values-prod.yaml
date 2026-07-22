@@ -73,3 +73,8 @@ frontend:
   service:
     type: NodePort
     nodePort: 30080  # Required for the AWS ALB Target Group binding
+
+otel:
+  irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/am-dev-otel-irsa-role"  # Will be replaced with actual Terraform output
+  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-XXXX/"  # Will be replaced with actual Terraform output
+  region: "us-east-1"
