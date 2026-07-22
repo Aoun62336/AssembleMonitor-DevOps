@@ -30,45 +30,12 @@ resource "helm_release" "argocd" {
 }
 
 # ---------------------------------------------------------
-# ArgoCD GitOps Application Setup
+# ArgoCD GitOps Application Setup (Using local-exec to avoid CRD plan errors)
 # ---------------------------------------------------------
-resource "kubernetes_manifest" "argocd_application" {
-  manifest = {
-    "apiVersion" = "argoproj.io/v1alpha1"
-    "kind"       = "Application"
-    "metadata" = {
-      "name"      = "assemblemonitor-eks"
-      "namespace" = "argocd"
-    }
-    "spec" = {
-      "project" = "default"
-      "source" = {
-        "repoURL"        = "https://github.com/Aoun62336/AssembleMonitor-DevOps.git"
-        "targetRevision" = "HEAD"
-        "path"           = "k8s/helm-chart"
-        "helm" = {
-          "valueFiles" = [
-            "values-prod.yaml"
-          ]
-        }
-      }
-      "destination" = {
-        "server"    = "https://kubernetes.default.svc"
-        "namespace" = "assemblemonitor"
-      }
-      "syncPolicy" = {
-        "automated" = {
-          "prune"    = true
-          "selfHeal" = true
-        }
-        "syncOptions" = [
-          "CreateNamespace=true"
-        ]
-      }
-    }
-  }
+resource "null_resource" "argocd_application_apply" {
+  depends_on = [helm_release.argocd]
 
-  depends_on = [
-    helm_release.argocd
-  ]
+  provisioner "local-exec" {
+    command = "aws eks update-kubeconfig --name ${aws_eks_cluster.main.name} --region ${var.aws_region} && kubectl apply -f ../k8s/argocd-application.yaml"
+  }
 }
