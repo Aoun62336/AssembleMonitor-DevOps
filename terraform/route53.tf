@@ -54,8 +54,8 @@ resource "aws_route53_record" "cert_validation" {
 
 resource "aws_acm_certificate_validation" "app_cert" {
   count                   = var.create_dns ? 1 : 0
-  certificate_arn          = aws_acm_certificate.app_cert[0].arn
-  validation_record_fqdns  = [for record in aws_route53_record.cert_validation : record.fqdn]
+  certificate_arn         = aws_acm_certificate.app_cert[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
 resource "aws_route53_record" "app_alias" {
@@ -65,8 +65,8 @@ resource "aws_route53_record" "app_alias" {
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.app_cdn.domain_name
-    zone_id                = aws_cloudfront_distribution.app_cdn.hosted_zone_id
+    name                   = aws_lb.app_alb.dns_name
+    zone_id                = aws_lb.app_alb.zone_id
     evaluate_target_health = false
   }
 }
