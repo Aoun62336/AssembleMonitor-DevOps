@@ -78,6 +78,86 @@ otel:
   irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-otel-irsa-role" # Will be replaced with actual Terraform output
   ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-2e6356f2-a104-4823-8acd-9846dd16f30d/" # Will be replaced with actual Terraform output
   region: "us-east-1"
+# -----------------------------------------------------------------------------
+# VALUES-PROD.YAML
+# EKS Production Environment Values (ALB NodePort, HPA, External Secrets)
+# -----------------------------------------------------------------------------
+namespace: assemblemonitor
+
+# Secret Management (External Secrets Operator)
+awsSecretName: assemblemonitor/dev/app-secrets # Must match the name in AWS Secrets Manager
+awsRegion: us-east-1
+
+backend:
+  roleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-app-role"
+  image:
+    repository: fire2686/assemblemonitor-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1 # Base replicas (HPA will scale this up to 5)
+  containerPort: 8000
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  readinessProbe:
+    path: /api/health
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    path: /api/health
+    initialDelaySeconds: 40
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "768Mi"
+
+frontend:
+  image:
+    repository: fire2686/assemblemonitor-frontend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1 # Base replicas (HPA will scale this up to 5)
+  containerPort: 80
+  hpa:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+  livenessProbe:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "512Mi"
+  service:
+    type: NodePort
+    nodePort: 30080 # Required for the AWS ALB Target Group binding
+
+otel:
+  irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-otel-irsa-role" # Will be replaced with actual Terraform output
+  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-2e6356f2-a104-4823-8acd-9846dd16f30d/" # Will be replaced with actual Terraform output
+  region: "us-east-1"
 
 grafana:
   irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-grafana-irsa-role" # Will be replaced with actual Terraform output
@@ -86,3 +166,62 @@ nodeExporter:
   targets:
     - "<JENKINS_PRIVATE_IP>:9100" # Jenkins Server
     - "<K3S_PRIVATE_IP>:9100"  # K3s Server
+
+loki:
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: s3
+      bucketNames:
+        chunks: assemblemonitor-advance-dev-observability-s3
+        ruler: assemblemonitor-advance-dev-observability-s3
+        admin: assemblemonitor-advance-dev-observability-s3
+      s3:
+        region: us-east-1
+        s3ForcePathStyle: false
+        insecure: false
+    schemaConfig:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+  serviceAccount:
+    create: true
+    name: loki
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-obs-backend-irsa"
+  singleBinary:
+    replicas: 1
+    persistence:
+      enabled: true
+  chunksCache:
+    persistence:
+      enabled: true
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+
+tempo:
+  tempo:
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: assemblemonitor-advance-dev-observability-s3
+          endpoint: s3.us-east-1.amazonaws.com
+          region: us-east-1
+  serviceAccount:
+    create: true
+    name: tempo
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-obs-backend-irsa"

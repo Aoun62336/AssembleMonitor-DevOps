@@ -1,0 +1,74 @@
+# ---------------------------------------------------------
+# ArgoCD Automated Installation
+# ---------------------------------------------------------
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+  
+  depends_on = [
+    aws_eks_node_group.main,
+    aws_eks_addon.ebs_csi_driver
+  ]
+}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "7.3.11"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+
+  set {
+    name  = "server.service.type"
+    value = "ClusterIP"
+  }
+
+  depends_on = [
+    kubernetes_namespace.argocd
+  ]
+}
+
+# ---------------------------------------------------------
+# ArgoCD GitOps Application Setup
+# ---------------------------------------------------------
+resource "kubernetes_manifest" "argocd_application" {
+  manifest = {
+    "apiVersion" = "argoproj.io/v1alpha1"
+    "kind"       = "Application"
+    "metadata" = {
+      "name"      = "assemblemonitor-eks"
+      "namespace" = "argocd"
+    }
+    "spec" = {
+      "project" = "default"
+      "source" = {
+        "repoURL"        = "https://github.com/Aoun62336/AssembleMonitor-DevOps.git"
+        "targetRevision" = "HEAD"
+        "path"           = "k8s/helm-chart"
+        "helm" = {
+          "valueFiles" = [
+            "values-prod.yaml"
+          ]
+        }
+      }
+      "destination" = {
+        "server"    = "https://kubernetes.default.svc"
+        "namespace" = "assemblemonitor"
+      }
+      "syncPolicy" = {
+        "automated" = {
+          "prune"    = true
+          "selfHeal" = true
+        }
+        "syncOptions" = [
+          "CreateNamespace=true"
+        ]
+      }
+    }
+  }
+
+  depends_on = [
+    helm_release.argocd
+  ]
+}
