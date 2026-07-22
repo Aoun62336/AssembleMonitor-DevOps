@@ -38,6 +38,10 @@ metadata:
   namespace: {{ .Values.namespace }}
 data:
   otel-collector-config: |
+    extensions:
+      sigv4auth:
+        region: {{ .Values.otel.region }}
+        service: aps
     receivers:
       prometheus:
         config:
@@ -48,18 +52,18 @@ data:
               relabel_configs:
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
                   action: keep
-                  regex: true
+                  regex: "true"
     exporters:
-      awsprometheus:
-        region: {{ .Values.otel.region }}
+      prometheusremotewrite:
         endpoint: {{ .Values.otel.ampWorkspaceUrl }}api/v1/remote_write
-        aws_auth:
-          region: {{ .Values.otel.region }}
+        auth:
+          authenticator: sigv4auth
     service:
+      extensions: [sigv4auth]
       pipelines:
         metrics:
           receivers: [prometheus]
-          exporters: [awsprometheus]
+          exporters: [prometheusremotewrite]
 ---
 apiVersion: apps/v1
 kind: DaemonSet

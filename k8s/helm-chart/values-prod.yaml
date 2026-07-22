@@ -5,16 +5,16 @@
 namespace: assemblemonitor
 
 # Secret Management (External Secrets Operator)
-awsSecretName: assemblemonitor/dev/app-secrets  # Must match the name in AWS Secrets Manager
+awsSecretName: assemblemonitor/dev/app-secrets # Must match the name in AWS Secrets Manager
 awsRegion: us-east-1
 
 backend:
   roleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-app-role"
   image:
     repository: fire2686/assemblemonitor-backend
-    tag: 2
+    tag: latest
     pullPolicy: Always
-  replicas: 1  # Base replicas (HPA will scale this up to 5)
+  replicas: 1 # Base replicas (HPA will scale this up to 5)
   containerPort: 8000
   hpa:
     minReplicas: 2
@@ -43,9 +43,9 @@ backend:
 frontend:
   image:
     repository: fire2686/assemblemonitor-frontend
-    tag: 2
+    tag: latest
     pullPolicy: Always
-  replicas: 1  # Base replicas (HPA will scale this up to 5)
+  replicas: 1 # Base replicas (HPA will scale this up to 5)
   containerPort: 80
   hpa:
     minReplicas: 2
@@ -72,9 +72,12 @@ frontend:
       memory: "512Mi"
   service:
     type: NodePort
-    nodePort: 30080  # Required for the AWS ALB Target Group binding
+    nodePort: 30080 # Required for the AWS ALB Target Group binding
 
 otel:
-  irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/am-dev-otel-irsa-role"  # Will be replaced with actual Terraform output
-  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-XXXX/"  # Will be replaced with actual Terraform output
+  irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-otel-irsa-role" # Will be replaced with actual Terraform output
+  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-2e6356f2-a104-4823-8acd-9846dd16f30d/" # Will be replaced with actual Terraform output
   region: "us-east-1"
+
+grafana:
+  irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-grafana-irsa-role" # Will be replaced with actual Terraform output

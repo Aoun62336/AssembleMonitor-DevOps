@@ -24,7 +24,7 @@ resource "aws_iam_role" "otel_irsa_role" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:monitoring:otel-collector"
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:assemblemonitor:otel-collector"
           }
         }
       }
@@ -44,6 +44,43 @@ output "otel_irsa_role_arn" {
 }
 
 # ---------------------------------------------------------
+# IAM Role for Service Accounts (IRSA) - Grafana
+# ---------------------------------------------------------
+resource "aws_iam_role" "grafana_irsa_role" {
+  name = "${local.name_prefix}-grafana-irsa-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" = "system:serviceaccount:assemblemonitor:grafana"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "grafana_amp_query" {
+  role       = aws_iam_role.grafana_irsa_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonPrometheusQueryAccess"
+}
+
+output "grafana_irsa_role_arn" {
+  value = aws_iam_role.grafana_irsa_role.arn
+}
+
+/*
+# ---------------------------------------------------------
 # Amazon Managed Grafana (AMG)
 # ---------------------------------------------------------
 resource "aws_grafana_workspace" "main" {
@@ -55,7 +92,7 @@ resource "aws_grafana_workspace" "main" {
   data_sources             = ["PROMETHEUS", "CLOUDWATCH"]
 
   vpc_configuration {
-    subnet_ids         = [aws_subnet.app_private_a.id, aws_subnet.app_private_b.id]
+    subnet_ids         = [data.aws_subnets.default.ids[0], data.aws_subnets.default.ids[1]]
     security_group_ids = [aws_security_group.amg_vpc_access_sg.id]
   }
 
@@ -114,3 +151,4 @@ resource "aws_iam_role_policy_attachment" "amg_prometheus_attach" {
 output "amg_workspace_endpoint" {
   value = aws_grafana_workspace.main.endpoint
 }
+*/
