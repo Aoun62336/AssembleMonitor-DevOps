@@ -71,9 +71,9 @@ data:
 {{ toYaml .Values.nodeExporter.targets | indent 18 }}
     exporters:
       loki:
-        endpoint: "http://loki-gateway.assemblemonitor.svc.cluster.local/loki/api/v1/push"
+        endpoint: "http://{{ .Release.Name }}-loki-gateway.{{ .Values.namespace }}.svc.cluster.local/loki/api/v1/push"
       otlp/tempo:
-        endpoint: "http://tempo-distributor.assemblemonitor.svc.cluster.local:4317"
+        endpoint: "http://{{ .Release.Name }}-tempo-distributor.{{ .Values.namespace }}.svc.cluster.local:4317"
         tls:
           insecure: true
       prometheusremotewrite:
@@ -108,6 +108,9 @@ spec:
         app: otel-collector
     spec:
       serviceAccountName: otel-collector
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:latest
