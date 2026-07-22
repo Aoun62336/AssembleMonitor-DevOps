@@ -1,0 +1,21 @@
+serviceAccount:
+  create: true
+  name: tempo
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-obs-backend-irsa"
+
+traces:
+  otlp:
+    grpc:
+      enabled: true
+    http:
+      enabled: true
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: assemblemonitor-advance-dev-observability-s3
+      endpoint: s3.us-east-1.amazonaws.com
+      region: us-east-1
+      forcepathstyle: false

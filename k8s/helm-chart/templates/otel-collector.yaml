@@ -43,6 +43,18 @@ data:
         region: {{ .Values.otel.region }}
         service: aps
     receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      filelog:
+        include:
+          - /var/log/pods/*/*/*.log
+        exclude:
+          - /var/log/pods/kube-system_*/*/*.log
+        start_at: end
       prometheus:
         config:
           scrape_configs:
@@ -53,7 +65,17 @@ data:
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
                   action: keep
                   regex: "true"
+            - job_name: 'manual-ec2-nodes'
+              static_configs:
+                - targets:
+{{ toYaml .Values.nodeExporter.targets | indent 18 }}
     exporters:
+      loki:
+        endpoint: "http://loki-gateway.assemblemonitor.svc.cluster.local/loki/api/v1/push"
+      otlp/tempo:
+        endpoint: "http://tempo-distributor.assemblemonitor.svc.cluster.local:4317"
+        tls:
+          insecure: true
       prometheusremotewrite:
         endpoint: {{ .Values.otel.ampWorkspaceUrl }}api/v1/remote_write
         auth:
@@ -61,6 +83,12 @@ data:
     service:
       extensions: [sigv4auth]
       pipelines:
+        logs:
+          receivers: [filelog]
+          exporters: [loki]
+        traces:
+          receivers: [otlp]
+          exporters: [otlp/tempo]
         metrics:
           receivers: [prometheus]
           exporters: [prometheusremotewrite]
@@ -89,10 +117,39 @@ spec:
           volumeMounts:
             - name: otel-collector-config-vol
               mountPath: /conf
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
       volumes:
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
         - name: otel-collector-config-vol
           configMap:
             name: otel-collector-conf
             items:
               - key: otel-collector-config
                 path: otel-collector-config.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+  selector:
+    app: otel-collector

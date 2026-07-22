@@ -22,3 +22,28 @@ resource "aws_s3_bucket_versioning" "uploads_versioning" {
     status = "Enabled"
   }
 }
+
+resource "aws_s3_bucket" "observability" {
+  bucket = "${local.name_prefix}-observability-s3"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-observability-s3"
+  })
+}
+
+resource "aws_s3_bucket_public_access_block" "observability_block_public" {
+  bucket = aws_s3_bucket.observability.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "observability_versioning" {
+  bucket = aws_s3_bucket.observability.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}

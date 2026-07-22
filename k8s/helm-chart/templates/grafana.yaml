@@ -23,6 +23,14 @@ data:
           sigV4Auth: true
           sigV4AuthType: default
           sigV4Region: {{ .Values.otel.region }}
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki-gateway.assemblemonitor.svc.cluster.local
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://tempo-query-frontend.assemblemonitor.svc.cluster.local:3200
 ---
 apiVersion: apps/v1
 kind: Deployment

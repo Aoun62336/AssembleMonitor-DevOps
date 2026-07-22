@@ -81,3 +81,8 @@ otel:
 
 grafana:
   irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-grafana-irsa-role" # Will be replaced with actual Terraform output
+
+nodeExporter:
+  targets:
+    - "<JENKINS_PRIVATE_IP>:9100" # Jenkins Server
+    - "<K3S_PRIVATE_IP>:9100"  # K3s Server

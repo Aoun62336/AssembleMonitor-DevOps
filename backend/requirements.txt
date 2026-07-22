@@ -36,6 +36,11 @@ boto3==1.36.19                     # AWS S3 client
 #Prometheus metric url
 prometheus-fastapi-instrumentator
 
+# OpenTelemetry for Tempo Traces
+opentelemetry-distro==0.46b0
+opentelemetry-exporter-otlp==1.25.0
+opentelemetry-instrumentation-fastapi==0.46b0
+
 
 # ============================================================
 # Development / testing (install separately via requirements-dev.txt)
