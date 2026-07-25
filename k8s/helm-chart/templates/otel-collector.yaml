@@ -71,9 +71,9 @@ data:
 {{ toYaml .Values.nodeExporter.targets | indent 18 }}
     exporters:
       loki:
-        endpoint: "http://{{ .Release.Name }}-loki-gateway.{{ .Values.namespace }}.svc.cluster.local/loki/api/v1/push"
+        endpoint: "http://loki-gateway.{{ .Values.namespace }}.svc.cluster.local/loki/api/v1/push"
       otlp/tempo:
-        endpoint: "http://{{ .Release.Name }}-tempo-distributor.{{ .Values.namespace }}.svc.cluster.local:4317"
+        endpoint: "{{ .Release.Name }}-tempo.{{ .Values.namespace }}.svc.cluster.local:4317"
         tls:
           insecure: true
       prometheusremotewrite:
