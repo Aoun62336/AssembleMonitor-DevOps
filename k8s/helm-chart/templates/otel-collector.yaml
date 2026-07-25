@@ -65,13 +65,27 @@ data:
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
                   action: keep
                   regex: "true"
+            - job_name: 'kubernetes-endpoints'
+              kubernetes_sd_configs:
+                - role: endpoints
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+                  action: keep
+                  regex: "kube-state-metrics"
             - job_name: 'manual-ec2-nodes'
               static_configs:
-                - targets:
-{{ toYaml .Values.nodeExporter.targets | nindent 18 }}
+                - targets: ["<JENKINS_PRIVATE_IP>:9100"]
+                  labels:
+                    instance: "jenkins-server"
+                - targets: ["<K3S_PRIVATE_IP>:9100"]
+                  labels:
+                    instance: "k3s-server"
+                - targets: ["<SONARQUBE_PRIVATE_IP>:9100"]
+                  labels:
+                    instance: "sonarqube-server"
     exporters:
       otlphttp/loki:
-        endpoint: "http://loki-gateway.{{ .Values.namespace }}.svc.cluster.local/otlp"
+        endpoint: "http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100/otlp"
         tls:
           insecure: true
       otlp/tempo:

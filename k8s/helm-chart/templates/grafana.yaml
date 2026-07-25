@@ -26,11 +26,11 @@ data:
       - name: Loki
         type: loki
         access: proxy
-        url: http://loki-gateway.assemblemonitor.svc.cluster.local
+        url: http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100
       - name: Tempo
         type: tempo
         access: proxy
-        url: http://tempo-query-frontend.assemblemonitor.svc.cluster.local:3200
+        url: http://{{ .Release.Name }}-tempo.{{ .Values.namespace }}.svc.cluster.local:3100
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -54,10 +54,6 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
-            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
-              value: "Admin"
             - name: GF_FEATURE_TOGGLES_ENABLE
               value: "awsAuthV4"
           volumeMounts:
