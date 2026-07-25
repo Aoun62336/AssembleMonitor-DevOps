@@ -106,8 +106,6 @@ spec:
       app: otel-collector
   template:
     metadata:
-      annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/otel-collector.yaml") . | sha256sum }}
       labels:
         app: otel-collector
     spec:
