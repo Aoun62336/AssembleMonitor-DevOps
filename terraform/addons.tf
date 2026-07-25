@@ -43,3 +43,30 @@ resource "helm_release" "metrics_server" {
     value = "--kubelet-insecure-tls"
   }
 }
+
+# ---------------------------------------------------------
+# Default Storage Class (EBS gp3)
+# ---------------------------------------------------------
+# Required because EKS 1.30+ does not provision a default StorageClass 
+# even when the aws-ebs-csi-driver add-on is installed.
+resource "kubernetes_storage_class" "gp3" {
+  metadata {
+    name = "gp3"
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+
+  parameters = {
+    type   = "gp3"
+    fsType = "ext4"
+  }
+
+  depends_on = [
+    aws_eks_addon.ebs_csi_driver
+  ]
+}
