@@ -76,7 +76,7 @@ resource "aws_security_group" "eks_cluster_sg" {
 resource "aws_eks_cluster" "main" {
   name     = "${local.name_prefix}-eks"
   role_arn = aws_iam_role.eks_cluster_role.arn
-  version  = "1.32"
+  version  = "1.36"
 
   vpc_config {
     subnet_ids              = [aws_subnet.app_private_a.id, aws_subnet.app_private_b.id, data.aws_subnet.default_a.id, data.aws_subnet.default_b.id]

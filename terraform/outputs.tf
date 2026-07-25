@@ -48,9 +48,3 @@ output "alb_security_group_id" {
   value       = aws_security_group.alb_sg.id
 }
 
-/*
-output "cloudfront_domain_name" {
-  description = "CloudFront Distribution Domain Name"
-  value       = aws_cloudfront_distribution.app_cdn.domain_name
-}
-*/
