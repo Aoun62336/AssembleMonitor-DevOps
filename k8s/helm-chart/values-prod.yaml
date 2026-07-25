@@ -17,6 +17,7 @@ backend:
   replicas: 1 # Base replicas (HPA will scale this up to 5)
   containerPort: 8000
   hpa:
+    enabled: true
     minReplicas: 2
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
@@ -46,8 +47,9 @@ frontend:
     tag: 7
     pullPolicy: Always
   replicas: 1 # Base replicas (HPA will scale this up to 5)
-  containerPort: 80
+  containerPort: 8080
   hpa:
+    enabled: true
     minReplicas: 2
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
@@ -124,8 +126,9 @@ loki:
     persistence:
       enabled: true
   chunksCache:
-    persistence:
-      enabled: false
+    enabled: false
+  resultsCache:
+    enabled: false
   read:
     replicas: 0
   write:
