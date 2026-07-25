@@ -12,7 +12,7 @@ backend:
   roleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-app-role"
   image:
     repository: fire2686/assemblemonitor-backend
-    tag: 4
+    tag: 6
     pullPolicy: Always
   replicas: 1 # Base replicas (HPA will scale this up to 5)
   containerPort: 8000
@@ -43,7 +43,7 @@ backend:
 frontend:
   image:
     repository: fire2686/assemblemonitor-frontend
-    tag: 4
+    tag: 6
     pullPolicy: Always
   replicas: 1 # Base replicas (HPA will scale this up to 5)
   containerPort: 80
