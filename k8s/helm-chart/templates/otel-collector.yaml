@@ -68,16 +68,18 @@ data:
             - job_name: 'manual-ec2-nodes'
               static_configs:
                 - targets:
-{{ toYaml .Values.nodeExporter.targets | indent 18 }}
+{{ toYaml .Values.nodeExporter.targets | nindent 18 }}
     exporters:
-      loki:
-        endpoint: "http://loki-gateway.{{ .Values.namespace }}.svc.cluster.local/loki/api/v1/push"
+      otlphttp/loki:
+        endpoint: "http://loki-gateway.{{ .Values.namespace }}.svc.cluster.local/otlp"
+        tls:
+          insecure: true
       otlp/tempo:
         endpoint: "{{ .Release.Name }}-tempo.{{ .Values.namespace }}.svc.cluster.local:4317"
         tls:
           insecure: true
       prometheusremotewrite:
-        endpoint: {{ .Values.otel.ampWorkspaceUrl }}api/v1/remote_write
+        endpoint: "{{ .Values.otel.ampWorkspaceUrl }}api/v1/remote_write"
         auth:
           authenticator: sigv4auth
     service:
@@ -85,7 +87,7 @@ data:
       pipelines:
         logs:
           receivers: [filelog]
-          exporters: [loki]
+          exporters: [otlphttp/loki]
         traces:
           receivers: [otlp]
           exporters: [otlp/tempo]
