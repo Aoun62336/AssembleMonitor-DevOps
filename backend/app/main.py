@@ -25,6 +25,31 @@ from app.routers import auth, health, projects, tasks, users, phases, materials,
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# OpenTelemetry Tracing
+import os
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+# Initialize OTEL Tracer
+resource = Resource(attributes={
+    SERVICE_NAME: os.environ.get("OTEL_SERVICE_NAME", "assemblemonitor-backend")
+})
+provider = TracerProvider(resource=resource)
+# Strip http:// prefix from endpoint for gRPC exporter
+otlp_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "otel-collector.assemblemonitor.svc.cluster.local:4317")
+if otlp_endpoint.startswith("http://"):
+    otlp_endpoint = otlp_endpoint.replace("http://", "")
+elif otlp_endpoint.startswith("https://"):
+    otlp_endpoint = otlp_endpoint.replace("https://", "")
+
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True))
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -75,6 +100,9 @@ def create_app() -> FastAPI:
 
     # Add Prometheus instrumentation
     Instrumentator().instrument(app).expose(app)
+    
+    # Add OpenTelemetry instrumentation
+    FastAPIInstrumentor.instrument_app(app)
 
     # ---- CORS ---------------------------------------------------------------
     app.add_middleware(

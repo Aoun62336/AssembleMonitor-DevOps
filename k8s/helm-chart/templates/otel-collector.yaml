@@ -55,6 +55,11 @@ data:
         exclude:
           - /var/log/pods/kube-system_*/*/*.log
         start_at: end
+        include_file_path: true
+        operators:
+          - type: regex_parser
+            regex: '^/var/log/pods/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_[a-f0-9\-]+/(?P<app>[^/]+)/\d+\.log$'
+            parse_from: attributes["log.file.path"]
       prometheus:
         config:
           scrape_configs:
@@ -83,6 +88,18 @@ data:
                 - targets: ["<SONARQUBE_PRIVATE_IP>:9100"]
                   labels:
                     instance: "sonarqube-server"
+    processors:
+      resource:
+        attributes:
+          - key: app
+            from_attribute: app
+            action: insert
+          - key: namespace
+            from_attribute: namespace
+            action: insert
+          - key: pod
+            from_attribute: pod_name
+            action: insert
     exporters:
       otlphttp/loki:
         endpoint: "http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100/otlp"
@@ -101,6 +118,7 @@ data:
       pipelines:
         logs:
           receivers: [filelog]
+          processors: [resource]
           exporters: [otlphttp/loki]
         traces:
           receivers: [otlp]
