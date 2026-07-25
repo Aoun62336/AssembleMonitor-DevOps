@@ -125,7 +125,7 @@ loki:
       enabled: true
   chunksCache:
     persistence:
-      enabled: true
+      enabled: false
   read:
     replicas: 0
   write:

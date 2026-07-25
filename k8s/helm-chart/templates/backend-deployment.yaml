@@ -51,15 +51,6 @@ spec:
               value: assemblemonitor-backend
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.assemblemonitor.svc.cluster.local:4317"
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-          volumeMounts:
-            - name: tmp-volume
-              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: {{ .Values.backend.readinessProbe.path }}
@@ -83,6 +74,3 @@ spec:
             limits:
               cpu: {{ .Values.backend.resources.limits.cpu }}
               memory: {{ .Values.backend.resources.limits.memory }}
-      volumes:
-        - name: tmp-volume
-          emptyDir: {}
