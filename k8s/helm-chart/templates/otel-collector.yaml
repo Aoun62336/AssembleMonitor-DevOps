@@ -54,7 +54,7 @@ data:
           - /var/log/pods/*/*/*.log
         exclude:
           - /var/log/pods/kube-system_*/*/*.log
-        start_at: end
+        start_at: beginning
         include_file_path: true
         operators:
           - type: regex_parser
@@ -137,6 +137,8 @@ spec:
     metadata:
       labels:
         app: otel-collector
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/otel-collector.yaml") . | sha256sum }}
     spec:
       serviceAccountName: otel-collector
       securityContext:
