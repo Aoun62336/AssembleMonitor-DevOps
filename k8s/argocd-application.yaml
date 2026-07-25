@@ -22,3 +22,16 @@ spec:
     syncOptions:
     - CreateNamespace=true
     - ServerSideApply=true
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /status/terminatingReplicas
+  - group: apps
+    kind: DaemonSet
+    jsonPointers:
+    - /status/terminatingReplicas
+  - group: apps
+    kind: StatefulSet
+    jsonPointers:
+    - /status/terminatingReplicas
