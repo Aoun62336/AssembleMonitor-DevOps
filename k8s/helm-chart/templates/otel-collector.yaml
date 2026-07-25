@@ -89,17 +89,14 @@ data:
                   labels:
                     instance: "sonarqube-server"
     processors:
-      resource:
-        attributes:
-          - key: app
-            from_attribute: app
-            action: insert
-          - key: namespace
-            from_attribute: namespace
-            action: insert
-          - key: pod
-            from_attribute: pod_name
-            action: insert
+      transform:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(resource.attributes["app"], attributes["app"])
+              - set(resource.attributes["namespace"], attributes["namespace"])
+              - set(resource.attributes["pod"], attributes["pod_name"])
     exporters:
       otlphttp/loki:
         endpoint: "http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100/otlp"
@@ -118,7 +115,7 @@ data:
       pipelines:
         logs:
           receivers: [filelog]
-          processors: [resource]
+          processors: [transform]
           exporters: [otlphttp/loki]
         traces:
           receivers: [otlp]

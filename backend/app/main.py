@@ -28,7 +28,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 # OpenTelemetry Tracing
 import os
 from opentelemetry import trace
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -36,7 +36,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 # Initialize OTEL Tracer
 resource = Resource(attributes={
-    SERVICE_NAME: os.environ.get("OTEL_SERVICE_NAME", "assemblemonitor-backend")
+    "service.name": os.environ.get("OTEL_SERVICE_NAME", "assemblemonitor-backend")
 })
 provider = TracerProvider(resource=resource)
 # Strip http:// prefix from endpoint for gRPC exporter
