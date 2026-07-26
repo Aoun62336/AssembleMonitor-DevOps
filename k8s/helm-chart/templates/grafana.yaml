@@ -54,7 +54,7 @@ spec:
             - containerPort: 3000
           env:
             - name: GF_INSTALL_PLUGINS
-              value: "grafana-amazonprometheus-datasource 2.2.0"
+              value: "grafana-amazonprometheus-datasource"
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
