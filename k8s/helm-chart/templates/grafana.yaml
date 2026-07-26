@@ -18,6 +18,7 @@ data:
       - name: Amazon Managed Prometheus
         type: prometheus
         access: proxy
+        isDefault: true
         url: {{ .Values.otel.ampWorkspaceUrl }}
         jsonData:
           sigV4Auth: true
