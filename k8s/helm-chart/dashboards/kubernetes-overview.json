@@ -9,14 +9,14 @@
       "title": "Total Nodes",
       "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
       "targets": [{ "expr": "count(kube_node_info)" }],
-      "fieldConfig": { "defaults": { "color": { "mode": "none" } } }
+      "fieldConfig": { "defaults": {} }
     },
     {
       "type": "stat",
       "title": "Total Pods",
       "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
       "targets": [{ "expr": "count(kube_pod_info{namespace=\"assemblemonitor\"})" }],
-      "fieldConfig": { "defaults": { "color": { "mode": "none" } } }
+      "fieldConfig": { "defaults": {} }
     },
     {
       "type": "stat",
@@ -30,14 +30,14 @@
       "title": "Total CPU Usage (Cores)",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"assemblemonitor\", container!=\"\"}[5m]))" }],
-      "fieldConfig": { "defaults": { "unit": "cores", "decimals": 2, "color": { "mode": "none" } } }
+      "fieldConfig": { "defaults": { "unit": "cores", "decimals": 2 } }
     },
     {
       "type": "stat",
       "title": "Total Memory Usage",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [{ "expr": "sum(container_memory_working_set_bytes{namespace=\"assemblemonitor\", container!=\"\"})" }],
-      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 2, "color": { "mode": "none" } } }
+      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 2 } }
     },
     {
       "type": "stat",
