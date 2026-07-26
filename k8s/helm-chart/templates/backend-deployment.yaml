@@ -54,10 +54,14 @@ spec:
                   key: S3_BUCKET_NAME
             - name: PYTHONPATH
               value: /app
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
             - name: OTEL_SERVICE_NAME
               value: backend
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://otel-collector.assemblemonitor.svc.cluster.local:4317"
+              value: "http://$(HOST_IP):4317"
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

@@ -89,6 +89,7 @@ opentelemetry-collector:
       enabled: true
       containerPort: 4317
       servicePort: 4317
+      hostPort: 4317
       protocol: TCP
     otlp-http:
       enabled: true
