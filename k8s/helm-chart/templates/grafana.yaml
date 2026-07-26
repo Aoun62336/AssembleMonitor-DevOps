@@ -16,13 +16,12 @@ data:
     apiVersion: 1
     datasources:
       - name: Amazon Managed Prometheus
-        type: prometheus
+        type: grafana-amazonprometheus-datasource
         access: proxy
         url: {{ .Values.otel.ampWorkspaceUrl }}
         jsonData:
-          sigV4Auth: true
-          sigV4AuthType: default
-          sigV4Region: {{ .Values.otel.region }}
+          authType: default
+          defaultRegion: {{ .Values.otel.region }}
       - name: Loki
         type: loki
         access: proxy
@@ -54,8 +53,8 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            - name: GF_FEATURE_TOGGLES_ENABLE
-              value: "awsAuthV4"
+            - name: GF_INSTALL_PLUGINS
+              value: "grafana-amazonprometheus-datasource"
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
