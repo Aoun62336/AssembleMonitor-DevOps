@@ -210,7 +210,7 @@ opentelemetry-collector:
         attributes:
           - key: service.name
             from_attribute: container_name
-            action: insert
+            action: upsert
           - key: k8s.namespace.name
             from_attribute: namespace
             action: insert
