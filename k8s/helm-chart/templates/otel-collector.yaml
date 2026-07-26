@@ -95,7 +95,7 @@ data:
         log_statements:
           - context: log
             statements:
-              - set(resource.attributes["app"], attributes["container_name"])
+              - set(resource.attributes["service.name"], attributes["container_name"])
               - set(resource.attributes["namespace"], attributes["namespace"])
               - set(resource.attributes["pod"], attributes["pod_name"])
     exporters:

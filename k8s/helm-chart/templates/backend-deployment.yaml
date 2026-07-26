@@ -55,7 +55,7 @@ spec:
             - name: PYTHONPATH
               value: /app
             - name: OTEL_SERVICE_NAME
-              value: assemblemonitor-backend
+              value: backend
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://otel-collector.assemblemonitor.svc.cluster.local:4317"
           securityContext:
