@@ -18,6 +18,9 @@ data:
                 - targets: ["<K3S_PRIVATE_IP>:9100"]
                   labels:
                     instance: "k3s-server"
+                - targets: ["<SONARQUBE_PRIVATE_IP>:9100"]
+                  labels:
+                    instance: "sonar-server"
     
     processors:
       batch:

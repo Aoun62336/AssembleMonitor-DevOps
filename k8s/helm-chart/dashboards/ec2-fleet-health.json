@@ -1,0 +1,68 @@
+{
+  "title": "Hybrid-Cloud EC2 Fleet Health",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Server Availability",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 0 },
+      "targets": [{ "expr": "up{job=\"manual-ec2-nodes\"}", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Utilization %",
+      "gridPos": { "h": 6, "w": 10, "x": 4, "y": 0 },
+      "targets": [{ "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"manual-ec2-nodes\", mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{instance}}" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100 } }
+    },
+    {
+      "type": "gauge",
+      "title": "Memory Utilization %",
+      "gridPos": { "h": 6, "w": 10, "x": 14, "y": 0 },
+      "targets": [{ "expr": "sum by (instance) (node_memory_MemTotal_bytes{job=\"manual-ec2-nodes\"} - node_memory_MemAvailable_bytes{job=\"manual-ec2-nodes\"}) / sum by (instance) (node_memory_MemTotal_bytes{job=\"manual-ec2-nodes\"}) * 100", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 75 }, { "color": "red", "value": 90 }] }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Network Receive Traffic",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "targets": [{ "expr": "rate(node_network_receive_bytes_total{job=\"manual-ec2-nodes\"}[5m])", "legendFormat": "{{instance}} - {{device}}" }],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "type": "bargauge",
+      "title": "Root Disk Utilization %",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "targets": [{ "expr": "100 - ((node_filesystem_avail_bytes{job=\"manual-ec2-nodes\", mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{job=\"manual-ec2-nodes\", mountpoint=\"/\"})", "legendFormat": "{{instance}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 75 }, { "color": "red", "value": 90 }] }
+        }
+      },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "type": "timeseries",
+      "title": "1-Minute System Load Average",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "targets": [{ "expr": "node_load1{job=\"manual-ec2-nodes\"}", "legendFormat": "{{instance}}" }]
+    }
+  ]
+}
