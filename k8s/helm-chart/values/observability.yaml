@@ -106,7 +106,15 @@ opentelemetry-collector:
     create: true
     rules:
       - apiGroups: [""]
-        resources: ["pods", "namespaces", "nodes", "nodes/metrics", "services", "endpoints"]
+        resources:
+          [
+            "pods",
+            "namespaces",
+            "nodes",
+            "nodes/metrics",
+            "services",
+            "endpoints",
+          ]
         verbs: ["get", "list", "watch"]
       - apiGroups: ["apps"]
         resources: ["replicasets", "deployments", "daemonsets", "statefulsets"]
@@ -167,7 +175,7 @@ opentelemetry-collector:
       prometheus:
         config:
           scrape_configs:
-            - job_name: 'kubernetes-cadvisor'
+            - job_name: "kubernetes-cadvisor"
               scheme: https
               tls_config:
                 ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -181,11 +189,12 @@ opentelemetry-collector:
                   regex: ${K8S_NODE_NAME}
                 - target_label: __metrics_path__
                   replacement: /metrics/cadvisor
-            - job_name: 'kube-state-metrics'
+            - job_name: "kube-state-metrics"
               kubernetes_sd_configs:
                 - role: endpoints
               relabel_configs:
-                - source_labels: [__meta_kubernetes_service_label_app_kubernetes_io_name]
+                - source_labels:
+                    [__meta_kubernetes_service_label_app_kubernetes_io_name]
                   action: keep
                   regex: "kube-state-metrics"
                 - source_labels: [__meta_kubernetes_endpoint_node_name]
@@ -255,7 +264,8 @@ opentelemetry-collector:
       pipelines:
         logs:
           receivers: [filelog]
-          processors: [memory_limiter, groupbyattrs, resource, k8sattributes, batch]
+          processors:
+            [memory_limiter, groupbyattrs, resource, k8sattributes, batch]
           exporters: [otlphttp/loki]
         traces:
           receivers: [otlp]

@@ -1,0 +1,3 @@
+# DEPRECATED: This file has been removed.
+# The OpenTelemetry Collector is now managed as an official Helm dependency in Chart.yaml.
+# Its configuration is now entirely defined in values/observability.yaml under the 'opentelemetry-collector' key.
