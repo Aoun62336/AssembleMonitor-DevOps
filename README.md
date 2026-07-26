@@ -23,37 +23,87 @@ The production-style cloud architecture is distributed across multiple AWS EC2 `
 
 ```mermaid
 flowchart TD
-    User([User Browser]) -->|HTTP/HTTPS| WAF{AWS WAF}
-    WAF -->|Filters Traffic| ALB[Application Load Balancer]
+    %% -- Users & Traffic Ingress --
+    User([End User Browser]) -->|HTTP/HTTPS| WAF{AWS WAF}
+    WAF -->|Filter| ALB[AWS Application Load Balancer]
+    Admin([DevOps Admin]) -->|HTTPS| ArgoELB[AWS ELB - ArgoCD]
+    Admin -->|HTTP| GrafELB[AWS ELB - Grafana]
 
-    subgraph Amazon EKS [Amazon EKS Cluster]
+    %% -- External EC2 Servers --
+    subgraph AWS_External_Nodes [AWS External EC2 Servers]
+        Jenkins[Jenkins CI/CD EC2]
+        Sonar[SonarQube Quality EC2]
+        K3s[K3s Legacy EC2]
+    end
+
+    %% -- DevSecOps Pipeline Flow --
+    subgraph DevSecOps_GitOps_Pipeline [DevSecOps GitOps Flow]
+        Jenkins -->|1. Static Analysis| Sonar
+        Jenkins -->|2. Build & Trivy Scan| DockerHub[(Docker Hub Registry)]
+        Jenkins -->|3. Update Helm Tags| GitHub[(GitHub Repository)]
+        GitHub -->|4. Webhook / Poll| ArgoCD[ArgoCD Controller]
+    end
+
+    %% -- AWS Managed Services --
+    subgraph AWS_Managed_Services [AWS Managed Services]
+        RDS[(AWS RDS PostgreSQL)]
+        S3_Uploads[(AWS S3 - App Uploads)]
+        S3_Obs[(AWS S3 - Observability Bucket)]
+        SecretsM[(AWS Secrets Manager)]
+        AMP[(Amazon Managed Prometheus)]
+    end
+
+    %% -- Amazon EKS Cluster --
+    subgraph Amazon_EKS [Amazon EKS Cluster]
         ALB -->|Port 30080| NodePort[Nginx NodePort Service]
 
-        subgraph Frontend [Frontend React Pods]
-            NodePort --> React1[React Pod]
+        subgraph Application_Workloads [Application Pods]
+            NodePort --> ReactPod[Frontend React Pod]
+            ReactPod --> APISvc[FastAPI ClusterIP]
+            APISvc --> FastPod[Backend FastAPI Pod + IRSA]
         end
 
-        subgraph Backend [Backend API Pods]
-            React1 --> API[FastAPI ClusterIP Service]
-            API --> Fast1[FastAPI Pod + IRSA Token]
+        subgraph Security_Operators [Security & GitOps]
+            ArgoELB --> ArgoCD
+            ArgoCD -->|Maintains State| Application_Workloads
+            ArgoCD -->|Maintains State| Observability_Stack
+            
+            ESO[External Secrets Operator + IRSA] -->|Fetch AWS Secrets| K8sSecret[K8s Secret]
+            K8sSecret -->|Inject ENV| FastPod
         end
 
-        ArgoCD[ArgoCD Controller] -->|Syncs state to cluster| Frontend
-        ArgoCD --> Backend
-
-        ESO[External Secrets Operator] -->|Syncs Secret| K8sSecret[Kubernetes Secret]
-        K8sSecret -->|Injects ENV| Fast1
+        subgraph Observability_Stack [Observability Stack]
+            GrafELB --> Grafana[Grafana UI Pod + IRSA]
+            
+            %% Loki and Tempo
+            Grafana -->|Query Logs| Loki[Loki SingleBinary + IRSA]
+            Grafana -->|Query Traces| Tempo[Tempo StatefulSet + IRSA]
+            
+            %% OpenTelemetry
+            OTel_DS[OTel DaemonSet + IRSA]
+            OTel_DS -->|Push Logs otlphttp| Loki
+            OTel_DS -->|Push Traces otlp| Tempo
+            
+            OTel_Ext[OTel Scraper Deployment + IRSA]
+        end
     end
 
-    Fast1 -->|IRSA Authenticated| RDS[(AWS RDS PostgreSQL)]
-    Fast1 -->|IRSA Authenticated| S3[(AWS S3 Bucket)]
-    ESO -->|IRSA Authenticated| Secrets[(AWS Secrets Manager)]
+    %% -- Observability Flows --
+    OTel_Ext -.->|Scrape :9100| Jenkins
+    OTel_Ext -.->|Scrape :9100| K3s
+    OTel_Ext -.->|Scrape :9100| Sonar
+    
+    OTel_Ext -->|Push Metrics sigv4auth| AMP
+    OTel_DS -->|Push Metrics sigv4auth| AMP
+    Grafana -->|Query Metrics sigv4auth| AMP
 
-    subgraph DevSecOps Pipeline
-        Jenkins[Jenkins EC2] -->|1. Build & Scan| DockerHub[(Docker Hub)]
-        Jenkins -->|2. Commit New Tag| GitHub[(GitHub Repository)]
-        GitHub -->|3. Webhook/Poll| ArgoCD
-    end
+    Loki -->|Store Chunks/Index| S3_Obs
+    Tempo -->|Store Traces| S3_Obs
+
+    %% -- Application AWS Flows --
+    FastPod -->|AWS Auth| RDS
+    FastPod -->|Store Photos| S3_Uploads
+    ESO -->|Sync Vault| SecretsM
 ```
 
 ## ⚙️ DevOps Implementation
