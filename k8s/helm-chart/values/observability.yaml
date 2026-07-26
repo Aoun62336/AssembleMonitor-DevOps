@@ -157,6 +157,7 @@ opentelemetry-collector:
         exclude:
           - /var/log/pods/kube-system_*/*/*.log
         start_at: beginning
+        include_file_path: true
         operators:
           - type: container
             id: container-parser
