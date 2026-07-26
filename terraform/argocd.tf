@@ -49,7 +49,7 @@ resource "helm_release" "argocd_apps" {
             targetRevision = "HEAD"
             path           = "k8s/helm-chart"
             helm = {
-              valueFiles = ["values-prod.yaml"]
+              valueFiles = ["values/app.yaml", "values/observability.yaml"]
             }
           }
           destination = {

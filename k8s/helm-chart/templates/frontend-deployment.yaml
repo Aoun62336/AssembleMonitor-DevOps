@@ -6,7 +6,7 @@ metadata:
   labels:
     app: assemblemonitor-frontend
 spec:
-  {{- if not .Values.frontend.hpa }}
+  {{- if not .Values.frontend.hpa.enabled }}
   replicas: {{ .Values.frontend.replicas }}
   {{- end }}
   selector:

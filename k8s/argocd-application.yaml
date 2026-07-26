@@ -11,7 +11,8 @@ spec:
     path: k8s/helm-chart
     helm:
       valueFiles:
-      - values-prod.yaml
+      - values/app.yaml
+      - values/observability.yaml
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: assemblemonitor

@@ -109,7 +109,7 @@ The deployment lifecycle is fully automated via a GitOps methodology:
 2. **SonarQube Static Analysis** and Quality Gate enforcement.
 3. **Docker Image Build & Trivy Scan** to detect vulnerabilities.
 4. **Docker Hub Push** to the centralized image registry.
-5. **GitOps Manifest Update**: Jenkins updates the Helm `values-prod.yaml` in the GitHub repository with the newly built image tag.
+5. **GitOps Manifest Update**: Jenkins updates the Helm `values/app.yaml` in the GitHub repository with the newly built image tag.
 6. **ArgoCD Sync**: ArgoCD detects the change in GitHub and orchestrates a rolling update within the EKS cluster.
 
 ## 🔒 Security (AWS IRSA)

@@ -197,12 +197,12 @@ pipeline {
                         git checkout main
                         git pull origin main
 
-                        # Update the tags in values-prod.yaml using sed
-                        # This looks for the image block and replaces the tag
-                        sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" k8s/helm-chart/values-prod.yaml
-
+                        # Update the tags in values/app.yaml using sed
+                        # We use | as a delimiter just in case, though for simple tags / is fine
+                        sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" k8s/helm-chart/values/app.yaml
+                        
                         # Commit the changes
-                        git add k8s/helm-chart/values-prod.yaml
+                        git add k8s/helm-chart/values/app.yaml
                         git commit -m "GitOps: Update image tags to ${IMAGE_TAG} [skip ci]"
 
                         # Push to GitHub
