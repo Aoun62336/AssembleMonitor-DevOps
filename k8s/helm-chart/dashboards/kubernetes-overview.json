@@ -6,8 +6,43 @@
   "panels": [
     {
       "type": "stat",
+      "title": "Total Nodes",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "targets": [{ "expr": "count(kube_node_info)" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "none" } } }
+    },
+    {
+      "type": "stat",
+      "title": "Total Pods",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "targets": [{ "expr": "count(kube_pod_info{namespace=\"assemblemonitor\"})" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "none" } } }
+    },
+    {
+      "type": "stat",
+      "title": "Running Pods",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "targets": [{ "expr": "count(kube_pod_status_phase{namespace=\"assemblemonitor\", phase=\"Running\"})" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Total CPU Usage (Cores)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"assemblemonitor\", container!=\"\"}[5m]))" }],
+      "fieldConfig": { "defaults": { "unit": "cores", "decimals": 2, "color": { "mode": "none" } } }
+    },
+    {
+      "type": "stat",
+      "title": "Total Memory Usage",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "sum(container_memory_working_set_bytes{namespace=\"assemblemonitor\", container!=\"\"})" }],
+      "fieldConfig": { "defaults": { "unit": "bytes", "decimals": 2, "color": { "mode": "none" } } }
+    },
+    {
+      "type": "stat",
       "title": "Pod Restarts (Last 15m)",
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 4 },
       "targets": [
         {
           "expr": "sum by (pod) (changes(kube_pod_status_ready{condition=\"true\", namespace=\"assemblemonitor\"}[15m])) > 0",
@@ -17,20 +52,14 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
         }
       }
     },
     {
       "type": "table",
       "title": "Unhealthy/Failing Pods",
-      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "gridPos": { "h": 5, "w": 18, "x": 6, "y": 4 },
       "targets": [
         {
           "expr": "kube_pod_status_phase{namespace=\"assemblemonitor\", phase=~\"Failed|Pending|Unknown\"} > 0",
@@ -42,23 +71,19 @@
     {
       "type": "timeseries",
       "title": "CPU Usage by Pod",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
       "targets": [
         {
           "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"assemblemonitor\", container!=\"\"}[5m])) by (pod)",
           "legendFormat": "{{pod}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "cores"
-        }
-      }
+      "fieldConfig": { "defaults": { "unit": "cores" } }
     },
     {
       "type": "timeseries",
       "title": "Memory Usage vs Limits",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
       "targets": [
         {
           "expr": "sum(container_memory_working_set_bytes{namespace=\"assemblemonitor\", container!=\"\"}) by (pod)",
@@ -69,16 +94,12 @@
           "legendFormat": "Limit - {{pod}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes"
-        }
-      }
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
     },
     {
       "type": "stat",
       "title": "Missing Deployment Replicas",
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 14 },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 17 },
       "targets": [
         {
           "expr": "kube_deployment_status_replicas_unavailable{namespace=\"assemblemonitor\"}",
@@ -88,32 +109,21 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
         }
       }
     },
     {
       "type": "gauge",
       "title": "HPA Current Replicas",
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 14 },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 17 },
       "targets": [
         {
           "expr": "kube_hpa_status_current_replicas{namespace=\"assemblemonitor\"}",
           "legendFormat": "{{hpa}}"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "min": 0,
-          "max": 10
-        }
-      }
+      "fieldConfig": { "defaults": { "min": 0, "max": 10 } }
     }
   ]
 }
