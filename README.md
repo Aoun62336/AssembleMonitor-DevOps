@@ -69,7 +69,8 @@ This project was built from the ground up with a focus on automation, scalabilit
 - **Configuration Management**: Automated the provisioning and configuration of dedicated servers using Ansible playbooks for reproducible, idempotent setups.
 - **Infrastructure as Code (IaC)**: Provisioned all AWS infrastructure (VPC, EC2, ASG, ALB, WAF, RDS, S3, Secrets Manager, CloudWatch) using Terraform to guarantee environment parity and infrastructure version control. Route 53 hosted zone and ACM certificate are written and plan-validated in `route53.tf`, but not applied. No domain is registered for this project. Public access uses the CloudFront default domain shown in the `cloudfront_domain_name` Terraform output.
 - **Container Orchestration**: Orchestrated the full-stack application natively on a highly available Amazon EKS (Elastic Kubernetes Service) cluster, leveraging **Helm** templates, Deployments, NodePort Services, ConfigMaps, Secrets, Liveness/Readiness probes, and Horizontal Pod Autoscalers (HPA).
-- **Observability**: Deployed Kubernetes Metrics Server for auto-scaling, alongside Prometheus and Grafana for deep cluster introspection, and AWS CloudWatch for centralized logging and infrastructure alarms.
+- **Observability**: Deployed Kubernetes Metrics Server for auto-scaling, alongside Prometheus and Grafana for deep cluster introspection. OpenTelemetry is deployed both as a DaemonSet for internal Kubernetes metrics and as a standalone deployment for externally scraping the manual EC2 nodes (Jenkins, K3s, SonarQube). AWS CloudWatch handles centralized logging and infrastructure alarms.
+- **Dynamic Access**: Utilizes a custom `get-urls.sh` automation script to dynamically fetch AWS LoadBalancer endpoints for ArgoCD and Grafana on ephemeral cluster creation, completely eliminating manual port-forwarding.
 
 ## 🛠️ DevOps Tech Stack & Justification
 
@@ -100,6 +101,8 @@ This project supports multiple deployment architectures, ranging from local prot
 | **K3s Cluster**          | Standalone Orchestration | Kubernetes (K3s), Jenkins   | [View Guide](docs/deployments/03-K3S-CLUSTER.md)  |
 | **Amazon EKS (Prod)**    | Enterprise Cloud         | EKS, ALB, AWS WAF, HPA      | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
 | **GitOps Orchestration** | Zero-Downtime Enterprise | ArgoCD, Helm, Jenkins, IRSA | [View Guide](docs/deployments/04-AWS-EKS-PROD.md) |
+
+> **Note**: For EKS environments, run `./get-urls.sh` to dynamically fetch the LoadBalancer addresses for the ArgoCD and Grafana UIs after provisioning.
 
 ## 🔄 DevSecOps GitOps Pipeline
 
