@@ -1,0 +1,119 @@
+{
+  "title": "Kubernetes Overview",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Pod Restarts (Last 15m)",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (pod) (changes(kube_pod_status_ready{condition=\"true\", namespace=\"assemblemonitor\"}[15m])) > 0",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Unhealthy/Failing Pods",
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "kube_pod_status_phase{namespace=\"assemblemonitor\", phase=~\"Failed|Pending|Unknown\"} > 0",
+          "legendFormat": "{{pod}} - {{phase}}",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU Usage by Pod",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"assemblemonitor\", container!=\"\"}[5m])) by (pod)",
+          "legendFormat": "{{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Usage vs Limits",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"assemblemonitor\", container!=\"\"}) by (pod)",
+          "legendFormat": "Usage - {{pod}}"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_limits{resource=\"memory\", namespace=\"assemblemonitor\"}) by (pod)",
+          "legendFormat": "Limit - {{pod}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Missing Deployment Replicas",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 14 },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_unavailable{namespace=\"assemblemonitor\"}",
+          "legendFormat": "{{deployment}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "HPA Current Replicas",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 14 },
+      "targets": [
+        {
+          "expr": "kube_hpa_status_current_replicas{namespace=\"assemblemonitor\"}",
+          "legendFormat": "{{hpa}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 10
+        }
+      }
+    }
+  ]
+}
