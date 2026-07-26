@@ -49,7 +49,7 @@ spec:
       serviceAccountName: grafana
       containers:
         - name: grafana
-          image: grafana/grafana:11.5.0
+          image: grafana/grafana:11.2.0
           ports:
             - containerPort: 3000
           env:
