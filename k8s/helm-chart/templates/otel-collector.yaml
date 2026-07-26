@@ -99,11 +99,8 @@ data:
               - set(resource.attributes["namespace"], attributes["namespace"])
               - set(resource.attributes["pod"], attributes["pod_name"])
     exporters:
-      loki:
-        endpoint: "http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100/loki/api/v1/push"
-        default_labels_enabled:
-          exporter: false
-          job: true
+      otlphttp/loki:
+        endpoint: "http://{{ .Release.Name }}-loki.{{ .Values.namespace }}.svc.cluster.local:3100"
       otlp/tempo:
         endpoint: "{{ .Release.Name }}-tempo.{{ .Values.namespace }}.svc.cluster.local:4317"
         tls:
@@ -118,7 +115,7 @@ data:
         logs:
           receivers: [filelog]
           processors: [transform]
-          exporters: [loki]
+          exporters: [otlphttp/loki]
         traces:
           receivers: [otlp]
           exporters: [otlp/tempo]
