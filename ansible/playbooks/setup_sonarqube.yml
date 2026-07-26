@@ -14,16 +14,25 @@
       apt:
         update_cache: yes
 
-    # Installs the Docker software engine.
-    - name: Install Docker
+    # Installs the Docker software engine and Prometheus Node Exporter for hardware metrics.
+    - name: Install Docker and Node Exporter
       apt:
-        name: docker.io
+        name: 
+          - docker.io
+          - prometheus-node-exporter
         state: present
 
     # Ensures the Docker service starts automatically when the server boots up and is currently running.
     - name: Enable and start the Docker service
       systemd:
         name: docker
+        enabled: yes
+        state: started
+
+    # Ensures Node Exporter is running so OTel can scrape hardware metrics on port 9100.
+    - name: Enable and start Prometheus Node Exporter
+      systemd:
+        name: prometheus-node-exporter
         enabled: yes
         state: started
 
