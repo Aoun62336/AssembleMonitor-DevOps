@@ -246,6 +246,10 @@ opentelemetry-collector:
         auth:
           authenticator: sigv4auth
     service:
+      telemetry:
+        metrics:
+          address: null
+          level: none
       extensions: [sigv4auth, health_check]
       pipelines:
         logs:
