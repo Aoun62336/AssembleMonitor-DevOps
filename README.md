@@ -23,87 +23,139 @@ The production-style cloud architecture is distributed across multiple AWS EC2 `
 
 ```mermaid
 flowchart TD
-    %% -- Users & Traffic Ingress --
-    User([End User Browser]) -->|HTTP/HTTPS| WAF{AWS WAF}
-    WAF -->|Filter| ALB[AWS Application Load Balancer]
-    Admin([DevOps Admin]) -->|HTTPS| ArgoELB[AWS ELB - ArgoCD]
-    Admin -->|HTTP| GrafELB[AWS ELB - Grafana]
-
-    %% -- External EC2 Servers --
-    subgraph AWS_External_Nodes [AWS External EC2 Servers]
-        Jenkins[Jenkins CI/CD EC2]
-        Sonar[SonarQube Quality EC2]
-        K3s[K3s Legacy EC2]
+    %% ==========================================
+    %% 1. USER REQUEST FLOW
+    %% ==========================================
+    subgraph UserFlow ["1. USER REQUEST FLOW"]
+        direction LR
+        Users([Users]) -->|HTTPS| WAF[AWS WAF]
     end
 
-    %% -- DevSecOps Pipeline Flow --
-    subgraph DevSecOps_GitOps_Pipeline [DevSecOps GitOps Flow]
-        Jenkins -->|1. Static Analysis| Sonar
-        Jenkins -->|2. Build & Trivy Scan| DockerHub[(Docker Hub Registry)]
-        Jenkins -->|3. Update Helm Tags| GitHub[(GitHub Repository)]
-        GitHub -->|4. Webhook / Poll| ArgoCD[ArgoCD Controller]
+    WAF --> ALB[Application Load Balancer]
+
+    %% ==========================================
+    %% 2. CI/CD & GITOPS PIPELINE
+    %% ==========================================
+    subgraph CICD ["2. CI/CD & GITOPS PIPELINE"]
+        direction TB
+        GitCode[(GitHub)] -->|Code Push| Jenkins[Jenkins EC2]
+        Jenkins -->|Code Quality| Sonar[SonarQube EC2]
+        Jenkins -->|Vulnerability Scan| Trivy[Trivy via Jenkins]
+        Jenkins -->|Push Secure Images| DHub[(Docker Hub)]
+        Jenkins -->|Update Values| GitHelm[(GitHub Helm Repo)]
     end
 
-    %% -- AWS Managed Services --
-    subgraph AWS_Managed_Services [AWS Managed Services]
-        RDS[(AWS RDS PostgreSQL)]
-        S3_Uploads[(AWS S3 - App Uploads)]
-        S3_Obs[(AWS S3 - Observability Bucket)]
+    %% ==========================================
+    %% 3. AWS CLOUD
+    %% ==========================================
+    subgraph AWSCloud ["AWS Cloud (VPC 10.0.0.0/16)"]
+        direction TB
+        
+        subgraph PublicSubnet ["Public Subnets (Across AZs)"]
+            direction LR
+            IGW((Internet Gateway))
+            NAT((NAT Gateway))
+        end
+        
+        subgraph PrivateSubnet ["Private Subnets (Across AZs)"]
+            direction TB
+            
+            subgraph EKS ["Amazon EKS Cluster"]
+                direction TB
+                Nodes[Managed Node Group / Worker Nodes]
+                
+                subgraph Deployments ["Deployments"]
+                    direction LR
+                    ReactPods[Frontend Pods: React/Next.js]
+                    FastAPIPods[Backend Pods: FastAPI]
+                end
+                
+                subgraph Services ["Services"]
+                    direction LR
+                    NodePortSvc[Service NodePort 30080]
+                    ClusterIPSvc[Service ClusterIP 8000]
+                end
+                
+                NodePortSvc --> ReactPods
+                ReactPods --> ClusterIPSvc
+                ClusterIPSvc --> FastAPIPods
+                
+                ESO[External Secrets Operator]
+                Metrics[Metrics Server]
+                HPA[Horizontal Pod Autoscaler]
+            end
+            
+            subgraph IRSA ["IAM Roles (IRSA)"]
+                direction LR
+                AppRole(app-role)
+                ESORole(eso-role)
+                LokiRole(obs-loki-role)
+                TempoRole(obs-tempo-role)
+                OTELRole(obs-otel-role)
+            end
+            
+            S3Up[(S3 Uploads Bucket)]
+            S3Obs[(S3 Observability Bucket)]
+            RDS[(Amazon RDS PostgreSQL)]
+        end
         SecretsM[(AWS Secrets Manager)]
-        AMP[(Amazon Managed Prometheus)]
     end
 
-    %% -- Amazon EKS Cluster --
-    subgraph Amazon_EKS [Amazon EKS Cluster]
-        ALB -->|Port 30080| NodePort[Nginx NodePort Service]
-
-        subgraph Application_Workloads [Application Pods]
-            NodePort --> ReactPod[Frontend React Pod]
-            ReactPod --> APISvc[FastAPI ClusterIP]
-            APISvc --> FastPod[Backend FastAPI Pod + IRSA]
+    %% ==========================================
+    %% 4. OBSERVABILITY STACK
+    %% ==========================================
+    subgraph ObsStack ["4. OBSERVABILITY STACK"]
+        direction TB
+        subgraph Exporters ["Node Exporters"]
+            direction LR
+            EKSNodes[EKS Nodes]
+            JenkExp[Jenkins EC2]
+            K3sExp[Legacy K3s]
         end
-
-        subgraph Security_Operators [Security & GitOps]
-            ArgoELB --> ArgoCD
-            ArgoCD -->|Maintains State| Application_Workloads
-            ArgoCD -->|Maintains State| Observability_Stack
-            
-            ESO[External Secrets Operator + IRSA] -->|Fetch AWS Secrets| K8sSecret[K8s Secret]
-            K8sSecret -->|Inject ENV| FastPod
+        
+        OTEL[OpenTelemetry Collector]
+        Exporters --> OTEL
+        
+        subgraph ObsStorage ["Storage & Metrics"]
+            direction LR
+            AMP[(Amazon Prometheus)]
+            Loki[(Loki Log Aggregation)]
+            Tempo[(Tempo Distributed Tracing)]
         end
-
-        subgraph Observability_Stack [Observability Stack]
-            GrafELB --> Grafana[Grafana UI Pod + IRSA]
-            
-            %% Loki and Tempo
-            Grafana -->|Query Logs| Loki[Loki SingleBinary + IRSA]
-            Grafana -->|Query Traces| Tempo[Tempo StatefulSet + IRSA]
-            
-            %% OpenTelemetry
-            OTel_DS[OTel DaemonSet + IRSA]
-            OTel_DS -->|Push Logs otlphttp| Loki
-            OTel_DS -->|Push Traces otlp| Tempo
-            
-            OTel_Ext[OTel Scraper Deployment + IRSA]
-        end
+        
+        OTEL --> AMP
+        OTEL --> Loki
+        OTEL --> Tempo
+        
+        Grafana[Grafana Visualization]
+        Grafana --> AMP
+        Grafana --> Loki
+        Grafana --> Tempo
     end
-
-    %% -- Observability Flows --
-    OTel_Ext -.->|Scrape :9100| Jenkins
-    OTel_Ext -.->|Scrape :9100| K3s
-    OTel_Ext -.->|Scrape :9100| Sonar
     
-    OTel_Ext -->|Push Metrics sigv4auth| AMP
-    OTel_DS -->|Push Metrics sigv4auth| AMP
-    Grafana -->|Query Metrics sigv4auth| AMP
+    ArgoCD(Argo CD Inside EKS)
 
-    Loki -->|Store Chunks/Index| S3_Obs
-    Tempo -->|Store Traces| S3_Obs
-
-    %% -- Application AWS Flows --
-    FastPod -->|AWS Auth| RDS
-    FastPod -->|Store Photos| S3_Uploads
-    ESO -->|Sync Vault| SecretsM
+    %% ==========================================
+    %% CROSS-CONNECTIONS
+    %% ==========================================
+    ALB --> NodePortSvc
+    GitHelm --> ArgoCD
+    ArgoCD -.-> EKS
+    
+    ESO <--> SecretsM
+    FastAPIPods <--> RDS
+    FastAPIPods <--> S3Up
+    
+    Loki <--> S3Obs
+    Tempo <--> S3Obs
+    
+    %% IRSA mappings (using dotted lines)
+    AppRole -.-> S3Up
+    AppRole -.-> RDS
+    ESORole -.-> SecretsM
+    LokiRole -.-> S3Obs
+    TempoRole -.-> S3Obs
+    OTELRole -.-> AMP
 ```
 
 ## ⚙️ DevOps Implementation
