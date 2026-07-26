@@ -29,7 +29,7 @@ data:
         
     exporters:
       prometheusremotewrite:
-        endpoint: "{{ .Values.otel.ampWorkspaceUrl }}api/v1/remote_write"
+        endpoint: "{{ .Values.otel.ampWorkspaceUrl }}/api/v1/remote_write"
         auth:
           authenticator: sigv4auth
           
