@@ -43,6 +43,17 @@ pipeline {
             }
         }
 
+        stage('Trivy FS Scan - Backend') {
+            steps {
+                sh '''
+                    echo "Scanning Backend source code for vulnerabilities..."
+                    trivy plugin install github.com/umax/trivy-plugin-sonarqube || true
+                    trivy fs --format json -o backend/trivy-report.json ./backend
+                    trivy sonarqube backend/trivy-report.json > backend/sonarqube-report.json
+                '''
+            }
+        }
+
         stage('SonarQube Analysis - Backend') {
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
@@ -51,10 +62,22 @@ pipeline {
                         sonar-scanner \
                           -Dsonar.projectKey=assemblemonitor-backend \
                           -Dsonar.sources=. \
+                          -Dsonar.externalIssuesReportPaths=sonarqube-report.json \
                           -Dsonar.host.url=$SONAR_HOST_URL \
                           -Dsonar.login=$SONAR_AUTH_TOKEN
                     '''
                 }
+            }
+        }
+
+        stage('Trivy FS Scan - Frontend') {
+            steps {
+                sh '''
+                    echo "Scanning Frontend source code for vulnerabilities..."
+                    trivy plugin install github.com/umax/trivy-plugin-sonarqube || true
+                    trivy fs --format json -o frontend/trivy-report.json ./frontend
+                    trivy sonarqube frontend/trivy-report.json > frontend/sonarqube-report.json
+                '''
             }
         }
 
@@ -66,6 +89,7 @@ pipeline {
                         sonar-scanner \
                           -Dsonar.projectKey=assemblemonitor-frontend \
                           -Dsonar.sources=. \
+                          -Dsonar.externalIssuesReportPaths=sonarqube-report.json \
                           -Dsonar.host.url=$SONAR_HOST_URL \
                           -Dsonar.login=$SONAR_AUTH_TOKEN
                     '''
