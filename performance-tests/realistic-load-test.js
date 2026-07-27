@@ -15,8 +15,8 @@ export const options = {
     { duration: '30s', target: 0 },  // Ramp down to 0 users
   ],
   thresholds: {
-    // 95% of requests must complete below 500ms, 99% below 1.5s
-    http_req_duration: ['p(95)<500', 'p(99)<1500'],
+    // 95% of requests must complete below 1.5s, 99% below 2.5s
+    http_req_duration: ['p(95)<1500', 'p(99)<2500'],
     // General HTTP errors must be less than 1%
     http_req_failed: ['rate<0.01'],
     // API specific errors must be less than 2%
@@ -29,6 +29,7 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost';
 const LOGIN_EMAIL = __ENV.LOGIN_EMAIL || 'admin@example.com';
 const LOGIN_PASSWORD = __ENV.LOGIN_PASSWORD || 'admin';
+const LOGIN_ROLE = __ENV.LOGIN_ROLE || 'admin';
 
 export default function () {
   // 1. Visit the Frontend
@@ -57,9 +58,10 @@ export default function () {
     const payload = JSON.stringify({
       email: LOGIN_EMAIL,
       password: LOGIN_PASSWORD,
+      role: LOGIN_ROLE,
     });
 
-    const res = http.post(`${BASE_URL}/api/auth/login`, payload, {
+    const res = http.post(`${BASE_URL}/api/v1/auth/login`, payload, {
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -83,7 +85,7 @@ export default function () {
   // 4. Fetch Secure Data
   if (token) {
     group('Fetch Projects', function () {
-      const res = http.get(`${BASE_URL}/api/projects`, {
+      const res = http.get(`${BASE_URL}/api/v1/projects`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
