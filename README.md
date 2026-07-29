@@ -64,7 +64,7 @@ The infrastructure spans two complete deployment paths: a **GitOps EKS pipeline*
 
 | Layer          | Technology                                                   |
 | -------------- | ------------------------------------------------------------ |
-| **Frontend**   | React 18, Vite 5, React Router v6, Vanilla CSS               |
+| **Frontend**   | React 18, Vite 5, React Router v6, Vanilla HTML/CSS/JS (Legacy templates) |
 | **Backend**    | Python FastAPI SQLAlchemy (async), Alembic                   |
 | **Database**   | PostgreSQL 16 (AWS RDS)                                      |
 | **Storage**    | AWS S3 (site photo uploads, versioned)                       |
