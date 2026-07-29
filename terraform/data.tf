@@ -24,5 +24,7 @@ data "aws_ami" "ubuntu" {
 }
 
 data "aws_security_group" "k3s_sg" {
-  id = "<K3S_SG_ID>"
+  # The real SG ID is set in terraform.tfvars (gitignored).
+  # Example: k3s_sg_id = "sg-xxxxxxxxxxxxxxxxx"
+  id = var.k3s_sg_id
 }

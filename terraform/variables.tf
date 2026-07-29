@@ -122,3 +122,8 @@ variable "secret_name" {
   type        = string
   default     = "assemblemonitor/dev/app-secrets"
 }
+
+variable "k3s_sg_id" {
+  description = "Security group ID of the existing K3S EC2 instance — used to allow it inbound access to RDS. Set this value in terraform.tfvars (gitignored)."
+  type        = string
+}

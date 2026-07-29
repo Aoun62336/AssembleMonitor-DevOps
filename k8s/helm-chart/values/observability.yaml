@@ -8,7 +8,7 @@ grafana:
 
 otel:
   irsaRoleArn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/assemblemonitor-advance-dev-otel-irsa-role" # Will be replaced with actual Terraform output
-  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-2e6356f2-a104-4823-8acd-9846dd16f30d" # Will be replaced with actual Terraform output
+  ampWorkspaceUrl: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/<YOUR_AMP_WORKSPACE_ID>" # Replace with your Terraform output: aws_prometheus_workspace.amp.prometheus_endpoint
   region: "us-east-1"
 
 loki:
@@ -264,7 +264,7 @@ opentelemetry-collector:
         tls:
           insecure: true
       prometheusremotewrite:
-        endpoint: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-2e6356f2-a104-4823-8acd-9846dd16f30d/api/v1/remote_write" # Will be replaced with actual Terraform output
+        endpoint: "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/<YOUR_AMP_WORKSPACE_ID>/api/v1/remote_write" # Replace with your Terraform output: aws_prometheus_workspace.amp.prometheus_endpoint
         auth:
           authenticator: sigv4auth
     service:

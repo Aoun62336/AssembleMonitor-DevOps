@@ -1,0 +1,12 @@
+# Force Unix LF line endings for all text-based files
+* text=auto eol=lf
+
+# Explicitly mark binary files so they are never modified
+*.png binary
+*.jpeg binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary

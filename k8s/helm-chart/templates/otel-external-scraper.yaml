@@ -12,15 +12,16 @@ data:
             - job_name: 'manual-ec2-nodes'
               scrape_interval: 15s
               static_configs:
-                - targets: ["<JENKINS_PRIVATE_IP>:9100"]
+                - targets: ["{{ .Values.externalNodes.jenkins.ip }}:9100"]
                   labels:
                     instance: "jenkins-server"
-                - targets: ["<K3S_PRIVATE_IP>:9100"]
+                - targets: ["{{ .Values.externalNodes.k3s.ip }}:9100"]
                   labels:
                     instance: "k3s-server"
-                - targets: ["<SONARQUBE_PRIVATE_IP>:9100"]
+                - targets: ["{{ .Values.externalNodes.sonarqube.ip }}:9100"]
                   labels:
                     instance: "sonar-server"
+
     
     processors:
       batch:

@@ -7,7 +7,7 @@
 
 This setup provisions an advanced, production-ready AWS environment. The following core resources are created:
 
-- **Networking (VPC)**: A custom VPC with public and private subnets, Internet Gateway, and NAT Gateways.
+- **Networking (VPC)**: Uses the default AWS VPC with two custom private subnets (`172.31.96.0/24`, `172.31.97.0/24`) and a NAT Gateway for secure worker node egress.
 - **Compute (Amazon EKS)**: An Amazon EKS cluster with managed Node Groups (`c7i-flex.large`) running across multiple Availability Zones.
 - **Ingress (ALB & WAF)**: An Application Load Balancer (ALB) routing traffic directly to the Kubernetes NodePorts, protected by an AWS Web Application Firewall (WAF).
 - **Database (RDS)**: A managed PostgreSQL database inside the private subnets.
@@ -40,7 +40,6 @@ project_name = "assemblemonitor"
 environment  = "advance-dev"
 
 # Security & Access
-my_ip_cidr    = "YOUR_PUBLIC_IP/32" # E.g., "203.0.113.1/32"
 key_pair_name = "AM-Key"            # Name of the Key Pair in AWS Console
 
 # EC2 & Auto Scaling

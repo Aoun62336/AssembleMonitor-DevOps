@@ -75,3 +75,15 @@ frontend:
   service:
     type: NodePort
     nodePort: 30080 # Required for the AWS ALB Target Group binding
+
+# External EC2 nodes scraped by the standalone OTel collector (otel-external-scraper).
+# Set these to the private IPs of your EC2 instances at deploy time.
+# Real values belong in terraform.tfvars or a local Helm override file (both gitignored).
+externalNodes:
+  jenkins:
+    ip: "REPLACE_WITH_JENKINS_PRIVATE_IP"
+  k3s:
+    ip: "REPLACE_WITH_K3S_PRIVATE_IP"
+  sonarqube:
+    ip: "REPLACE_WITH_SONARQUBE_PRIVATE_IP"
+
