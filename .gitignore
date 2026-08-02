@@ -105,9 +105,9 @@ htmlcov/
 ._*
 .AppleDouble
 
-# Docs
+# Docs — only exclude generated/private files; all markdown docs are committed
 terraform_backup_folder/
 backup-k8s
 tf2-backup/
 .agents
-docs/
+docs/architecture/schema.html
