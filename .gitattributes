@@ -14,7 +14,7 @@
 # Exclude legacy role-based HTML templates from GitHub language statistics
 # These are Vanilla HTML/JS dashboards served as static files;
 # the primary application stack is React (JSX) + FastAPI + Terraform.
-frontend/public/admin/**   linguist-vendored
-frontend/public/pm/**      linguist-vendored
-frontend/public/se/**      linguist-vendored
-frontend/public/client/**  linguist-vendored
+frontend/public/admin/**   linguist-vendored linguist-detectable=false
+frontend/public/pm/**      linguist-vendored linguist-detectable=false
+frontend/public/se/**      linguist-vendored linguist-detectable=false
+frontend/public/client/**  linguist-vendored linguist-detectable=false
