@@ -24,9 +24,9 @@
 
 ---
 
-AssembleMonitor is a full-stack construction site management platform built and deployed on AWS using modern DevOps practices. The platform supports four RBAC roles — Admin, Project Manager, Site Engineer, and Client — and covers project phases, task tracking, material management, attendance, expenses, and secure photo uploads to S3.
+AssembleMonitor is a cloud-native construction site management platform deployed end-to-end on AWS EKS — Terraform-provisioned infrastructure, a Jenkins GitOps CI/CD pipeline, External Secrets Operator for zero-secret management, and a full OpenTelemetry observability stack covering metrics, logs, and traces. Built as a complete DevOps portfolio project demonstrating production-grade infrastructure automation, security-by-design, and operational observability.
 
-The infrastructure spans two complete deployment paths: a **GitOps EKS pipeline** (primary production architecture) and a **K3s Jenkins pipeline** (lightweight orchestration). Both are fully automated and documented.
+The platform serves four RBAC roles across two complete, independently documented deployment paths: a **GitOps EKS pipeline** (primary) and a **K3s Jenkins pipeline** (staging/lightweight).
 
 ---
 
@@ -57,7 +57,7 @@ The infrastructure spans two complete deployment paths: a **GitOps EKS pipeline*
 
 | Layer          | Technology                                                                |
 | -------------- | ------------------------------------------------------------------------- |
-| **Frontend**   | React 18, Vite 5, React Router v6, Vanilla HTML/CSS/JS (Legacy templates) |
+| **Frontend**   | React 18 · Vite 5 · React Router v6 · HTML/CSS · Vanilla JS               |
 | **Backend**    | Python FastAPI SQLAlchemy (async), Alembic                                |
 | **Database**   | PostgreSQL 16 (AWS RDS)                                                   |
 | **Storage**    | AWS S3 (site photo uploads, versioned)                                    |
@@ -93,16 +93,7 @@ The platform provides distinct dashboards for each RBAC role:
 | **Site Engineer**   | Attendance logging, task updates, material consumption, photo uploads |
 | **Client**          | Read-only visibility into project progress and status                 |
 
-**Core modules:**
-
-- **Project & Phase Management** — Hierarchical breakdown with status tracking
-- **Task Management** — Assignment, status, priority, and deadline management
-- **Material Management** — Inventory tracking with stock levels and usage logs
-- **Attendance** — Engineer work-hour logging per project
-- **Expenses** — Non-material cost tracking per project and phase
-- **Site Photos** — Secure uploads directly to S3 using IRSA Web Identity Tokens
-- **Notifications** — In-app notification system per user
-- **Analytics** — Aggregated KPIs across projects, phases, and costs
+Site photos are stored securely in AWS S3 using IRSA Web Identity Tokens — no credentials embedded in the application.
 
 ---
 
@@ -125,29 +116,16 @@ This project supports two distinct, fully automated deployment architectures. Ea
 
 ## Path 1 — EKS GitOps Pipeline (Primary)
 
-### Pipeline Overview
+The Jenkins pipeline (`Jenkinsfile-gitops`) runs end-to-end:
 
 ```
-Code Push → Jenkins → SonarQube QA → Trivy Scan → Docker Build
-    → Docker Hub → [Manual Gate] → Git Helm Values Update
-        → ArgoCD Auto-Sync → Rolling Update on EKS
+Code Push → Trivy FS Scan → SonarQube SAST → Quality Gate
+  → Docker Build → Trivy Image Scan → Docker Hub Push
+  → [Manual Approval] → Helm values update (git push)
+  → ArgoCD auto-sync → Rolling update on EKS
 ```
 
-The Jenkins pipeline (`Jenkinsfile-gitops`) covers the following stages end-to-end:
-
-| Stage              | Action                                                                       |
-| ------------------ | ---------------------------------------------------------------------------- |
-| Checkout           | Pull latest source from GitHub                                               |
-| Trivy FS Scan      | Scan backend and frontend source code for vulnerabilities                    |
-| SonarQube Analysis | Static code analysis with Trivy findings piped in                            |
-| Quality Gate       | Block pipeline if SonarQube gate fails                                       |
-| Build Validation   | Docker build + `python -m compileall` to catch syntax errors                 |
-| Build Final Images | Tag images with `BUILD_NUMBER` and `latest`                                  |
-| Trivy Image Scan   | Scan built images for HIGH/CRITICAL CVEs                                     |
-| Docker Hub Push    | Push `fire2686/assemblemonitor-backend:N` and `frontend:N`                   |
-| Manual Approval    | 10-minute human gate before production rollout                               |
-| GitOps Update      | `sed` image tags in `k8s/helm-chart/values/app.yaml`, commit, push to `main` |
-| ArgoCD Sync        | ArgoCD detects the Git change and performs a rolling update automatically    |
+→ [Full stage-by-stage breakdown in CI/CD Pipeline documentation](docs/ops/CI_CD_PIPELINE.md)
 
 ### EKS Infrastructure
 
@@ -168,20 +146,13 @@ Provisioned entirely by Terraform (`terraform/`):
 
 ### Security — IRSA (IAM Roles for Service Accounts)
 
-All pod-level AWS access is granted through IRSA with IMDSv2 `hop_limit=1` enforced on nodes — pods cannot reach the EC2 instance metadata endpoint and cannot assume the node's IAM role.
+All pod-level AWS access is granted through IRSA with IMDSv2 `hop_limit=1` enforced on all nodes — pods cannot reach the EC2 instance metadata endpoint and cannot assume the node's IAM role. Six distinct IRSA roles scope permissions to the minimum required for each service account (backend, ESO, OTEL Collector, Grafana, Loki/Tempo, and EBS CSI).
 
-| Role                | Service Account                     | Permissions                    |
-| ------------------- | ----------------------------------- | ------------------------------ |
-| `app-role`          | `assemblemonitor-backend-sa`        | S3 (uploads), Secrets Manager  |
-| `eso-role`          | `external-secrets/external-secrets` | Secrets Manager GetSecretValue |
-| `otel-irsa-role`    | `otel-collector`                    | AMP RemoteWriteAccess          |
-| `grafana-irsa-role` | `grafana`                           | AMP QueryAccess                |
-| `obs-backend-irsa`  | `loki`, `tempo`                     | S3 observability bucket        |
-| `ebs-csi-role`      | `ebs-csi-controller-sa`             | EBS volume provisioning        |
+→ [Full IRSA role configuration in Security documentation](docs/architecture/SECURITY.md)
 
 ### Kubernetes Workloads (Helm Chart)
 
-The umbrella Helm chart (`k8s/helm-chart/`) manages the entire `assemblemonitor` namespace:
+The umbrella Helm chart (`k8s/helm-chart/`) manages the entire `assemblemonitor` namespace — application layer (`values/app.yaml`) and observability stack (`values/observability.yaml`), including Loki, Tempo, kube-state-metrics, the OpenTelemetry Collector DaemonSet, and Grafana — all with pre-provisioned datasources and dashboards.
 
 **Application layer** (`values/app.yaml`):
 
@@ -190,52 +161,9 @@ The umbrella Helm chart (`k8s/helm-chart/`) manages the entire `assemblemonitor`
 - External Secrets Operator sync from `assemblemonitor-secrets`
 - Liveness and readiness probes on `/api/health`
 
-**Observability layer** (`values/observability.yaml`):
-
-| Component               | Version                       | Role                                                                  |
-| ----------------------- | ----------------------------- | --------------------------------------------------------------------- |
-| Loki                    | 6.29.0                        | Log aggregation → S3 backend                                          |
-| Tempo                   | 1.8.0                         | Distributed tracing → S3 backend                                      |
-| kube-state-metrics      | 5.15.2                        | Kubernetes object metrics                                             |
-| OpenTelemetry Collector | chart 0.114.0 / image 0.157.0 | DaemonSet: cAdvisor + KSM metrics, filelog, OTLP traces               |
-| Grafana                 | 10.4.2                        | Visualization — datasources provisioned via ConfigMap                 |
-| otel-external-scraper   | —                             | Standalone deployment scraping Jenkins, K3s, SonarQube node exporters |
-
 ### Observability Pipelines
 
-```
-# Metrics
-cAdvisor + kube-state-metrics → OTEL DaemonSet → SigV4 remote write → Amazon Managed Prometheus → Grafana
-
-# Logs
-/var/log/pods (filelog receiver) → OTEL DaemonSet → Loki → S3 observability bucket → Grafana
-
-# Traces
-FastAPI (OTLP gRPC) → OTEL DaemonSet → Tempo → S3 observability bucket → Grafana
-
-# External EC2 Metrics
-Jenkins:9100 + K3s:9100 + SonarQube:9100 → otel-external-scraper → AMP → Grafana
-```
-
-### CloudWatch Alarms
-
-| Alarm                 | Threshold      |
-| --------------------- | -------------- |
-| ALB unhealthy targets | > 0 hosts      |
-| ALB 5xx errors        | > 5 per minute |
-| RDS CPU utilization   | > 80%          |
-| RDS free storage      | < 2 GB         |
-| ASG CPU utilization   | > 80%          |
-
-### Prerequisites
-
-| Tool      | Version | Purpose                                  |
-| --------- | ------- | ---------------------------------------- |
-| AWS CLI   | v2.x    | Configure credentials and kubeconfig     |
-| Terraform | >= 1.6  | Provision all infrastructure             |
-| kubectl   | >= 1.29 | Interact with EKS cluster                |
-| Helm      | >= 3.14 | Inspect/override chart values (optional) |
-| Docker    | >= 25   | Local builds and testing                 |
+The OpenTelemetry Collector DaemonSet aggregates all signals: **metrics** (cAdvisor + kube-state-metrics) → Amazon Managed Prometheus → Grafana · **logs** (filelog from `/var/log/pods`) → Loki → S3 → Grafana · **traces** (OTLP gRPC from FastAPI) → Tempo → S3 → Grafana. External EC2 nodes (Jenkins, K3s, SonarQube) are scraped by a dedicated `otel-external-scraper` deployment.
 
 ### Deploying the EKS Stack
 
@@ -292,27 +220,6 @@ The Jenkins pipeline (`Jenkinsfile-k3s`) handles the full build, scan, and deplo
 1. Push code to the `main` branch.
 2. In the Jenkins UI (port 8080), trigger **Build Now** on `AssembleMonitor-Pipeline`.
 3. Approve the deployment prompt at the manual gate.
-
-**Manual (debug):**
-
-```bash
-# SSH into the K3s server
-ssh -i your-key.pem ubuntu@<K3S_PUBLIC_IP>
-
-# Pull latest manifests
-cd ~/AssembleMonitor && git pull origin main
-
-# Apply namespace, config, and secrets
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/configmap.yaml
-
-# Apply workloads
-kubectl apply -f k8s/backend-deployment.yaml
-kubectl apply -f k8s/backend-nodeport-service.yaml
-kubectl apply -f k8s/frontend-deployment.yaml
-kubectl apply -f k8s/frontend-service.yaml
-```
 
 **Access:**
 
