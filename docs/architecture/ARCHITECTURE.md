@@ -22,7 +22,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 > Shows the complete ecosystem surrounding AssembleMonitor: construction professionals (Admin, Project Manager, Site Engineer, and Client) interact through a browser; GitHub triggers CI/CD automation via Jenkins; Docker Hub serves as the container registry; AWS Cloud hosts the EKS production cluster and K3s staging environment; and AWS managed services (RDS, S3, Secrets Manager, CloudWatch) support the application backend.
 
-![System Context](01-system-context.jpeg)
+![System Context](01-system-context-diagram.jpeg)
 
 ---
 
