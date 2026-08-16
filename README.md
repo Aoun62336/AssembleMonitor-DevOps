@@ -43,9 +43,9 @@ The platform serves four RBAC roles across two complete, independently documente
 
 ## Architecture
 
-![System Context — AssembleMonitor on AWS](docs/architecture/01-system-context.jpeg)
+![AssembleMonitor — High-Level Overview](docs/architecture/00-master-overview.png)
 
-> The architecture spans an AWS WAF-protected Application Load Balancer routing into an Amazon EKS cluster across private subnets. The backend communicates with RDS PostgreSQL and S3 via IRSA-scoped IAM roles. An OpenTelemetry collector ships metrics to Amazon Managed Prometheus, logs to Loki, and traces to Tempo — all visualized in Grafana.
+> The full system in one view: Jenkins GitOps CI/CD pipeline, AWS WAF-protected ALB routing into Amazon EKS across private subnets, IRSA-secured workloads, External Secrets Operator syncing from AWS Secrets Manager, and a complete OpenTelemetry observability pipeline — logs to Grafana Loki, traces to Grafana Tempo, metrics to Amazon Managed Prometheus, all visualised in Grafana.
 
 → [View full 9-diagram architecture documentation](docs/architecture/ARCHITECTURE.md)
 

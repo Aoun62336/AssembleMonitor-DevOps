@@ -10,7 +10,7 @@ System design, component diagrams, and security principles.
 
 | Document                                              | Purpose                                                                                                                                                       |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Architecture Overview](architecture/ARCHITECTURE.md) | Architectural evolution and 9-view component diagram set (System Context, Container, AWS Network, EKS, CI/CD, Secrets, Observability, Request Flow, Sequence) |
+| [Architecture Overview](architecture/ARCHITECTURE.md) | Architectural evolution and 10-diagram set (Master Overview, System Context, Container, AWS Network, EKS, CI/CD, Secrets, Observability, Request Flow, Sequence) |
 | [Security Posture & IAM](architecture/SECURITY.md)    | IRSA, WAF, ESO, IMDSv2, network isolation, and DevSecOps controls                                                                                             |
 
 ---
@@ -47,5 +47,5 @@ Contains all screenshots and diagrams referenced in the documentation.
 
 | Asset                                  | Purpose                                                           |
 | -------------------------------------- | ----------------------------------------------------------------- |
-| [Architecture Diagrams](architecture/) | 9 professional architecture diagrams (System Context → Sequence)  |
+| [Architecture Diagrams](architecture/) | 10 professional architecture diagrams (Master Overview → Sequence) |
 | [Screenshots](assets/screenshots/)     | CI/CD, Observability, Infrastructure, and Application screenshots |

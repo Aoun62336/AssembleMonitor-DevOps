@@ -1,4 +1,4 @@
-# ☸️ Option 3: Lightweight Kubernetes (K3s)
+# ☸️ Option 2: Lightweight Kubernetes (K3s)
 
 > [!NOTE]
 > This deployment strategy introduces Kubernetes orchestration using **K3s**, a lightweight, production-ready Kubernetes distribution. This phase marked the transition from manual EC2 configuration to true DevSecOps automation, integrating perfectly with the Jenkins CI/CD pipeline.

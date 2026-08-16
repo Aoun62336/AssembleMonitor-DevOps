@@ -93,7 +93,7 @@ To validate monitoring dashboards and test potential incident response workflows
 # Trigger the Unhealthy Targets alarm
 aws cloudwatch set-alarm-state \
   --region us-east-1 \
-  --alarm-name assemblemonitor-advance-dev-alb-unhealthy-targets \
+  --alarm-name assemblemonitor-am-dev-alb-unhealthy-targets \
   --state-value ALARM \
   --state-reason "Manual validation of incident response workflows"
 ```

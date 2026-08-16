@@ -10,6 +10,14 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ---
 
+## Diagram 0 — Master High-Level Overview
+
+> The single diagram that shows the entire AssembleMonitor system in one view. Four quadrants cover every layer of the platform: **A. Access & Delivery** — developer git push, GitHub webhook, Jenkins CI/CD pipeline (checkout → scan → quality gate → build → push → GitOps), Trivy, SonarQube, Docker Hub, ArgoCD, and the K3s secondary deploy path; **B. AWS Cloud (us-east-1)** — Default VPC with WAF-protected ALB, EKS cluster across two private subnets (A: 172.31.96.0/24, B: 172.31.97.0/24), all Kubernetes workloads (Frontend, Backend, OTel Collector DaemonSet, ESO, ArgoCD, Grafana, Loki, Tempo, HPA, Metrics Server, EBS CSI Driver), RDS PostgreSQL, NAT Gateway, and supporting EC2 instances (Jenkins, SonarQube, K3s) in default public subnets; **C. Secrets & IRSA** — full OIDC → IAM Roles → AWS Secrets Manager → ESO → ClusterSecretStore → ExternalSecret → Kubernetes Secret synchronisation chain; **D. Observability detailed flow** — OTel Collector receiving pod logs (filelog), backend OTLP traces, cAdvisor and kube-state-metrics, routing to Loki, Tempo, and Amazon Managed Prometheus, all queried by Grafana; plus the **Legacy path** (inactive EC2 ASG) for historical reference.
+
+![Master High-Level Overview](00-master-overview.png)
+
+---
+
 ## Diagram 1 — System Context
 
 > Shows the complete ecosystem surrounding AssembleMonitor: construction professionals (Admin, Project Manager, Site Engineer, and Client) interact through a browser; GitHub triggers CI/CD automation via Jenkins; Docker Hub serves as the container registry; AWS Cloud hosts the EKS production cluster and K3s staging environment; and AWS managed services (RDS, S3, Secrets Manager, CloudWatch) support the application backend.

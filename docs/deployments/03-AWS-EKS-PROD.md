@@ -1,4 +1,4 @@
-# 🚀 Option 4: Amazon EKS Production Architecture (Primary)
+# 🚀 Option 3: Amazon EKS Production Architecture (Primary)
 
 > [!IMPORTANT]
 > This is the **primary, production-grade deployment strategy** for AssembleMonitor. It represents the culmination of all DevOps and Cloud engineering efforts. The application is orchestrated by an Amazon EKS cluster, utilizing highly secure and scalable AWS infrastructure.
@@ -34,7 +34,7 @@ terraform apply -auto-approve
 Once Terraform completes, configure your local `kubectl` to communicate with the new EKS cluster:
 
 ```bash
-aws eks update-kubeconfig --region us-east-1 --name assemblemonitor-advance-dev-eks
+aws eks update-kubeconfig --region us-east-1 --name assemblemonitor-am-dev-eks
 ```
 
 ### 3. Verify GitOps Synchronization
