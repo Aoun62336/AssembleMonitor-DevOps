@@ -1,7 +1,7 @@
 # 🛡️ AssembleMonitor Security Posture
 
 > [!IMPORTANT]
-> Security in AssembleMonitor is achieved through a strict DevSecOps pipeline and deeply nested AWS private networks to ensure zero public exposure of critical assets. No sensitive data is stored in version control.
+> Security in AssembleMonitor is implemented through a layered DevSecOps pipeline and AWS private networking. Application workloads run inside private subnets with no direct public access. Sensitive data is not stored in version control.
 
 ## 1. Identity & Access Management (IAM & IRSA)
 AssembleMonitor follows the principle of least privilege for all cloud interactions.
@@ -16,12 +16,11 @@ All application resources are heavily shielded from the public internet.
 - **Security Groups**: Granular network isolation ensures the EKS Nodes only accept HTTP traffic from the ALB, and the RDS database exclusively permits PostgreSQL connections from the EKS Node Security Group.
 
 ## 3. Data Security & Secrets Management
-To comply with strict DevSecOps standards, no secrets are ever hardcoded or committed to version control.
-- **AWS Secrets Manager**: Application secrets (Database URL, JWT Key) and RDS master passwords are securely centralized in AWS Secrets Manager.
+- **AWS Secrets Manager**: Application secrets (Database URL, JWT Key) and RDS master passwords are stored in AWS Secrets Manager — not in source code or Kubernetes manifests.
 - **External Secrets Operator (ESO)**: The cluster runs ESO, which authenticates to AWS via IRSA. It dynamically pulls the AWS Secrets payload and creates native Kubernetes `Secret` objects. Pods mount these synced secrets as environment variables at runtime, ensuring GitOps repositories remain free of sensitive data.
 - **S3 Bucket Security**: S3 Block Public Access is strictly enabled at the bucket level, and IAM policies scope read/write capabilities strictly to authorized application roles.
 
 ## 4. DevSecOps & Pipeline Integrity
 Security is continuously enforced throughout the CI/CD lifecycle.
 - **Static Application Security Testing (SAST)**: SonarQube Quality Gates are configured to instantly abort Jenkins deployments if critical vulnerabilities or code smells are detected in the source code.
-- **Container Security**: Trivy container image scanning is enforced in the CI/CD pipeline. Docker images are scanned to guarantee zero embedded secrets or critical CVEs before being pushed to the registry. The Backend FastAPI Dockerfile also utilizes a non-root, restricted user for execution.
+- **Container Security**: Trivy container image scanning is enforced in the CI/CD pipeline. Images are scanned for HIGH and CRITICAL CVEs and embedded secrets before being pushed to the registry; the pipeline fails the build (`--exit-code 1`) if any are detected. The Backend FastAPI Dockerfile also utilizes a non-root, restricted user for execution.

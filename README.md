@@ -24,7 +24,7 @@
 
 ---
 
-AssembleMonitor is a cloud-native construction site management platform deployed end-to-end on AWS EKS — Terraform-provisioned infrastructure, a Jenkins GitOps CI/CD pipeline, External Secrets Operator for zero-secret management, and a full OpenTelemetry observability stack covering metrics, logs, and traces. Built as a complete DevOps portfolio project demonstrating production-grade infrastructure automation, security-by-design, and operational observability.
+AssembleMonitor is a cloud-native construction site management platform deployed end-to-end on AWS EKS — Terraform-provisioned infrastructure, a Jenkins GitOps CI/CD pipeline, External Secrets Operator for secret management, and a full OpenTelemetry observability stack covering metrics, logs, and traces. It demonstrates end-to-end infrastructure automation, security-by-design, and operational observability across the full DevOps lifecycle.
 
 The platform serves four RBAC roles across two complete, independently documented deployment paths: a **GitOps EKS pipeline** (primary) and a **K3s Jenkins pipeline** (staging/lightweight).
 
@@ -35,11 +35,11 @@ The platform serves four RBAC roles across two complete, independently documente
 |                       |                                                                                              |
 | --------------------- | -------------------------------------------------------------------------------------------- |
 | 🏗️ **Infrastructure** | EKS v1.36 · 2-node cluster (`c7i-flex.large`) · HPA 2→5 pods · ALB + WAFv2                   |
-| 🔐 **Security**       | IMDSv2 enforced · IRSA for all pods · ESO (zero secrets in Git) · WAF rate-limit 2000 req/IP |
+| 🔐 **Security**       | IMDSv2 enforced · IRSA per service account (6 roles) · ESO (no secrets in Git) · WAF rate-limit 2000 req/IP |
 | 📊 **Observability**  | Full OTel pipeline: metrics → AMP, logs → Loki, traces → Tempo, all in Grafana               |
 | 🔄 **GitOps**         | Jenkins → GitHub → ArgoCD → EKS · Zero `kubectl` in CI · ArgoCD self-heals drift             |
 | 🛡️ **DevSecOps**      | SonarQube quality gates + Trivy CVE scanning on every build (shift-left)                     |
-| 💰 **FinOps**         | Ephemeral cluster: `terraform destroy` nightly, `terraform apply` to restore in ~8 min       |
+| 💰 **FinOps**         | Ephemeral cluster: `terraform destroy` nightly, `terraform apply` to restore (observed ~8–10 min in testing)  |
 
 ## Architecture
 
@@ -110,7 +110,7 @@ This project supports two distinct, fully automated deployment architectures. Ea
 | **Auto-Scaling**     | HPA (Metrics Server, 2–5 pods at 70% CPU)       | Manual replica control             |
 | **Observability**    | Full OTEL + AMP + Loki + Tempo + Grafana        | Node Exporter + Prometheus         |
 | **Jenkins Pipeline** | `Jenkinsfile-gitops`                            | `Jenkinsfile-k3s`                  |
-| **Best For**         | Production, enterprise workloads                | Staging, lightweight environments  |
+| **Best For**         | Cloud-native, GitOps-based deployments            | Staging, lightweight environments  |
 
 ---
 

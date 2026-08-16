@@ -12,7 +12,7 @@ This document outlines the financial operations (FinOps) strategies employed to 
 | Resource                           | Purpose                            | Cost Optimization Strategy                                                                                                                           |
 | ---------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Amazon EKS Cluster**             | Managed Kubernetes Control Plane   | `$0.10/hour` - Cluster is suspended/destroyed via Terraform during extended non-production periods.                                                  |
-| **EC2 c7i-flex.large Node Groups** | Runs Kubernetes pods and workloads | Auto-scaled via Kubernetes Horizontal Pod Autoscaler (HPA) and Cluster Autoscaler to minimize idle compute.                                          |
+| **EC2 c7i-flex.large Node Groups** | Runs Kubernetes pods and workloads | Fixed at 2 nodes (min 2, max 3); no Cluster Autoscaler is deployed — node scaling is managed manually via Terraform node group configuration. Pod-level scaling is handled by HPA. |
 | **EBS 20 GB**                      | EKS Node root disk                 | Automatically deleted upon node termination to prevent orphaned volume charges.                                                                      |
 | **Application Load Balancer**      | Traffic routing & WAF protection   | Tied to Terraform state; destroyed when cluster is offline.                                                                                          |
 | **RDS PostgreSQL**                 | Stateful production database       | Stopped during non-business hours; automated snapshots managed by retention policies.                                                                |
@@ -23,8 +23,8 @@ This document outlines the financial operations (FinOps) strategies employed to 
 
 During active operation, cost efficiency is primarily driven by Kubernetes-native auto-scaling:
 
-- **HPA (Horizontal Pod Autoscaler)** monitors CPU/Memory utilization via the Metrics Server, dynamically scaling pod replicas up during traffic spikes and down to a minimal footprint during low-traffic periods.
-- **Node Auto-Scaling** ensures that the underlying EC2 instances in the EKS Node Group are only provisioned when pods cannot be scheduled, and are drained/terminated when resources are underutilized.
+- **HPA (Horizontal Pod Autoscaler)** monitors **CPU utilization** via the Metrics Server, dynamically scaling pod replicas up during traffic spikes and down to the configured minimum during low-traffic periods. Memory-based scaling is not currently configured.
+- **Node Count** is fixed at the Terraform-defined minimum (2 nodes). No Cluster Autoscaler or Karpenter is deployed; node-level scaling requires a manual Terraform change.
 
 ## ⏸️ Non-Production Environment Suspension
 
