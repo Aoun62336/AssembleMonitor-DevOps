@@ -11,6 +11,7 @@
 
 [![Jenkins](https://img.shields.io/badge/Jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-%23EF7B4D.svg?style=for-the-badge&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![CI](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions)
 
 <!-- Observability -->
 
@@ -40,6 +41,7 @@ The platform serves four RBAC roles across two complete, independently documente
 | 🔄 **GitOps**         | Jenkins → GitHub → ArgoCD → EKS · Zero `kubectl` in CI · ArgoCD self-heals drift             |
 | 🛡️ **DevSecOps**      | SonarQube quality gates + Trivy CVE scanning on every build (shift-left)                     |
 | 💰 **FinOps**         | Ephemeral cluster: `terraform destroy` nightly, `terraform apply` to restore (observed ~8–10 min in testing)  |
+| 🧪 **Reliability**    | 23-test pytest suite · GitHub Actions 4-job parallel CI · PDB prevents zero-replica rolling deploys · `terraform test` module unit tests · Grafana dashboards-as-code |
 
 ## Architecture
 
@@ -159,7 +161,7 @@ The umbrella Helm chart (`k8s/helm-chart/`) manages the entire `assemblemonitor`
 - Backend deployment — FastAPI, ClusterIP service port 8000, HPA 2→5 pods
 - Frontend deployment — React/Nginx, NodePort service port 30080, HPA 2→5 pods
 - External Secrets Operator sync from `assemblemonitor-secrets`
-- Liveness and readiness probes on `/api/health`
+- Liveness probe on `/api/health/live` · Readiness probe on `/api/health/ready` (separated in the August 2026 hardening pass)
 
 ### Observability Pipelines
 
@@ -303,6 +305,7 @@ The following screenshots confirm that all major system components are operation
 | [Incident Response & Recovery](docs/ops/INCIDENT_RESPONSE.md) | RTO/RPO targets, GitOps rollback procedures, and full disaster recovery                                                                                    |
 | [Performance Testing](performance-tests/README.md)            | k6 load test methodology and results                                                                                                                       |
 | [FinOps](docs/ops/FINOPS_COST_MANAGEMENT.md)                  | Cost breakdown and optimization decisions                                                                                                                  |
+| [Verification Playbook](docs/ops/VERIFICATION_PLAYBOOK.md)    | Step-by-step commands and expected outputs for verifying every hardening milestone                                                                         |
 
 ### Deployment Guides
 
@@ -323,6 +326,25 @@ The following screenshots confirm that all major system components are operation
 | **EKS over K3s**                             | $73/month managed control plane cost; eliminates etcd management, delivers native HPA and IRSA                                             |
 | **ESO over base64 Secrets**                  | Requires the ESO operator; removes all secrets from Git entirely and enables secret rotation without redeployment                          |
 | **Self-hosted Jenkins over GitHub Actions**  | Requires server maintenance; provides private network isolation for builds and full SonarQube integration without egress                   |
+
+---
+
+## Reliability & CI Hardening (August 2026)
+
+Implemented on branch `hardening/reliability-ci`. All changes are verified by the GitHub Actions CI pipeline on every push.
+
+| Milestone | Change | Verification |
+| --------- | ------ | ------------ |
+| **M1 — Health probes** | Split `/api/health` into `/api/health/live` (liveness) and `/api/health/ready` (readiness). K8s probes updated in Helm values. | `grep health/live backend/Dockerfile` |
+| **M2 — Test suite** | 23 pytest tests covering auth and health endpoints. Python 3.12 mock shim for OTel compatibility. No real database required. | `cd backend && python -m pytest tests/ -v` → 23 passed |
+| **M3 — GitHub Actions CI** | 4-job parallel workflow: Backend compile & test, Frontend build, Terraform validate + `terraform test`, Helm lint + template render. Runs on every push. | GitHub Actions tab — all ✅ |
+| **M4 — Helm dependency locking** | `Chart.lock` pins exact versions of all 4 chart dependencies (loki 6.29.0, tempo 1.8.0, kube-state-metrics 5.15.2, otel-collector 0.114.0). `charts/` gitignored. | `cat k8s/helm-chart/Chart.lock` |
+| **M5 — PDB + NetworkPolicy** | `PodDisruptionBudget` (maxUnavailable: 1) for backend and frontend — prevents zero-replica outages during node drain. `NetworkPolicy` templates off by default, enabled via values override. | `helm template ... \| grep PodDisruptionBudget` |
+| **M6 — Jenkinsfile hardening** | Added `options {}` block (buildDiscarder, timestamps, disableConcurrentBuilds, 60 min timeout), `DOCKER_BUILDKIT=1`, and a `Backend Unit Tests` stage that runs pytest inside the Docker image before any push. | `grep "Backend Unit Tests" Jenkinsfile-gitops` |
+| **M7 — Terraform reusable module** | `terraform/modules/network/` extracts the private subnet + NAT gateway pattern into a reusable module. 5 unit tests using `terraform test` with `mock_provider` (no AWS credentials required). | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
+| **M8 — Grafana dashboard-as-code** | `k8s/helm-chart/dashboards/application-overview.json` — 10-panel application overview dashboard (RPS, error rate, P50/P95/P99 latency, pod CPU/memory, ready replica counts). Loaded by Grafana via Helm ConfigMap on every deploy. | `python -c "import json; d=json.load(open('k8s/helm-chart/dashboards/application-overview.json')); print(len(d['panels']))"` |
+
+→ [Full step-by-step verification commands](docs/ops/VERIFICATION_PLAYBOOK.md)
 
 ---
 
