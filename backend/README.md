@@ -95,6 +95,8 @@ All protected routes require a `Bearer` JWT token obtained from `POST /api/v1/au
 | Method     | Path                    | Access            |
 | ---------- | ----------------------- | ----------------- |
 | `GET`      | `/api/health`           | Public            |
+| `GET`      | `/api/health/live`      | Public            |
+| `GET`      | `/api/health/ready`     | Public            |
 | `POST`     | `/api/v1/auth/login`    | Public            |
 | `POST`     | `/api/v1/auth/refresh`  | Public            |
 | `GET/POST` | `/api/v1/users`         | Admin             |
@@ -111,9 +113,25 @@ All protected routes require a `Bearer` JWT token obtained from `POST /api/v1/au
 
 Interactive documentation: `GET /api/docs` (Swagger) · `GET /api/redoc`
 
+### Health Endpoints
+
+Three health endpoints are exposed under `/api/`:
+
+| Endpoint | Purpose | DB dependency | Success | Failure |
+| --- | --- | --- | --- | --- |
+| `GET /api/health` | General diagnostic (backward compat) | Optional (non-fatal) | 200 | 200 (masked) |
+| `GET /api/health/live` | Process liveness — is FastAPI alive? | ❌ None | 200 | N/A |
+| `GET /api/health/ready` | Dependency readiness — is PostgreSQL reachable? | ✅ Required | 200 | **503** |
+
+**Kubernetes probe semantics:**
+- The **liveness probe** uses `/api/health/live`. Kubernetes restarts the container only when this fails. Because it has no DB dependency, a database outage will not incorrectly restart a healthy FastAPI process.
+- The **readiness probe** uses `/api/health/ready`. Kubernetes removes the pod from load-balancer rotation when this returns 503, and restores it automatically once the database becomes available again.
+- The **legacy** `/api/health` endpoint is preserved for backward compatibility (Jenkins, K6 tests, Terraform user data). It always returns HTTP 200 even when the database is unreachable.
+
 ---
 
 ## Environment Variables
+
 
 Copy `.env.example` to `.env` and fill in all values. Key variables:
 
