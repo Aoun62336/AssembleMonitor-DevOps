@@ -17,3 +17,35 @@
 # enablement is tracked separately.
 networkPolicy:
   enabled: true
+
+# Override namespace so Helm-rendered NetworkPolicy and PDB target the k3d
+# test namespace, not the production namespace (assemblemonitor).
+namespace: assemblemonitor-hardening-test
+
+# Enable PDB for the k3d drain test (requires HPA enabled so the condition
+# in templates/pdb.yaml evaluates to true).
+backend:
+  hpa:
+    enabled: true
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+
+frontend:
+  hpa:
+    enabled: true
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+
+# Minimum Loki subchart config to satisfy the Loki Helm template engine.
+# Without bucketNames.chunks, helm template fails on loki/templates/_helpers.tpl:231
+# even when using --show-only on a non-Loki template (e.g. networkpolicy.yaml).
+# These are placeholder names — Loki is NOT deployed to k3d in this test.
+loki:
+  loki:
+    storage:
+      bucketNames:
+        chunks: "hardening-test"
+        ruler: "hardening-test"
+        admin: "hardening-test"
