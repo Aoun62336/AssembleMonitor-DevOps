@@ -1,6 +1,18 @@
 pipeline {
     agent any
 
+    options {
+        // Retain the last 10 builds and discard older logs + artifacts.
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        // Prefix every log line with a timestamp for easier debugging.
+        timestamps()
+        // Prevent two builds from running simultaneously on the same branch.
+        // (Avoids Docker tag collisions and git race conditions on main.)
+        disableConcurrentBuilds()
+        // Hard ceiling: kill any build that runs longer than 60 minutes.
+        timeout(time: 60, unit: 'MINUTES')
+    }
+
     environment {
         AWS_REGION = 'us-east-1'
 
@@ -8,6 +20,8 @@ pipeline {
         BACKEND_IMAGE = 'fire2686/assemblemonitor-backend'
         FRONTEND_IMAGE = 'fire2686/assemblemonitor-frontend'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        // Enable Docker BuildKit for parallel layer caching (~30-50% faster builds).
+        DOCKER_BUILDKIT = '1'
         
         GIT_REPO_URL = 'https://github.com/Aoun62336/AssembleMonitor-DevOps.git'
     }
@@ -115,6 +129,26 @@ pipeline {
                     docker run --rm \
                       assemblemonitor-backend-check:${IMAGE_TAG} \
                       python -m compileall app
+                '''
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // Run the pytest suite inside the already-built validation image.
+        // No extra Docker build is needed — the runtime image (built above)
+        // includes tests/ and requirements-dev.txt via COPY . . in the
+        // runtime stage. We run as root to allow pip to write to /opt/venv.
+        // All DB calls are mocked in conftest.py — no real PostgreSQL needed.
+        // -------------------------------------------------------------------
+        stage('Backend Unit Tests') {
+            steps {
+                sh '''
+                    docker run --rm \
+                      --user root \
+                      -w /app \
+                      assemblemonitor-backend-check:${IMAGE_TAG} \
+                      bash -c "pip install -r requirements-dev.txt -q && \
+                               python -m pytest tests/ -q --tb=short"
                 '''
             }
         }
@@ -248,6 +282,9 @@ pipeline {
 
         always {
             sh '''
+                # Remove the validation image created during Backend Build Validation.
+                # This is separate from final images (which are kept for retry/rollback).
+                docker image rm -f assemblemonitor-backend-check:${IMAGE_TAG} || true
                 docker logout || true
                 docker image prune -f || true
             '''
