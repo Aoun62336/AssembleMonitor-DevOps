@@ -8,12 +8,13 @@
 #   - Manual dispatch from the GitHub Actions UI
 #
 # Jobs (run in parallel):
-#   1. backend-test    — Python compile check + pytest (23 tests, no real DB)
-#   2. frontend-build  — Vite production build (npm install + npm run build)
+#   1. backend-test       — Python compile check + pytest (23 tests, no real DB)
+#   2. frontend-build     — Vite production build (npm install + npm run build)
 #   3. terraform-validate — provider init + HCL validate (no AWS creds needed)
-#   4. helm-validate   — dependency build + lint + template render
+#   4. helm-validate      — dependency build + lint + template render
+#   5. secret-scan        — Gitleaks secret detection scan
 #
-# All jobs must pass before a PR can be merged (enforced via branch protection).
+# All 5 jobs must pass before a PR can be merged (enforced via branch protection).
 # =============================================================================
 name: PR Validation
 
@@ -31,9 +32,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Minimum permissions — no write access needed for validation.
+# Minimum permissions — read for validation, security-events for Gitleaks SARIF upload.
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -173,3 +175,22 @@ jobs:
             -f k8s/helm-chart/values/observability.yaml \
             -f k8s/helm-chart/values/hardening-validation.yaml \
             > /dev/null
+
+  # ---------------------------------------------------------------------------
+  # Job 5 — Secret Scan: Gitleaks
+  # Scans the repository for hardcoded secrets (AWS keys, private keys, tokens,
+  # passwords). Fails the PR if any credential pattern is detected.
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (full history for complete scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks — scan for hardcoded secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

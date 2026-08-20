@@ -1,0 +1,53 @@
+# =============================================================================
+# AssembleMonitor — Pre-Commit Hook Configuration
+#
+# Pre-commit runs these checks BEFORE every local commit, catching issues
+# before they reach CI. Install once per machine:
+#
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run manually across all files:
+#   pre-commit run --all-files
+#
+# Hooks are versioned — run `pre-commit autoupdate` to update hook versions.
+# =============================================================================
+repos:
+  # ---------------------------------------------------------------------------
+  # General file hygiene (no external downloads — runs from pre-commit itself)
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace          # Remove trailing spaces
+        exclude: "docs/assets/screenshots/"
+      - id: end-of-file-fixer            # Ensure files end with newline
+        exclude: "docs/assets/screenshots/"
+      - id: check-yaml                   # Validate YAML syntax
+        args: ["--unsafe"]               # Allow custom YAML tags (Helm uses !!)
+      - id: check-json                   # Validate JSON syntax
+      - id: check-merge-conflict         # Block accidental merge conflict markers
+      - id: detect-private-key           # Block PEM private keys from being committed
+      - id: check-added-large-files      # Block files > 10MB
+        args: ["--maxkb=10240"]
+
+  # ---------------------------------------------------------------------------
+  # Terraform formatting — keeps .tf files consistently formatted
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.3
+    hooks:
+      - id: terraform_fmt
+        args: ["--args=-recursive"]
+
+  # ---------------------------------------------------------------------------
+  # Secret detection — scans for accidentally committed credentials
+  # NOTE: On first install, run `detect-secrets scan > .secrets.baseline`
+  #       to baseline any existing false positives before committing.
+  # ---------------------------------------------------------------------------
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: "package-lock.json"
