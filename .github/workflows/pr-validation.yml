@@ -148,7 +148,8 @@ jobs:
         run: |
           helm lint k8s/helm-chart \
             -f k8s/helm-chart/values/app.yaml \
-            -f k8s/helm-chart/values/observability.yaml
+            -f k8s/helm-chart/values/observability.yaml \
+            -f k8s/helm-chart/values/hardening-validation.yaml
 
       - name: Template render smoke test
         # Renders all templates and discards output — validates template syntax
@@ -157,4 +158,5 @@ jobs:
           helm template assemblemonitor k8s/helm-chart \
             -f k8s/helm-chart/values/app.yaml \
             -f k8s/helm-chart/values/observability.yaml \
+            -f k8s/helm-chart/values/hardening-validation.yaml \
             > /dev/null

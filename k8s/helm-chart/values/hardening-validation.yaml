@@ -1,0 +1,19 @@
+# =============================================================================
+# AssembleMonitor — Hardening Validation Values (k3d local testing only)
+#
+# Enables hardening features that are disabled by default in production
+# (app.yaml) for EKS historical compatibility.
+#
+# Usage — local k3d smoke test:
+#   helm upgrade --install assemblemonitor k8s/helm-chart \
+#     -f k8s/helm-chart/values/app.yaml \
+#     -f k8s/helm-chart/values/hardening-validation.yaml
+#
+# DO NOT apply this file directly to the EKS production cluster.
+# =============================================================================
+
+# Enable NetworkPolicy — tested locally with k3d (Flannel CNI supports it).
+# EKS VPC CNI requires an explicit opt-in and policy engine; production
+# enablement is tracked separately.
+networkPolicy:
+  enabled: true

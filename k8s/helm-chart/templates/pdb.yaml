@@ -1,0 +1,50 @@
+{{/*
+PodDisruptionBudget — backend and frontend.
+
+A PDB is only meaningful when the HPA is running at least 2 replicas;
+we therefore gate on BOTH pdb.enabled AND hpa.enabled.
+
+With maxUnavailable: 1:
+  - Rolling deploys always keep at least (minReplicas - 1) pods live.
+  - Node drains (upgrades, cluster-autoscaler scale-in) are blocked
+    until a replacement pod is scheduled and healthy.
+
+API version: policy/v1 requires Kubernetes ≥ 1.21 (EKS 1.21+ / k3d 5+).
+*/}}
+
+{{- if and .Values.backend.pdb.enabled .Values.backend.hpa.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-backend-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: assemblemonitor-backend
+    component: backend
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  maxUnavailable: {{ .Values.backend.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: assemblemonitor-backend
+{{- end }}
+
+{{- if and .Values.frontend.pdb.enabled .Values.frontend.hpa.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}-frontend-pdb
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: assemblemonitor-frontend
+    component: frontend
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  maxUnavailable: {{ .Values.frontend.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: assemblemonitor-frontend
+{{- end }}
