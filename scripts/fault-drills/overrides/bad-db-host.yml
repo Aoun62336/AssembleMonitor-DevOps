@@ -1,0 +1,27 @@
+# =============================================================================
+# scripts/fault-drills/overrides/bad-db-host.yml
+#
+# Docker Compose override for INC-003: DB DNS failure drill.
+# Changes the DATABASE_URL hostname from 'db' (valid Docker service name)
+# to 'db-invalid' (does not exist in the network).
+#
+# This simulates a misconfigured DATABASE_URL — the FastAPI process stays
+# alive but cannot resolve the host, so /api/health/ready returns 503.
+#
+# Usage:
+#   docker compose -f docker-compose.yml \
+#                  -f scripts/fault-drills/overrides/bad-db-host.yml \
+#                  up -d --force-recreate api
+#
+# Recovery (restart without override):
+#   docker compose up -d --force-recreate api
+#
+# NEVER add -v to 'docker compose down' — it will delete the postgres volume.
+# =============================================================================
+
+services:
+  api:
+    environment:
+      # Override only the DATABASE_URL — all other env vars from backend/.env
+      # remain in effect. Only the hostname changes from 'db' to 'db-invalid'.
+      DATABASE_URL: "postgresql+asyncpg://assembleuser:assemblepass@db-invalid:5432/assemblemonitor"
