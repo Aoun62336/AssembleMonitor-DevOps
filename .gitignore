@@ -111,3 +111,4 @@ backup-k8s
 tf2-backup/
 .agents
 docs/architecture/schema.html
+update-plan.txt
