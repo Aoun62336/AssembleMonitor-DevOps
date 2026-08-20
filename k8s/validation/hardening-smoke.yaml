@@ -1,0 +1,153 @@
+# =============================================================================
+# hardening-smoke.yaml
+# Test workloads for k3d NetworkPolicy and PDB runtime verification.
+#
+# PURPOSE: Deploy these lightweight pods to prove that:
+#   1. The Helm-rendered NetworkPolicy actually BLOCKS untrusted traffic.
+#   2. The Helm-rendered PDB actually GOVERNS pod eviction during node drain.
+#
+# NAMESPACE: assemblemonitor-hardening-test
+#   (matches k8s/helm-chart/values/hardening-validation.yaml)
+#
+# USAGE:
+#   kubectl apply -f k8s/validation/hardening-smoke.yaml
+#   Follow the README at docs/ops/VERIFICATION_PLAYBOOK.md for full test steps.
+#
+# LABELS: Deliberately match the Helm chart's podSelector labels so that the
+#   Helm-rendered NetworkPolicy and PDB target these pods correctly.
+#
+# IMPORTANT: Delete the k3d cluster when done:
+#   k3d cluster delete assemblemonitor-hardening
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: assemblemonitor-hardening-test
+  labels:
+    purpose: hardening-validation
+
+---
+# ── Backend simulation ────────────────────────────────────────────────────────
+# Python stdlib HTTP server on port 8000.
+# Label `app: assemblemonitor-backend` is required — the Helm-rendered
+# NetworkPolicy and PDB both use this selector.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardening-backend
+  namespace: assemblemonitor-hardening-test
+  labels:
+    purpose: hardening-validation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assemblemonitor-backend
+  template:
+    metadata:
+      labels:
+        app: assemblemonitor-backend
+    spec:
+      containers:
+        - name: backend
+          image: python:3.11-slim-bookworm
+          command: ["python", "-m", "http.server", "8000"]
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
+
+---
+# Service that the frontend and untrusted pods will try to reach.
+apiVersion: v1
+kind: Service
+metadata:
+  name: assemblemonitor-backend
+  namespace: assemblemonitor-hardening-test
+spec:
+  selector:
+    app: assemblemonitor-backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+
+---
+# ── Frontend simulation ───────────────────────────────────────────────────────
+# Curl image kept alive with sleep.
+# Label `app: assemblemonitor-frontend` — the NetworkPolicy ALLOWS this pod
+# to reach the backend on port 8000.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardening-frontend
+  namespace: assemblemonitor-hardening-test
+  labels:
+    purpose: hardening-validation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assemblemonitor-frontend
+  template:
+    metadata:
+      labels:
+        app: assemblemonitor-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: curlimages/curl:8.8.0
+          command: ["sh", "-c", "sleep 3600"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+---
+# ── Untrusted simulation ──────────────────────────────────────────────────────
+# Label `app: untrusted` — the NetworkPolicy has NO rule allowing this pod.
+# After the policy is applied, curl from this pod must TIME OUT (BLOCKED).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardening-untrusted
+  namespace: assemblemonitor-hardening-test
+  labels:
+    purpose: hardening-validation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: untrusted
+  template:
+    metadata:
+      labels:
+        app: untrusted
+    spec:
+      containers:
+        - name: untrusted
+          image: curlimages/curl:8.8.0
+          command: ["sh", "-c", "sleep 3600"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
