@@ -1,0 +1,58 @@
+# =============================================================================
+# AssembleMonitor — OpenTelemetry Collector (Local Development)
+#
+# Receives traces, metrics, and logs from the FastAPI backend via OTLP/gRPC
+# and prints them to stdout (debug exporter). No remote backends required —
+# this is for local developer observability only.
+#
+# In production (EKS), the OTel Collector is deployed as a Helm subchart
+# (k8s/helm-chart/Chart.yaml) and forwards to AWS AMP/Loki/Tempo.
+#
+# Ports:
+#   4317 — OTLP gRPC  (used by FastAPI backend)
+#   4318 — OTLP HTTP  (available for other tools)
+#   8888 — Prometheus metrics about the collector itself
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 2s
+    send_batch_size: 512
+
+  # Adds resource attributes to every span for easier log filtering
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: "local-docker-compose"
+        action: insert
+
+exporters:
+  # Prints spans/metrics/logs to stdout — view with:
+  #   docker compose logs otel-collector
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [debug]
