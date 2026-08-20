@@ -123,6 +123,12 @@ jobs:
       - name: Terraform validate (checks HCL syntax and resource references)
         run: terraform -chdir=terraform validate -no-color
 
+      - name: Init network module (no backend)
+        run: terraform -chdir=terraform/modules/network init -backend=false -no-color
+
+      - name: Terraform test — network module unit tests (mock_provider, no AWS creds needed)
+        run: terraform -chdir=terraform/modules/network test -no-color
+
   # ---------------------------------------------------------------------------
   # Job 4 — Helm: chart dependency build + lint + dry-run template render
   # Validates that the Helm chart is syntactically correct and renders
