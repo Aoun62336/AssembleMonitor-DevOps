@@ -1,58 +1,101 @@
-# 🐳 Option 1: Local Docker Development (The Foundation)
+# Local Development Deployment Strategy
 
 > [!TIP]
-> This is the foundational deployment strategy used for rapid prototyping, local development, and testing. It simulates the production environment locally using Docker Compose without requiring any AWS infrastructure.
+> This deployment strategy simulates the production architecture locally using Docker Compose, bypassing AWS infrastructure dependencies for rapid development and pre-commit validation.
 
-**Best For:** Development, Local Testing, Code Review
-**Complexity:** Low
-**Tech Stack:** Docker, Docker Compose
+**Execution Scope:** Development, Unit/Integration Testing, Code Review
+**Architecture:** Containerized via Docker Compose
 
-## 📋 Prerequisites
+## Prerequisites
 
-- Docker Engine & Docker Compose installed
+- Docker Engine & Docker Compose (`>= 2.20.0`)
 - Git
 
-## 🚀 Step-by-Step Instructions
+## Provisioning Procedure
 
-1. **Clone the Repository**
+1. **Clone Repository**
 
    ```bash
    git clone <repository_url>
    cd AssembleMonitor
    ```
 
-2. **Spin Up the Containers**
-   This command reads the `docker-compose.yml` file in the root directory to build the frontend, backend, and a local PostgreSQL database container.
+2. **Initialize Container Stack**
+   
+   Execute the initialization from the repository root to build and deploy the frontend, backend, and PostgreSQL containers.
 
    ```bash
    docker compose up --build -d
    ```
 
-3. **Run Database Migrations**
-   Initialize the database schema using Alembic:
+3. **Execute Database Migrations**
+   
+   Apply Alembic schema migrations to initialize the database structure.
 
    ```bash
    docker compose exec api alembic upgrade head
    ```
 
-4. **Seed the Admin User**
-   Create the initial admin user to log into the application:
+4. **Initialize Administrative Identity**
+   
+   Provision the default administrative user record.
+
    ```bash
    docker compose exec api python seed_admin.py
    ```
 
-## 🌐 Accessing the Application
+## Application Endpoints
 
-- **Frontend App**: `http://localhost:3000`
-- **Backend API Swagger**: `http://localhost:8000/api/docs`
-- **Adminer DB UI**: `http://localhost:8080`
+- **Frontend Application**: `http://localhost:3000`
+- **Backend API OpenAPI Specification**: `http://localhost:8000/api/docs`
+- **Adminer Database UI**: `http://localhost:8080`
 
-## 🛑 Stopping the Environment
+## Teardown Procedure
 
-When you are done testing, cleanly shut down the containers and preserve data:
+To cleanly terminate the environment while preserving persistent volume data:
 
 ```bash
 docker compose down
 ```
 
-_(To wipe the database entirely, add the `-v` flag to delete the associated volumes)._
+> Note: To perform a destructive teardown (destroying the database volume), append the `-v` flag.
+
+---
+
+## Health Probe Architecture
+
+The backend API exposes separated health probes to align with Kubernetes deployment contracts:
+
+| Endpoint | Function | Target State |
+|---|---|---|
+| `GET /api/health` | Aggregated system status | `{"status":"ok","database":"connected"}` |
+| `GET /api/health/live` | Liveness validation | HTTP 200 OK |
+| `GET /api/health/ready` | Readiness validation | HTTP 200 OK (HTTP 503 on database failure) |
+
+```bash
+curl http://localhost:8000/api/health/live
+curl http://localhost:8000/api/health/ready
+```
+
+**Kubernetes Integration:** Liveness probe failure induces pod restart. Readiness probe failure isolates the pod from the ingress load balancer without forcing a restart.
+
+---
+
+## Fault Injection Exercises
+
+The local Docker Compose environment supports controlled reliability testing via provisioned fault injection scripts:
+
+```bash
+# Validate baseline health prior to execution
+bash scripts/fault-drills/00-preflight.sh
+
+# Execute localized failure scenarios
+bash scripts/fault-drills/01-database-outage.sh      # Terminate db → live=200, ready=503
+bash scripts/fault-drills/02-api-outage.sh            # Terminate api → Nginx 502
+bash scripts/fault-drills/03-database-dns-failure.sh  # Inject invalid DATABASE_URL → live=200, ready=503
+
+# Validate automated recovery mechanisms
+bash scripts/fault-drills/04-recovery-validation.sh
+```
+
+Consult [`scripts/fault-drills/README.md`](../../scripts/fault-drills/README.md) for execution prerequisites and constraints.

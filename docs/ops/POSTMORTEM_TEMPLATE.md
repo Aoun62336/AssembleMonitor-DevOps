@@ -1,6 +1,6 @@
 # Incident Postmortem Template
 
-> **Classification:** Controlled local reliability exercise — not a production incident.
+> **Classification:** Controlled local reliability exercise
 > **Environment:** Local Docker Compose (development)
 
 ---
@@ -10,7 +10,7 @@
 | Field | Value |
 |---|---|
 | **Incident ID** | INC-XXX |
-| **Exercise Date** | YYYY-MM-DD |
+| **Execution Date** | YYYY-MM-DD |
 | **Start Time** | HH:MM:SS IST (UTC+05:30) |
 | **End Time** | HH:MM:SS IST (UTC+05:30) |
 | **Duration** | X minutes Y seconds |
@@ -21,25 +21,25 @@
 
 ## Exercise Objective
 
-_What failure mode was this drill designed to simulate and validate?_
+_Define the specific failure mode and architectural resilience mechanism being validated._
 
 ---
 
-## Trigger
+## Fault Injection Trigger
 
-The exact command(s) used to inject the fault:
+_Document the exact command sequence utilized to inject the fault:_
 
 ```bash
-# paste exact command(s) here
+# Insert execution commands
 ```
 
 ---
 
-## Symptoms Observed
+## Observed Telemetry (Symptoms)
 
-_What did each health endpoint return immediately after the fault was injected?_
+_Record the immediate response of health probes following fault injection._
 
-| Endpoint | Before Fault | After Fault | Expected? |
+| Endpoint | Pre-Fault Status | Post-Fault Status | Meets Expectation |
 |---|---|---|---|
 | `GET /api/health` | 200 | ? | |
 | `GET /api/health/live` | 200 | ? | |
@@ -47,48 +47,48 @@ _What did each health endpoint return immediately after the fault was injected?_
 
 ---
 
-## Investigation
+## Investigation Procedures
 
-Commands run to investigate the fault and their output:
+_Document the diagnostic commands executed and their respective outputs:_
 
 ```bash
-# paste investigation commands + output here
+# Insert diagnostic commands and output
 docker compose ps
 docker compose logs api --tail=20
 ```
 
 ---
 
-## Root Cause
+## Root Cause Analysis
 
-_One paragraph describing the technical cause of the observed symptoms._
+_Provide a concise technical explanation of the observed system degradation._
 
 ---
 
-## Recovery
+## Recovery Procedures
 
-The exact commands used to restore the service, with timing:
+_Document the remediation commands and timeline:_
 
 ```bash
-# paste recovery commands here
+# Insert recovery commands
 ```
 
-| Step | Time | Result |
+| Execution Step | Timestamp | Result |
 |---|---|---|
-| Recovery command issued | HH:MM:SS | |
-| `/api/health/ready` back to 200 | HH:MM:SS | |
-| **Total recovery time (MTTR)** | — | X min Y sec |
+| Remediation command executed | HH:MM:SS | |
+| `/api/health/ready` restored to 200 | HH:MM:SS | |
+| **Mean Time to Recovery (MTTR)** | — | X min Y sec |
 
 ---
 
-## What This Proves
+## Architectural Validation
 
-_What this drill validates about the system's design._
+_Define the specific design principles proven by this exercise._
 
 ---
 
-## Follow-Up Actions
+## Remediation / Follow-Up Actions
 
-| Action | Owner | Status |
+| Action Item | Owner | Status |
 |---|---|---|
 | N/A — controlled exercise, no production impact | — | Closed |

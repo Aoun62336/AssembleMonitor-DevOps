@@ -25,172 +25,175 @@
 
 ---
 
-AssembleMonitor is a cloud-native construction site management platform deployed end-to-end on AWS EKS — Terraform-provisioned infrastructure, a Jenkins GitOps CI/CD pipeline, External Secrets Operator for secret management, and a full OpenTelemetry observability stack covering metrics, logs, and traces. It demonstrates end-to-end infrastructure automation, security-by-design, and operational observability across the full DevOps lifecycle.
+AssembleMonitor is a cloud-native construction site management platform deployed on AWS Elastic Kubernetes Service (EKS). The architecture incorporates Terraform-provisioned infrastructure, a Jenkins-based GitOps CI/CD pipeline, External Secrets Operator for credential management, and an OpenTelemetry observability stack encompassing metrics, logs, and distributed traces. The platform demonstrates end-to-end infrastructure automation, security-by-design, and operational observability across the DevOps lifecycle.
 
-The platform serves four RBAC roles across two complete, independently documented deployment paths: a **GitOps EKS pipeline** (primary) and a **K3s Jenkins pipeline** (staging/lightweight).
+The platform provisions distinct access across four Role-Based Access Control (RBAC) tiers and supports two independently documented deployment architectures: a **GitOps EKS pipeline** (Primary Production) and a **K3s Jenkins pipeline** (Staging/Lightweight).
 
 ---
 
-## ⚡ Project Highlights
+## Architectural Highlights
 
-|                       |                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------- |
-| 🏗️ **Infrastructure** | EKS v1.36 · 2-node cluster (`c7i-flex.large`) · HPA 2→5 pods · ALB + WAFv2                   |
-| 🔐 **Security**       | IMDSv2 enforced · IRSA per service account (6 roles) · ESO (no secrets in Git) · WAF rate-limit 2000 req/IP |
-| 📊 **Observability**  | Full OTel pipeline: metrics → AMP, logs → Loki, traces → Tempo, all in Grafana               |
-| 🔄 **GitOps**         | Jenkins → GitHub → ArgoCD → EKS · Zero `kubectl` in CI · ArgoCD self-heals drift             |
-| 🛡️ **DevSecOps**      | SonarQube quality gates + Trivy CVE scanning on every build (shift-left)                     |
-| 💰 **FinOps**         | Ephemeral cluster: `terraform destroy` nightly, `terraform apply` to restore (observed ~8–10 min in testing)  |
-| 🧪 **Reliability**    | 23-test pytest suite · GitHub Actions 4-job parallel CI · PDB prevents zero-replica rolling deploys · `terraform test` module unit tests · Grafana dashboards-as-code |
+| Category | Implementation Detail |
+|---|---|
+| **Infrastructure** | EKS v1.36 · 2-node cluster (`c7i-flex.large`) · HPA scaling (2→5 replicas) · AWS ALB with WAFv2 |
+| **Security** | IMDSv2 enforcement · IAM Roles for Service Accounts (IRSA) across 6 workloads · External Secrets Operator (zero secrets in repository) · WAF rate-limiting (2000 req/IP/window) |
+| **Observability** | End-to-end OpenTelemetry integration: Metrics → AMP, Logs → Loki, Traces → Tempo, unified within Grafana |
+| **GitOps** | Jenkins → GitHub → ArgoCD → EKS · Imperative `kubectl` commands eliminated from CI · ArgoCD autonomous drift remediation |
+| **DevSecOps** | SonarQube static analysis and Trivy CVE scanning enforced during build phase (shift-left security) |
+| **FinOps** | Ephemeral cluster execution: Daily `terraform destroy` and `terraform apply` cycles limit compute expenditure (Restoration RTO: ~8–10 minutes) |
+| **Reliability** | 23-test Pytest suite · GitHub Actions parallel CI execution (4 concurrent jobs) · PodDisruptionBudgets (PDB) prevent zero-replica deployments · `terraform test` module validation · Declarative Grafana dashboards |
 
-## Architecture
+## Architecture Overview
 
 ![AssembleMonitor — High-Level Overview](docs/architecture/00-master-overview.png)
 
-> The full system in one view: Jenkins GitOps CI/CD pipeline, AWS WAF-protected ALB routing into Amazon EKS across private subnets, IRSA-secured workloads, External Secrets Operator syncing from AWS Secrets Manager, and a complete OpenTelemetry observability pipeline — logs to Grafana Loki, traces to Grafana Tempo, metrics to Amazon Managed Prometheus, all visualised in Grafana.
+> The system architecture integrates a Jenkins GitOps CI/CD pipeline, an AWS WAF-protected ALB routing to Amazon EKS within private subnets, IRSA-secured workloads, External Secrets Operator synchronization from AWS Secrets Manager, and a comprehensive OpenTelemetry observability pipeline directing logs to Grafana Loki, traces to Grafana Tempo, and metrics to Amazon Managed Prometheus.
 
-→ [View full 9-diagram architecture documentation](docs/architecture/ARCHITECTURE.md)
-
----
-
-## Tech Stack
-
-### Application
-
-| Layer          | Technology                                                                |
-| -------------- | ------------------------------------------------------------------------- |
-| **Frontend**   | React 18 · Vite 5 · React Router v6 · HTML/CSS · Vanilla JS               |
-| **Backend**    | Python FastAPI SQLAlchemy (async), Alembic                                |
-| **Database**   | PostgreSQL 16 (AWS RDS)                                                   |
-| **Storage**    | AWS S3 (site photo uploads, versioned)                                    |
-| **Auth**       | JWT — python-jose + passlib/bcrypt, access + refresh tokens               |
-| **Web Server** | Nginx (serves the React build inside the frontend container)              |
-
-### DevOps
-
-| Category          | Tool                                | Why                                                                                |
-| ----------------- | ----------------------------------- | ---------------------------------------------------------------------------------- |
-| **Cloud**         | AWS                                 | Utilized WAF, Secrets Manager, RDS, EKS, AMP — purpose-built managed services      |
-| **IaC**           | Terraform                           | Declarative, version-controlled infrastructure; full environment reproducibility   |
-| **Containers**    | Docker                              | Guaranteed environment parity between local and production EKS                     |
-| **Orchestration** | Amazon EKS                          | Managed control plane, native HPA, IRSA, EBS CSI — reduces operational overhead    |
-| **CI**            | Jenkins (self-hosted EC2)           | Private network control, SonarQube integration, stateful build history             |
-| **CD**            | ArgoCD (GitOps)                     | Git as single source of truth; zero Jenkins cluster credentials; drift detection   |
-| **Manifests**     | Helm                                | DRY templating for multi-component, environment-parameterized Kubernetes manifests |
-| **DevSecOps**     | SonarQube + Trivy                   | Shift-Left: quality gates and CVE scanning before any image reaches the registry   |
-| **Config Mgmt**   | Ansible                             | Idempotent, reproducible OS-level provisioning for Jenkins, K3s, SonarQube servers |
-| **Secrets**       | External Secrets Operator           | No base64 Kubernetes secrets in Git; synced live from AWS Secrets Manager          |
-| **Observability** | OTEL + AMP + Loki + Tempo + Grafana | Full metrics, logs, and traces pipeline with pre-provisioned dashboards            |
+→ [View comprehensive architecture documentation](docs/architecture/ARCHITECTURE.md)
 
 ---
 
-## Application Features
+## Technology Stack
 
-The platform provides distinct dashboards for each RBAC role:
+### Application Layer
 
-| Role                | Capabilities                                                          |
-| ------------------- | --------------------------------------------------------------------- |
-| **Admin**           | Full system access — user management, analytics, all project data     |
-| **Project Manager** | Project and phase planning, task assignment, budget tracking          |
-| **Site Engineer**   | Attendance logging, task updates, material consumption, photo uploads |
-| **Client**          | Read-only visibility into project progress and status                 |
+| Component | Technology |
+|---|---|
+| **Frontend** | React 18 · Vite 5 · React Router v6 · HTML/CSS · Vanilla JS |
+| **Backend** | Python FastAPI, SQLAlchemy (async engine), Alembic |
+| **Database** | PostgreSQL 16 (Amazon RDS) |
+| **Storage** | Amazon S3 (Versioned site artifact storage) |
+| **Authentication** | JWT via python-jose and passlib/bcrypt (Access & Refresh tokens) |
+| **Web Server** | Nginx (Frontend asset delivery within container runtime) |
 
-Site photos are stored securely in AWS S3 using IRSA Web Identity Tokens — no credentials embedded in the application.
+### DevOps & Infrastructure Layer
+
+| Category | Tool | Rationale |
+|---|---|---|
+| **Cloud Provider** | AWS | Utilization of managed services (WAF, Secrets Manager, RDS, EKS, AMP) |
+| **IaC** | Terraform | Declarative, version-controlled infrastructure ensuring environmental reproducibility |
+| **Containerization** | Docker | Consistent runtime environment across local execution and EKS |
+| **Orchestration** | Amazon EKS | Managed control plane mitigating operational overhead; native integration with HPA, IRSA, and EBS CSI |
+| **CI** | Jenkins (EC2 Hosted) | Private network isolation, direct SonarQube integration, stateful build history |
+| **CD (GitOps)** | ArgoCD | Repository functions as single source of truth; eliminates Jenkins cluster-admin credentials; automatic drift remediation |
+| **Manifests** | Helm | DRY templating mechanism for environment-parameterized Kubernetes resource definitions |
+| **DevSecOps** | SonarQube & Trivy | Shift-Left enforcement of quality gates and CVE scanning prior to registry publication |
+| **Config Management**| Ansible | Idempotent OS-level provisioning for Jenkins, K3s, and SonarQube EC2 instances |
+| **Secret Management**| External Secrets Operator | Eliminates base64-encoded Kubernetes Secrets in source control via dynamic synchronization from AWS Secrets Manager |
+| **Observability** | OTEL, AMP, Loki, Tempo, Grafana | Comprehensive telemetry pipeline with declarative dashboard provisioning |
 
 ---
 
-## Deployment Paths
+## Functional Capabilities
 
-This project supports two distinct, fully automated deployment architectures. Each has its own Jenkins pipeline and is independently documented.
+The platform provisions specialized interfaces based on RBAC designations:
 
-|                      | **Path 1 — EKS GitOps (Primary)**               | **Path 2 — K3s Pipeline**          |
-| -------------------- | ----------------------------------------------- | ---------------------------------- |
-| **Orchestration**    | Amazon EKS (managed control plane)              | K3s on AWS EC2                     |
-| **CD Mechanism**     | ArgoCD (GitOps — syncs from GitHub)             | Jenkins direct `kubectl apply`     |
-| **Manifest Format**  | Helm chart (`k8s/helm-chart/`)                  | Raw Kubernetes YAML (`k8s/*.yaml`) |
-| **Secrets**          | External Secrets Operator → AWS Secrets Manager | Kubernetes `Secret` (base64)       |
-| **Auto-Scaling**     | HPA (Metrics Server, 2–5 pods at 70% CPU)       | Manual replica control             |
-| **Observability**    | Full OTEL + AMP + Loki + Tempo + Grafana        | Node Exporter + Prometheus         |
-| **Jenkins Pipeline** | `Jenkinsfile-gitops`                            | `Jenkinsfile-k3s`                  |
-| **Best For**         | Cloud-native, GitOps-based deployments            | Staging, lightweight environments  |
+| Role | Operational Scope |
+|---|---|
+| **Admin** | System administration, user management, cross-project analytics |
+| **Project Manager** | Project/phase planning, task allocation, budget oversight |
+| **Site Engineer** | Labor attendance logging, task progression, material consumption tracking, artifact ingestion |
+| **Client** | Read-only project visibility |
+
+Artifacts (site photographs) are securely persisted in Amazon S3 utilizing IRSA Web Identity Tokens, eliminating embedded credentials within the application runtime.
+
+---
+
+## Deployment Architectures
+
+The project supports two distinct, automated deployment pipelines, documented independently:
+
+| Specification | Path 1 — EKS GitOps (Primary) | Path 2 — K3s Pipeline |
+|---|---|---|
+| **Orchestration** | Amazon EKS (Managed Control Plane) | K3s (Self-managed EC2) |
+| **CD Mechanism** | ArgoCD (GitOps synchronization) | Jenkins (`kubectl apply`) |
+| **Manifest Format** | Helm Chart (`k8s/helm-chart/`) | Kubernetes YAML (`k8s/*.yaml`) |
+| **Secret Management**| External Secrets Operator → AWS Secrets Manager | Kubernetes `Secret` (Base64) |
+| **Auto-Scaling** | HPA (Metrics Server, 2–5 replicas at 70% CPU) | Manual replica configuration |
+| **Observability** | OTEL + AMP + Loki + Tempo + Grafana | Node Exporter + Prometheus |
+| **Jenkins Pipeline** | `Jenkinsfile-gitops` | `Jenkinsfile-k3s` |
+| **Target Environment**| Cloud-native, GitOps-based production | Staging, resource-constrained environments |
 
 ---
 
 ## Path 1 — EKS GitOps Pipeline (Primary)
 
-The Jenkins pipeline (`Jenkinsfile-gitops`) runs end-to-end:
+The `Jenkinsfile-gitops` pipeline executes the following sequence:
 
+```text
+Source Commit → Trivy FS Scan → SonarQube SAST → Quality Gate
+  → Docker Compilation → Trivy Image Scan → Docker Hub Push
+  → [Manual Authorization Gate] → Helm Values Update (Git Push)
+  → ArgoCD Autonomous Synchronization → EKS Rolling Deployment
 ```
-Code Push → Trivy FS Scan → SonarQube SAST → Quality Gate
-  → Docker Build → Trivy Image Scan → Docker Hub Push
-  → [Manual Approval] → Helm values update (git push)
-  → ArgoCD auto-sync → Rolling update on EKS
-```
 
-→ [Full stage-by-stage breakdown in CI/CD Pipeline documentation](docs/ops/CI_CD_PIPELINE.md)
+→ [Detailed CI/CD Pipeline documentation](docs/ops/CI_CD_PIPELINE.md)
 
-### EKS Infrastructure
+### EKS Infrastructure Provisioning
 
-Provisioned entirely by Terraform (`terraform/`):
+Infrastructure is provisioned declaratively via Terraform (`terraform/`):
 
-| Component         | Details                                                                            |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| **EKS Cluster**   | Kubernetes v1.36, public + private endpoint access                                 |
-| **Node Group**    | `c7i-flex.large`, On-Demand, 2 desired / 2 min / 3 max                             |
-| **Networking**    | Private subnets in 2 AZs (172.31.96.0/24, 172.31.97.0/24) via NAT Gateway          |
-| **Load Balancer** | AWS ALB → EKS NodePort 30080 via ASG attachment                                    |
-| **WAF**           | WAFv2: Common Rules, Known Bad Inputs, rate-limit 2000 req/IP per window           |
-| **Database**      | RDS PostgreSQL `db.t4g.micro`, private subnets, no public access                   |
-| **Storage**       | S3 uploads bucket (versioned) + S3 observability bucket (Loki/Tempo chunks)        |
-| **Secrets**       | AWS Secrets Manager + External Secrets Operator syncing to Kubernetes              |
-| **EKS Add-ons**   | EBS CSI Driver, Metrics Server, External Secrets Operator — all via `helm_release` |
-| **ArgoCD**        | Installed via Terraform `helm_release`, auto-configured with `argocd-apps`         |
+| Component | Specifications |
+|---|---|
+| **EKS Cluster** | Kubernetes v1.36, configured with public and private endpoint access |
+| **Node Group** | `c7i-flex.large`, On-Demand tier, Auto Scaling Group (2 Min / 3 Max) |
+| **Networking** | Private subnets distributed across 2 Availability Zones (`172.31.96.0/24`, `172.31.97.0/24`) utilizing a NAT Gateway |
+| **Load Balancer** | AWS ALB routing to EKS NodePort (30080) via ASG attachment |
+| **WAF** | WAFv2 implementing Common Rules, Known Bad Inputs, and Rate-Limiting (2000 requests/IP/window) |
+| **Database** | Amazon RDS PostgreSQL (`db.t4g.micro`), isolated within private subnets |
+| **Storage** | Amazon S3 (Versioned artifact bucket and Observability backend for Loki/Tempo) |
+| **Secret Management**| AWS Secrets Manager integrated with External Secrets Operator |
+| **EKS Add-ons** | EBS CSI Driver, Metrics Server, External Secrets Operator deployed via `helm_release` |
+| **ArgoCD** | Provisioned via Terraform `helm_release`, declarative configuration via `argocd-apps` |
 
-### Security — IRSA (IAM Roles for Service Accounts)
+### Security — IAM Roles for Service Accounts (IRSA)
 
-All pod-level AWS access is granted through IRSA with IMDSv2 `hop_limit=1` enforced on all nodes — pods cannot reach the EC2 instance metadata endpoint and cannot assume the node's IAM role. Six distinct IRSA roles scope permissions to the minimum required for each service account (backend, ESO, OTEL Collector, Grafana, Loki/Tempo, and EBS CSI).
+Pod-level AWS API access is authenticated exclusively via IRSA. IMDSv2 is enforced on all nodes with `hop_limit=1`, preventing pods from querying EC2 instance metadata to assume the underlying node role. Six distinct IRSA roles apply the principle of least privilege across service accounts (Backend, ESO, OTEL Collector, Grafana, Loki/Tempo, EBS CSI).
 
-→ [Full IRSA role configuration in Security documentation](docs/architecture/SECURITY.md)
+→ [IRSA Configuration Details](docs/architecture/SECURITY.md)
 
-### Kubernetes Workloads (Helm Chart)
+### Kubernetes Workload Definitions
 
-The umbrella Helm chart (`k8s/helm-chart/`) manages the entire `assemblemonitor` namespace — application layer (`values/app.yaml`) and observability stack (`values/observability.yaml`), including Loki, Tempo, kube-state-metrics, the OpenTelemetry Collector DaemonSet, and Grafana — all with pre-provisioned datasources and dashboards.
+The umbrella Helm chart (`k8s/helm-chart/`) manages the `assemblemonitor` namespace, configuring the application logic (`values/app.yaml`) and the observability stack (`values/observability.yaml`), including Loki, Tempo, kube-state-metrics, the OpenTelemetry Collector DaemonSet, and Grafana.
 
-**Application layer** (`values/app.yaml`):
+**Application Layer Configuration** (`values/app.yaml`):
 
-- Backend deployment — FastAPI, ClusterIP service port 8000, HPA 2→5 pods
-- Frontend deployment — React/Nginx, NodePort service port 30080, HPA 2→5 pods
-- External Secrets Operator sync from `assemblemonitor-secrets`
-- Liveness probe on `/api/health/live` · Readiness probe on `/api/health/ready` (separated in the August 2026 hardening pass)
+- **Backend Deployment**: FastAPI, ClusterIP Service (Port 8000), HPA scaling (2→5 replicas).
+- **Frontend Deployment**: React/Nginx, NodePort Service (Port 30080), HPA scaling (2→5 replicas).
+- **Secret Synchronization**: External Secrets Operator syncing from the `assemblemonitor-secrets` cluster entity.
+- **Probe Configuration**: Delineated liveness (`/api/health/live`) and readiness (`/api/health/ready`) probes.
 
-### Observability Pipelines
+### Observability Pipeline Data Flow
 
-The OpenTelemetry Collector DaemonSet aggregates all signals: **metrics** (cAdvisor + kube-state-metrics) → Amazon Managed Prometheus → Grafana · **logs** (filelog from `/var/log/pods`) → Loki → S3 → Grafana · **traces** (OTLP gRPC from FastAPI) → Tempo → S3 → Grafana. External EC2 nodes (Jenkins, K3s, SonarQube) are scraped by a dedicated `otel-external-scraper` deployment.
+The OpenTelemetry Collector DaemonSet aggregates telemetry signals:
+- **Metrics** (cAdvisor + kube-state-metrics) → Amazon Managed Prometheus (AMP) → Grafana.
+- **Logs** (filelog receiver tailing `/var/log/pods`) → Loki → Amazon S3 → Grafana.
+- **Traces** (OTLP gRPC from FastAPI application) → Tempo → Amazon S3 → Grafana.
+- External infrastructure nodes (Jenkins, K3s, SonarQube) are monitored via an independent `otel-external-scraper` deployment.
 
-### Deploying the EKS Stack
+### EKS Deployment Execution
 
 ```bash
-# 1. Provision all infrastructure (EKS, ALB, WAF, RDS, S3, ArgoCD, ESO, Metrics Server)
+# 1. Provision Infrastructure
 cd terraform
-cp terraform.tfvars.example terraform.tfvars   # fill in your values
+cp terraform.tfvars.example terraform.tfvars
 terraform init
 terraform apply
 
-# 2. Configure kubectl
-# Cluster name is printed by: terraform output eks_cluster_name
+# 2. Authenticate Kubectl Context
 aws eks update-kubeconfig --region us-east-1 --name <EKS_CLUSTER_NAME>
 
-# 3. Verify pods are running (ArgoCD syncs automatically after terraform apply)
+# 3. Validate Workload Initialization
 kubectl get pods -n assemblemonitor
 
-# 4. Get live service URLs (ArgoCD UI + Grafana LoadBalancer endpoints)
+# 4. Retrieve Administrative Interface Endpoints
 ./get-urls.sh
 
-# 5. Get the application URL
+# 5. Retrieve Application Ingress Endpoint
 terraform output alb_url
 ```
 
-> **Ephemeral Cluster Note:** The EKS cluster is torn down nightly to manage costs. All components — ArgoCD, Metrics Server, ESO, Loki, Tempo, OTEL, Grafana — are provisioned automatically by Terraform on every `apply`. No manual `helm install` or `kubectl apply` commands are required.
+> **Ephemeral Cluster Lifecycle:** The EKS cluster is decommissioned nightly for cost optimization. All system components are provisioned automatically during `terraform apply`. Imperative Kubernetes commands (`helm install`, `kubectl apply`) are not required during environment initialization.
 
 ---
 
@@ -198,157 +201,157 @@ terraform output alb_url
 
 ### Pipeline Overview
 
+```text
+Source Commit → Jenkins → SonarQube SAST → Trivy Scan → Docker Compilation
+    → Docker Hub → [Manual Authorization Gate] → `kubectl apply` → K3s Rolling Deployment
 ```
-Code Push → Jenkins → SonarQube QA → Trivy Scan → Docker Build
-    → Docker Hub → [Manual Gate] → kubectl apply → K3s Rolling Update
-```
 
-The Jenkins pipeline (`Jenkinsfile-k3s`) handles the full build, scan, and deploy cycle against a K3s cluster running on a standalone AWS EC2 instance.
+The `Jenkinsfile-k3s` pipeline executes the CI/CD sequence against a K3s cluster operating on a standalone AWS EC2 instance.
 
-### K3s Infrastructure
+### K3s Infrastructure Parameters
 
-| Component      | Details                                                                |
-| -------------- | ---------------------------------------------------------------------- |
-| **Kubernetes** | K3s on a single AWS EC2 instance                                       |
-| **Manifests**  | Raw YAML in `k8s/` (Deployment, Service, ConfigMap, Secret, Namespace) |
-| **Secrets**    | Kubernetes `Secret` (base64-encoded), applied via `k8s/secret.yaml`    |
-| **Services**   | Frontend: NodePort 30080 — Backend: NodePort 30081                     |
-| **Monitoring** | Prometheus node-exporter (systemd, installed via Ansible playbook)     |
+| Component | Specifications |
+|---|---|
+| **Kubernetes** | K3s distribution on a singular AWS EC2 instance |
+| **Manifest Definitions** | Explicit Kubernetes YAML (`k8s/` directory) |
+| **Secret Management** | Kubernetes `Secret` resources (Base64 encoded via `k8s/secret.yaml`) |
+| **Service Exposure** | Frontend: NodePort `30080` — Backend: NodePort `30081` |
+| **Telemetry** | Prometheus Node Exporter (systemd daemon via Ansible) |
 
-### Deploying to K3s
+### K3s Deployment Execution
 
-**Automated (Jenkins — recommended):**
+**Automated CI/CD Initiation:**
 
-1. Push code to the `main` branch.
-2. In the Jenkins UI (port 8080), trigger **Build Now** on `AssembleMonitor-Pipeline`.
-3. Approve the deployment prompt at the manual gate.
+1. Commit modifications to the `main` branch.
+2. Trigger the `AssembleMonitor-Pipeline` job within the Jenkins interface.
+3. Provide authorization at the manual deployment gate.
 
-**Access:**
+**Application Access:**
 
-| Service     | URL                                       |
-| ----------- | ----------------------------------------- |
-| Frontend    | `http://<K3S_PUBLIC_IP>:30080`            |
+| Service | Endpoint |
+|---|---|
+| Frontend | `http://<K3S_PUBLIC_IP>:30080` |
 | Backend API | `http://<K3S_PUBLIC_IP>:30081/api/health` |
 
-> Ensure AWS Security Group allows inbound TCP on ports 30080 and 30081.
+> Note: Ensure the corresponding AWS Security Group permits ingress TCP traffic on ports 30080 and 30081.
 
 ---
 
-## Local Development
+## Local Development Execution
 
-For rapid local iteration, the full stack runs with Docker Compose:
+Local iterative development utilizes Docker Compose for full-stack emulation:
 
 ```bash
-# Start all services (Frontend + Backend + PostgreSQL + Adminer)
+# Initialize application stack (Frontend, Backend, PostgreSQL, Adminer)
 docker compose up --build -d
 
-# Run database migrations
+# Execute database schema migrations
 docker compose exec api alembic upgrade head
 
-# Seed an admin account
+# Bootstrap administrative credentials
 docker compose exec api python seed_admin.py
 ```
 
-| Service               | URL                            |
-| --------------------- | ------------------------------ |
-| Frontend              | http://localhost:3000          |
-| Backend API + Swagger | http://localhost:8000/api/docs |
-| Adminer (DB GUI)      | http://localhost:8080          |
+| Service | Local Endpoint |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API (Swagger UI) | http://localhost:8000/api/docs |
+| Database UI (Adminer) | http://localhost:8080 |
 
 ---
 
-## Verification
+## System Verification Previews
 
-The following screenshots confirm that all major system components are operational end-to-end.
+The following artifacts document the operational status of the primary system components.
 
-### 🔄 CI/CD & DevSecOps
+### CI/CD & DevSecOps Validation
 
-**Jenkins GitOps Pipeline — 17 Stages Passing**
+**Jenkins GitOps Pipeline Execution**
 ![Jenkins GitOps Pipeline](docs/assets/screenshots/cicd-jenkins-pipeline-gitops.png)
 
-**ArgoCD — Application Synced to EKS Production**
+**ArgoCD Application Synchronization State**
 ![ArgoCD Synced](docs/assets/screenshots/cicd-argocd-app-synced.png)
 
-**SonarQube — Quality Gate Passed (Backend + Frontend)**
+**SonarQube Static Analysis Quality Gate**
 ![SonarQube Quality Gate](docs/assets/screenshots/cicd-sonarqube-frontend-backend.png)
 
 ---
 
-### 📊 Observability & Infrastructure
+### Observability & Infrastructure Validation
 
-**Grafana — Kubernetes Overview Dashboard (Metrics via AMP)**
+**Grafana Kubernetes Cluster Overview (AMP Metrics)**
 ![Grafana K8s Dashboard](docs/assets/screenshots/obs-grafana-k8s-dashboard.png)
 
-**Amazon EKS — Nodes, Pods, Services, and HPA Active**
+**Amazon EKS Resource Allocation State**
 ![EKS Cluster State](docs/assets/screenshots/infra-eks-nodes-pods-svc-hpa.png)
 
 ---
 
-### 💻 Application
+### Application Interface Validation
 
-**AssembleMonitor — Landing Page**
+**AssembleMonitor Authentication Portal**
 ![Application Landing Page](docs/assets/screenshots/app-landing-page.png)
 
-> Additional screenshots (ArgoCD topology, Trivy scans, Loki logs, Tempo traces, CloudWatch alarms, Secrets Manager, k6 load test, and per-role dashboards) are available in [`docs/assets/screenshots/`](docs/assets/screenshots/).
+> Comprehensive architectural and operational artifacts are persisted within the [`docs/assets/screenshots/`](docs/assets/screenshots/) repository directory.
 
 ---
 
-## Documentation
+## Documentation Index
 
-| Document                                                      | Content                                                                                                                                                    |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Architecture](docs/architecture/ARCHITECTURE.md)             | 9-view architecture diagram set: System Context, Container, AWS Network, EKS, CI/CD, Secrets & Identity, Observability, Runtime Request Flow, and Sequence |
-| [CI/CD Pipeline](docs/ops/CI_CD_PIPELINE.md)                  | Stage-by-stage pipeline breakdown                                                                                                                          |
-| [Infrastructure](docs/ops/INFRASTRUCTURE.md)                  | Terraform resource reference                                                                                                                               |
-| [Security](docs/architecture/SECURITY.md)                     | IRSA, WAF, ESO, network security posture                                                                                                                   |
-| [Operational Runbook](docs/ops/OPERATIONAL_RUNBOOK.md)        | SOPs for provisioning, access, and CloudWatch monitoring                                                                                                   |
-| [Incident Response & Recovery](docs/ops/INCIDENT_RESPONSE.md) | RTO/RPO targets, GitOps rollback procedures, and full disaster recovery                                                                                    |
-| [Performance Testing](performance-tests/README.md)            | k6 load test methodology and results                                                                                                                       |
-| [FinOps](docs/ops/FINOPS_COST_MANAGEMENT.md)                  | Cost breakdown and optimization decisions                                                                                                                  |
-| [Verification Playbook](docs/ops/VERIFICATION_PLAYBOOK.md)    | Step-by-step commands and expected outputs for verifying every hardening milestone                                                                         |
+| Resource | Scope |
+|---|---|
+| [Architecture](docs/architecture/ARCHITECTURE.md) | Comprehensive architectural diagrams encompassing System Context, Network Topology, Security Boundaries, and Data Flow |
+| [CI/CD Pipeline](docs/ops/CI_CD_PIPELINE.md) | Pipeline stage definitions and security integration points |
+| [Infrastructure](docs/ops/INFRASTRUCTURE.md) | Terraform resource provisioning definitions |
+| [Security](docs/architecture/SECURITY.md) | IRSA policies, WAF configuration, and network isolation protocols |
+| [Operational Runbook](docs/ops/OPERATIONAL_RUNBOOK.md) | Standard Operating Procedures (SOPs) for provisioning and telemetry monitoring |
+| [Incident Response](docs/ops/INCIDENT_RESPONSE.md) | RTO/RPO objectives, rollback procedures, and disaster recovery execution |
+| [Performance Testing](performance-tests/README.md) | k6 load generation methodology and latency baselines |
+| [FinOps](docs/ops/FINOPS_COST_MANAGEMENT.md) | Expenditure analysis and infrastructure optimization procedures |
+| [Verification Playbook](docs/ops/VERIFICATION_PLAYBOOK.md) | Procedural execution commands for infrastructure hardening validation |
 
-### Deployment Guides
+### Deployment Procedures
 
-| Guide                                                            | Architecture           |
-| ---------------------------------------------------------------- | ---------------------- |
-| [01 — Local Docker Compose](docs/deployments/01-LOCAL-DOCKER.md) | Full stack locally     |
-| [02 — K3s Cluster](docs/deployments/02-K3S-CLUSTER.md)           | Lightweight Kubernetes |
-| [03 — Amazon EKS (Primary)](docs/deployments/03-AWS-EKS-PROD.md) | Production GitOps      |
+| Resource | Target Architecture |
+|---|---|
+| [01 — Local Environment](docs/deployments/01-LOCAL-DOCKER.md) | Localized Docker Compose emulation |
+| [02 — K3s Cluster](docs/deployments/02-K3S-CLUSTER.md) | Lightweight EC2 Kubernetes orchestration |
+| [03 — Amazon EKS (Primary)](docs/deployments/03-AWS-EKS-PROD.md) | Production-grade GitOps EKS architecture |
 
 ---
 
-## Engineering Decisions
+## Engineering Trade-Off Analysis
 
-| Decision                                     | Trade-off                                                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **ALB NodePort over Ingress Controller**     | Couples networking to Terraform; gains native AWS WAF integration and removes in-cluster ingress complexity                                |
-| **ArgoCD GitOps over Jenkins direct deploy** | Adds ArgoCD controller overhead; eliminates Jenkins cluster-admin credentials, enforces state immutability, enables visual drift detection |
-| **EKS over K3s**                             | $73/month managed control plane cost; eliminates etcd management, delivers native HPA and IRSA                                             |
-| **ESO over base64 Secrets**                  | Requires the ESO operator; removes all secrets from Git entirely and enables secret rotation without redeployment                          |
-| **Self-hosted Jenkins over GitHub Actions**  | Requires server maintenance; provides private network isolation for builds and full SonarQube integration without egress                   |
+| Architectural Decision | Rationale & Trade-Off |
+|---|---|
+| **ALB NodePort vs. Ingress Controller** | Consolidates load balancer provisioning within Terraform state; leverages native AWS WAF integration; reduces in-cluster operational complexity. |
+| **ArgoCD GitOps vs. Imperative CI Deployments** | Introduces ArgoCD controller compute overhead; eliminates Jenkins requirement for cluster-admin credentials; ensures deployment immutability and visualizes configuration drift. |
+| **Amazon EKS vs. Self-Managed K3s** | Incurs managed control plane costs ($73/month); eliminates etcd maintenance overhead; provides native integration with AWS IAM (IRSA) and Horizontal Pod Autoscaler. |
+| **External Secrets Operator vs. Native Secrets** | Introduces operational dependency on the ESO controller; completely eliminates base64 encoded secrets from source control; enables dynamic secret rotation without application redeployment. |
+| **Self-Hosted Jenkins vs. SaaS CI (GitHub Actions)** | Imposes server maintenance overhead; provides secure, isolated network execution and facilitates direct SonarQube integration without public egress requirements. |
 
 ---
 
 ## Reliability & CI Hardening (August 2026)
 
-Implemented on branch `hardening/reliability-ci`. All changes are verified by the GitHub Actions CI pipeline on every push.
+The following reliability enhancements were implemented and validated via GitHub Actions CI.
 
-| Milestone | Change | Verification |
-| --------- | ------ | ------------ |
-| **M1 — Health probes** | Split `/api/health` into `/api/health/live` (liveness) and `/api/health/ready` (readiness). K8s probes updated in Helm values. | `grep health/live backend/Dockerfile` |
-| **M2 — Test suite** | 23 pytest tests covering auth and health endpoints. Python 3.12 mock shim for OTel compatibility. No real database required. | `cd backend && python -m pytest tests/ -v` → 23 passed |
-| **M3 — GitHub Actions CI** | 4-job parallel workflow: Backend compile & test, Frontend build, Terraform validate + `terraform test`, Helm lint + template render. Runs on every push. | GitHub Actions tab — all ✅ |
-| **M4 — Helm dependency locking** | `Chart.lock` pins exact versions of all 4 chart dependencies (loki 6.29.0, tempo 1.8.0, kube-state-metrics 5.15.2, otel-collector 0.114.0). `charts/` gitignored. | `cat k8s/helm-chart/Chart.lock` |
-| **M5 — PDB + NetworkPolicy** | `PodDisruptionBudget` (maxUnavailable: 1) for backend and frontend — prevents zero-replica outages during node drain. `NetworkPolicy` templates off by default, enabled via values override. | `helm template ... \| grep PodDisruptionBudget` |
-| **M6 — Jenkinsfile hardening** | Added `options {}` block (buildDiscarder, timestamps, disableConcurrentBuilds, 60 min timeout), `DOCKER_BUILDKIT=1`, and a `Backend Unit Tests` stage that runs pytest inside the Docker image before any push. | `grep "Backend Unit Tests" Jenkinsfile-gitops` |
-| **M7 — Terraform reusable module** | `terraform/modules/network/` extracts the private subnet + NAT gateway pattern into a reusable module. 5 unit tests using `terraform test` with `mock_provider` (no AWS credentials required). | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
-| **M8 — Grafana dashboard-as-code** | `k8s/helm-chart/dashboards/application-overview.json` — 10-panel application overview dashboard (RPS, error rate, P50/P95/P99 latency, pod CPU/memory, ready replica counts). Loaded by Grafana via Helm ConfigMap on every deploy. | `python -c "import json; d=json.load(open('k8s/helm-chart/dashboards/application-overview.json')); print(len(d['panels']))"` |
+| Milestone | Implementation Details | Validation Mechanism |
+|---|---|---|
+| **M1 — Probe Isolation** | Segregated `/api/health` into `/api/health/live` (process liveness) and `/api/health/ready` (database connectivity readiness). | `grep health/live backend/Dockerfile` |
+| **M2 — Pytest Implementation** | Implemented 23 pytest scenarios validating authentication and probe endpoints, utilizing Python 3.12 mock shims for OTEL. | `cd backend && python -m pytest tests/ -v` |
+| **M3 — GitHub Actions Pipeline** | Configured concurrent execution (4 jobs): Backend compilation, Frontend build, Terraform validation, Helm linting. | CI Pipeline Execution Log Validation |
+| **M4 — Helm Dependency Locking** | Implemented `Chart.lock` to enforce exact version constraints for upstream dependencies (Loki, Tempo, Kube-State-Metrics, OTEL Collector). | `cat k8s/helm-chart/Chart.lock` |
+| **M5 — PDB & Network Policies** | Configured `PodDisruptionBudget` (maxUnavailable: 1) for application workloads; structured `NetworkPolicy` templates for optional deployment isolation. | `helm template ... \| grep PodDisruptionBudget` |
+| **M6 — Jenkinsfile Security** | Applied `options {}` enforcement (timeouts, concurrent build prevention), enabled `DOCKER_BUILDKIT=1`, and integrated unit test execution within container build context. | `grep "Backend Unit Tests" Jenkinsfile-gitops` |
+| **M7 — Terraform Module Extraction** | Abstracted network topology into a reusable Terraform module; implemented 5 unit tests utilizing `terraform test` against a mocked provider state. | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
+| **M8 — Declarative Grafana Dashboards** | Configured application telemetry dashboard (RPS, latency percentiles, resource utilization) as an immutable JSON artifact loaded via Helm ConfigMap. | JSON Parser Validation |
 
-→ [Full step-by-step verification commands](docs/ops/VERIFICATION_PLAYBOOK.md)
+→ [Comprehensive Verification Procedures](docs/ops/VERIFICATION_PLAYBOOK.md)
 
 ---
 
-## Challenges & Lessons Learned
+## Operational Retrospective
 
-- **Observability Stack Integration:** Setting up the full observability pipeline across Tempo, OpenTelemetry (OTEL), Loki, and Amazon Managed Prometheus (AMP) was one of the most challenging aspects. I encountered several version conflicts between the OTEL collector, Prometheus receivers, and the Loki/Tempo backend APIs. Resolving these required deep-diving into compatibility matrices and carefully tuning the OTEL DaemonSet configurations to ensure logs, metrics, and traces flowed correctly into Grafana without data loss.
-- **GitOps and Ephemeral Infrastructure:** Because the EKS cluster is destroyed nightly to save costs, the entire cluster bootstrap process had to be 100% automated. Ensuring that Terraform reliably provisioned the infrastructure and handed off seamlessly to ArgoCD for application state without any manual intervention taught me the true value of immutable, declarative infrastructure.
+- **Observability Stack Integration:** Establishing the OpenTelemetry pipeline across Tempo, Loki, and Amazon Managed Prometheus required extensive version alignment between the OTEL collector, Prometheus receivers, and backend APIs. Resolution necessitated precise configuration of the OTEL DaemonSet to ensure reliable, lossless telemetry transmission into the Grafana visualization layer.
+- **GitOps and Ephemeral Infrastructure:** The requirement for daily infrastructure suspension to enforce FinOps cost limits necessitated comprehensive automation of the cluster initialization sequence. Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns.

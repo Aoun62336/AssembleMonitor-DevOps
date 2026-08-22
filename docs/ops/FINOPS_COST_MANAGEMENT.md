@@ -1,66 +1,66 @@
-# 💰 AssembleMonitor FinOps & Cost Management
+# FinOps & Cost Management
 
 > [!TIP]
-> Cost efficiency is achieved by utilizing Kubernetes auto-scaling (HPA) to scale pods down to the configured minimum replicas during idle periods, and Terraform to completely suspend environments out-of-hours.
+> Cost optimization is achieved by utilizing Kubernetes Horizontal Pod Autoscaling (HPA) to scale workloads down to minimum replicas during idle periods, and Terraform to execute total environmental suspension during non-operational hours.
 
-## 🎯 Purpose
+## Purpose
 
-This document outlines the financial operations (FinOps) strategies employed to manage and optimize AWS infrastructure costs for the AssembleMonitor platform, ensuring the highly available Amazon EKS environment remains cost-efficient.
+This document outlines the financial operations (FinOps) strategies employed to manage and optimize AWS infrastructure costs for the AssembleMonitor platform, ensuring the Amazon EKS environment maintains cost-efficiency alongside high availability.
 
-## 📊 Cost-Producing Resources
+## Cost-Generating Infrastructure
 
-| Resource                           | Purpose                            | Cost Optimization Strategy                                                                                                                           |
-| ---------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Amazon EKS Cluster**             | Managed Kubernetes Control Plane   | `$0.10/hour` - Cluster is suspended/destroyed via Terraform during extended non-production periods.                                                  |
-| **EC2 c7i-flex.large Node Groups** | Runs Kubernetes pods and workloads | Fixed at 2 nodes (min 2, max 3); no Cluster Autoscaler is deployed — node scaling is managed manually via Terraform node group configuration. Pod-level scaling is handled by HPA. |
-| **EBS 20 GB**                      | EKS Node root disk                 | Automatically deleted upon node termination to prevent orphaned volume charges.                                                                      |
-| **Application Load Balancer**      | Traffic routing & WAF protection   | Tied to Terraform state; destroyed when cluster is offline.                                                                                          |
-| **RDS PostgreSQL**                 | Stateful production database       | Stopped during non-business hours; automated snapshots managed by retention policies.                                                                |
-| **S3 Bucket**                      | Object storage                     | S3 Object Versioning enabled on both buckets. Lifecycle transition policies (e.g., to Glacier) are a planned cost optimization, not yet implemented. |
-| **CloudWatch**                     | Metrics/logs                       | Log retention policies enforced to prevent infinite storage growth.                                                                                  |
+| Resource | Function | Cost Optimization Strategy |
+|---|---|---|
+| **Amazon EKS Cluster** | Kubernetes Control Plane | `$0.10/hour` baseline. Suspended via Terraform during non-production periods. |
+| **EC2 `c7i-flex.large` Nodes** | EKS Worker Nodes | Fixed configuration (2 nodes). Cluster Autoscaler is not deployed; node scaling requires Terraform modification. Pod-level scaling is managed by HPA. |
+| **EBS (20 GB)** | Node Root Volumes | Configured for `delete_on_termination` to prevent orphaned volume accumulation. |
+| **Application Load Balancer** | Traffic Routing & WAF | Stateful Terraform resource; destroyed when the cluster is suspended. |
+| **RDS PostgreSQL** | Primary Datastore | Stopped during non-business hours; automated snapshots managed by lifecycle retention policies. |
+| **S3 Buckets** | Object Storage | S3 Object Versioning enabled. Transition to Glacier/Infrequent Access lifecycle policies are planned future optimizations. |
+| **CloudWatch** | Telemetry Aggregation | Strict log retention policies enforced to prevent unbound storage cost scaling. |
 
-## ⚖️ Auto-Scaling Efficiency
+## Auto-Scaling Efficiency
 
-During active operation, cost efficiency is primarily driven by Kubernetes-native auto-scaling:
+During active operation, cost efficiency is governed by Kubernetes-native scaling primitives:
 
-- **HPA (Horizontal Pod Autoscaler)** monitors **CPU utilization** via the Metrics Server, dynamically scaling pod replicas up during traffic spikes and down to the configured minimum during low-traffic periods. Memory-based scaling is not currently configured.
-- **Node Count** is fixed at the Terraform-defined minimum (2 nodes). No Cluster Autoscaler or Karpenter is deployed; node-level scaling requires a manual Terraform change.
+- **Horizontal Pod Autoscaler (HPA)**: Monitors CPU utilization via the Metrics Server, dynamically scaling pod replicas up during load events and down to the configured minimum during low-traffic periods. (Memory-based scaling is not implemented).
+- **Node Configuration**: Node count is statically defined at the Terraform minimum (2 nodes). Without Cluster Autoscaler or Karpenter, underlying compute remains static while pod density fluctuates.
 
-## ⏸️ Non-Production Environment Suspension
+## Non-Production Environment Suspension
 
-For staging, development, or non-active periods, the cloud environment is completely codified. Rather than leaving idle resources running, the entire stack can be suspended and re-provisioned on demand:
+The cloud environment is fully codified. To eliminate idle resource costs during non-active periods, the complete stack must be suspended and re-provisioned on demand:
 
-### Suspending Infrastructure
+### Infrastructure Suspension
 
 ```bash
-# Export necessary databases before teardown
+# Execute pre-suspension database export
 pg_dump -h <RDS_ENDPOINT> -U <DB_USERNAME> -d <DB_NAME> > backup.sql
 
-# Tear down the EKS cluster, ALB, and WAF
+# Execute total infrastructure teardown (EKS, ALB, WAF)
 terraform destroy
 ```
 
-### Re-Provisioning Infrastructure
+### Infrastructure Re-Provisioning
 
 ```bash
-# Rebuild infrastructure (includes ArgoCD, ESO, Metrics Server, and all app workloads)
+# Execute full infrastructure rebuild
 terraform apply
 
-# Verify ArgoCD is running and syncing the application
+# Validate ArgoCD initialization and synchronization
 kubectl get pods -n argocd
 kubectl get pods -n assemblemonitor
 ```
 
-## 💻 Daily Cost-Safe Practice
+## Localized Development Strategy
 
-For localized feature development, engineers bypass cloud costs entirely by utilizing the local Docker Compose environment:
+To bypass cloud compute costs entirely, engineers execute local feature development using the Docker Compose stack:
 
 ```bash
-# Spin up local replica (FastAPI, React, Postgres)
+# Initialize local execution environment (FastAPI, React, PostgreSQL)
 docker compose up -d
 ```
 
-## ⚠️ RDS Cost Management Reminder
+## RDS Lifecycle Management
 
 > [!WARNING]
-> Stopped RDS instances automatically restart after 7 days due to AWS maintenance requirements. Ensure active monitoring via AWS Budgets and Cost Explorer to detect unintended restarts.
+> Stopped RDS instances automatically restart after 7 days in accordance with AWS maintenance policies. Active monitoring via AWS Budgets and Cost Explorer is required to detect unintended resource initiation.

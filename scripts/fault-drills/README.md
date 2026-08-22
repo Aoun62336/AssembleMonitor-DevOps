@@ -1,20 +1,19 @@
-# Fault Drill Scripts — AssembleMonitor
+# Fault Injection Drills — AssembleMonitor
 
-Controlled reliability exercises against the local Docker Compose stack.
-Each drill was conducted on 2026-08-20 and produced an INC postmortem.
+Controlled reliability exercises designed for the local Docker Compose environment. 
 
 ---
 
-## Prerequisites
+## Execution Prerequisites
 
-The full stack must be running before executing any drill:
+The application stack must be fully initialized prior to execution:
 
 ```bash
 docker compose up -d
-docker compose ps   # verify: api, db, frontend, adminer all Up
+docker compose ps
 ```
 
-All scripts must be run from the **repository root**:
+Drill scripts require execution from the repository root directory:
 
 ```bash
 bash scripts/fault-drills/00-preflight.sh
@@ -22,19 +21,19 @@ bash scripts/fault-drills/00-preflight.sh
 
 ---
 
-## Scripts
+## Drill Inventory
 
-| Script | Drill | Postmortem | MTTR |
+| Script | Failure Scenario | Postmortem Reference | MTTR |
 |---|---|---|---|
-| `00-preflight.sh` | Verify stack healthy before drills | — | — |
-| `01-database-outage.sh` | Stop `db` container — API must stay live, readiness must return 503 | [`INC-001`](../docs/ops/incidents/INC-001-database-outage.md) | 2 min 9 sec |
-| `02-api-outage.sh` | Stop `api` container — Nginx must return 502 immediately | [`INC-002`](../docs/ops/incidents/INC-002-api-outage-nginx-502.md) | 2 min 35 sec |
-| `03-database-dns-failure.sh` | Inject bad `DATABASE_URL` hostname — readiness must return 503 without crashing | [`INC-003`](../docs/ops/incidents/INC-003-database-dns-failure.md) | 2 min 22 sec |
-| `04-recovery-validation.sh` | Final health check — confirm all services healthy after drills | — | — |
+| `00-preflight.sh` | Pre-execution health verification | — | — |
+| `01-database-outage.sh` | PostgreSQL container termination. Validates API liveness preservation and readiness degradation. | [`INC-001`](../../docs/ops/incidents/INC-001-database-outage.md) | 2 min 9 sec |
+| `02-api-outage.sh` | API container termination. Validates Nginx 502 Bad Gateway response handling. | [`INC-002`](../../docs/ops/incidents/INC-002-api-outage-nginx-502.md) | 2 min 35 sec |
+| `03-database-dns-failure.sh` | Invalid `DATABASE_URL` hostname injection. Validates resilience against upstream DNS resolution failures. | [`INC-003`](../../docs/ops/incidents/INC-003-database-dns-failure.md) | 2 min 22 sec |
+| `04-recovery-validation.sh` | Post-execution full stack health verification | — | — |
 
 ---
 
-## Running All Drills in Sequence
+## Sequential Execution Procedure
 
 ```bash
 bash scripts/fault-drills/00-preflight.sh
@@ -46,17 +45,17 @@ bash scripts/fault-drills/04-recovery-validation.sh
 
 ---
 
-## Override Files
+## Configuration Overrides
 
-| File | Used by |
-|---|---|
-| `overrides/bad-db-host.yml` | `03-database-dns-failure.sh` — replaces `DATABASE_URL` hostname with `db-invalid` |
+| File | Associated Drill | Purpose |
+|---|---|---|
+| `overrides/bad-db-host.yml` | `03-database-dns-failure.sh` | Overrides `DATABASE_URL` hostname to `db-invalid` |
 
 ---
 
-## Safety Rules
+## Operational Constraints
 
-- **Never** run `docker compose down -v` — the `-v` flag deletes the PostgreSQL data volume.
-- **Never** run drills against a shared or staging environment — these are local-only exercises.
-- Always run `00-preflight.sh` first and confirm all checks pass before any fault injection.
-- Always run `04-recovery-validation.sh` last to confirm the stack is healthy before leaving.
+- Execution of `docker compose down -v` is prohibited; the `-v` flag destroys persistent volume data.
+- Drills are restricted to local development environments. Execution against shared or staging infrastructure is prohibited.
+- `00-preflight.sh` validation is mandatory prior to fault injection.
+- `04-recovery-validation.sh` validation is mandatory post-execution to certify environmental health.

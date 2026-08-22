@@ -1,57 +1,57 @@
-# ☸️ Option 2: Lightweight Kubernetes (K3s)
+# Lightweight Kubernetes Deployment (K3s)
 
 > [!NOTE]
-> This deployment strategy introduces Kubernetes orchestration using **K3s**, a lightweight, production-ready Kubernetes distribution. This phase marked the transition from manual EC2 configuration to true DevSecOps automation, integrating perfectly with the Jenkins CI/CD pipeline.
+> This deployment strategy utilizes K3s, a lightweight, production-ready Kubernetes distribution. This architecture represents the intermediate transition state toward full DevSecOps automation, integrated directly with the Jenkins CI/CD pipeline via SSH deployment.
 
-**Best For:** Automated CI/CD, Lightweight Orchestration, Staging Environments
+**Execution Scope:** Automated CI/CD, Lightweight Orchestration, Staging Environments
 **Complexity:** High
-**Tech Stack:** K3s, Kubernetes Manifests, Jenkins, Docker Hub
+**Architecture:** K3s, Native Kubernetes Manifests, Jenkins, Container Registry
 
-## 🏗️ Architecture Overview
+## Architectural Overview
 
-1. **K3s Server**: A standalone AWS EC2 instance running K3s.
-2. **Kubernetes Resources**: The application is managed via native Kubernetes Deployments and Services (found in the `k8s/` directory).
-3. **CI/CD Integration**: The Jenkins server (`Jenkinsfile-k3s`) automatically builds Docker images, scans them with Trivy, pushes them to Docker Hub, and executes a zero-downtime rolling update against the K3s cluster.
+1. **K3s Control Plane/Worker Node**: A unified AWS EC2 instance executing the K3s server process.
+2. **Kubernetes Resources**: Application topology is defined via static Kubernetes Deployments and Services (`k8s/` directory).
+3. **CI/CD Integration**: The Jenkins pipeline (`Jenkinsfile-k3s`) executes container compilation, Trivy vulnerability scanning, registry publication, and subsequent remote Kubernetes rolling updates via SSH command execution.
 
-## 🚀 Deployment Instructions
+## Deployment Procedure
 
-### 1. Automated Deployment (Jenkins)
+### Automated Deployment Pipeline (Jenkins)
 
-The primary method for deploying to the K3s cluster is via the Jenkins Pipeline.
+The primary mechanism for K3s deployment is the Jenkins pipeline execution.
 
-1. Commit code to the `main` branch.
-2. In the Jenkins UI (Port 8080), click **Build Now** on the `AssembleMonitor-Pipeline`.
-3. Approve the final deployment prompt to trigger the `kubectl apply` commands on the K3s server.
+1. Merge commits to the `main` branch.
+2. Navigate to the Jenkins UI (Port 8080) and execute the `AssembleMonitor-Pipeline`.
+3. Approve the deployment gate prompt to authorize `kubectl apply` execution on the remote K3s server.
 
-### 2. Manual Deployment (For Debugging)
+### Manual Provisioning (Diagnostic Override)
 
-If you need to manually apply the manifests to the K3s server:
+For diagnostic or recovery scenarios requiring manual manifest application:
 
 ```bash
-# SSH into the K3s server
+# Establish secure connection to K3s node
 ssh -i key.pem ubuntu@<K3S_PUBLIC_IP>
 
-# Clone or pull the latest manifests
+# Synchronize manifest repository
 cd ~/AssembleMonitor
 git pull origin main
 
-# Apply the base configuration
+# Provision base configuration entities
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/configmap.yaml
 
-# Apply the Deployments and Services
+# Provision workloads and network services
 kubectl apply -f k8s/backend-deployment.yaml
 kubectl apply -f k8s/backend-nodeport-service.yaml
 kubectl apply -f k8s/frontend-deployment.yaml
 kubectl apply -f k8s/frontend-service.yaml
 ```
 
-## 🌐 Accessing the Application
+## Application Access Endpoints
 
-Kubernetes services in this architecture have been configured as `NodePort` types to expose the application directly to the public internet using the EC2 instance's IP address:
+Kubernetes services in this architecture utilize `NodePort` exposure, routing traffic directly through the EC2 instance's public IP address:
 
-- **Frontend Website**: `http://<K3S_PUBLIC_IP>:30080`
-- **Backend API**: `http://<K3S_PUBLIC_IP>:30081/api/health`
+- **Frontend Application**: `http://<K3S_PUBLIC_IP>:30080`
+- **Backend API Validation**: `http://<K3S_PUBLIC_IP>:30081/api/health`
 
-_(Note: Ensure your AWS Security Group allows inbound TCP traffic on ports 30080 and 30081)._
+> Note: Ensure AWS Security Group ingress rules permit TCP traffic on ports 30080 and 30081.
