@@ -1,4 +1,4 @@
-# 🛡️ AssembleMonitor Security Posture
+# AssembleMonitor Security Posture
 
 > [!IMPORTANT]
 > Security in AssembleMonitor is implemented through a layered DevSecOps pipeline and AWS private networking. Application workloads run inside private subnets with no direct public access. Sensitive data is not stored in version control.
@@ -22,5 +22,28 @@ All application resources are heavily shielded from the public internet.
 
 ## 4. DevSecOps & Pipeline Integrity
 Security is continuously enforced throughout the CI/CD lifecycle.
-- **Static Application Security Testing (SAST)**: SonarQube Quality Gates are configured to instantly abort Jenkins deployments if critical vulnerabilities or code smells are detected in the source code.
+- **Static Application Security Testing (SAST)**: SonarQube Quality Gates are configured to block Jenkins deployments if critical vulnerabilities or code smells are detected in the source code.
 - **Container Security**: Trivy container image scanning is enforced in the CI/CD pipeline. Images are scanned for HIGH and CRITICAL CVEs and embedded secrets before being pushed to the registry; the pipeline fails the build (`--exit-code 1`) if any are detected. The Backend FastAPI Dockerfile also utilizes a non-root, restricted user for execution.
+
+## 5. Kubernetes Network Segmentation
+
+Kubernetes `NetworkPolicy` and `PodDisruptionBudget` resources are codified in the Helm chart (`k8s/helm-chart/templates/`) and controlled by feature flags in `values/app.yaml`.
+
+### NetworkPolicy
+
+Two policies enforce pod-level traffic isolation in the `assemblemonitor` namespace:
+
+| Policy | Ingress | Egress |
+|---|---|---|
+| **Backend** | Port 8000 from frontend pods and OTel collector pods only | DNS (53), PostgreSQL (5432), OTLP gRPC (4317), HTTPS/AWS APIs (443), SMTP (587/465) |
+| **Frontend** | Port 80 from anywhere (ALB/ingress-nginx terminates TLS externally) | DNS (53) and backend port 8000 only |
+
+Policies are disabled by default (`networkPolicy.enabled: false`) for EKS historical compatibility and enabled via `values/hardening-validation.yaml` for k3d testing.
+
+### PodDisruptionBudget
+
+Both backend and frontend Deployments have a `PodDisruptionBudget` with `maxUnavailable: 1`, gated on `pdb.enabled` AND `hpa.enabled`. This ensures:
+- Rolling deployments always keep at least `(minReplicas - 1)` pods live.
+- Node drains (cluster upgrades, autoscaler scale-in) are blocked until a replacement pod is healthy.
+
+Requires Kubernetes ≥ 1.21 (`policy/v1`).

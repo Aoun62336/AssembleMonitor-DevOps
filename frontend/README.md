@@ -5,212 +5,183 @@
 [![React Router](https://img.shields.io/badge/React_Router-v6-%23CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Nginx](https://img.shields.io/badge/Nginx-alpine-%23009639?style=flat-square&logo=nginx&logoColor=white)](https://nginx.org/)
 
-React single-page application for the AssembleMonitor construction management platform. Built with Vite and served by Nginx inside a Docker container. In production, the container runs inside Amazon EKS behind an AWS ALB, exposed on NodePort 30080.
+React single-page application for the AssembleMonitor platform. Compiled via Vite and served by Nginx within a Docker container. Production deployment operates within Amazon EKS behind an AWS Application Load Balancer via NodePort 30080.
 
 ---
 
-## Tech Stack
+## Technology Stack
 
-| Layer                   | Technology       | Version |
-| ----------------------- | ---------------- | ------- |
-| UI library              | React            | 18.3    |
-| Build tool              | Vite             | 5.4     |
-| Routing                 | React Router DOM | 6.30    |
-| Styling                 | Vanilla CSS      | —       |
-| Web server (production) | Nginx            | alpine  |
+| Component | Technology | Version |
+|---|---|---|
+| UI Framework | React | 18.3 |
+| Build System | Vite | 5.4 |
+| Routing | React Router DOM | 6.30 |
+| Styling | Vanilla CSS | — |
+| Web Server | Nginx | alpine |
 
 ---
 
-## Project Structure
+## Directory Structure
 
-```
+```text
 frontend/
 ├── src/
 │   ├── pages/
 │   │   ├── HomePage.jsx                        # Public landing page
 │   │   ├── auth/
-│   │   │   ├── LoginPage.jsx                   # Login form
-│   │   │   ├── ForgotPasswordPage.jsx          # Password reset request
+│   │   │   ├── LoginPage.jsx                   # Authentication entry
+│   │   │   ├── ForgotPasswordPage.jsx          # Password reset initiation
 │   │   │   └── ResetPasswordPage.jsx           # Password reset confirmation
 │   │   └── dashboard/
-│   │       └── DashboardRoutePage.jsx          # Role-based dashboard router
+│   │       └── DashboardRoutePage.jsx          # Role-based routing controller
 │   ├── components/
 │   │   ├── common/
-│   │   │   └── ToastProvider.jsx               # Global toast notification context
+│   │   │   └── ToastProvider.jsx               # Global notification context
 │   │   ├── dashboard/
-│   │   │   └── LegacyPageContent.jsx           # Main dashboard content component
-│   │   └── layout/                             # Shared layout components
-│   ├── data/                                   # Static data / constants
+│   │   │   └── LegacyPageContent.jsx           # Core dashboard layout
+│   │   └── layout/                             # Shared structural components
+│   ├── data/                                   # Static constants
 │   ├── styles/                                 # Global and component CSS
-│   ├── App.jsx                                 # Root router configuration
-│   └── main.jsx                                # React DOM entry point
+│   ├── App.jsx                                 # Root application router
+│   └── main.jsx                                # React DOM initialization
 ├── public/                                     # Static assets
-├── Dockerfile                                  # Node 20 build → Nginx alpine runtime
-├── nginx.conf                                  # Nginx server configuration
-├── vite.config.js                              # Vite build configuration
-├── tsconfig.json
-└── package.json
+├── Dockerfile                                  # Multi-stage container definition
+├── nginx.conf                                  # Reverse proxy configuration
+├── vite.config.js                              # Build configuration
+├── tsconfig.json                               # TypeScript compiler configuration
+└── package.json                                # Dependency manifests
 ```
 
 ---
 
-## RBAC Routes
+## Role-Based Access Control (RBAC) Routing
 
-The application enforces role-based routing at the URL level. After login, users are directed to their role-specific dashboard:
+The application enforces access controls at the routing layer. Authenticated users are directed to role-specific dashboard views:
 
-| Role            | Route                         | Description                                                 |
-| --------------- | ----------------------------- | ----------------------------------------------------------- |
-| Admin           | `/admin` and `/admin/:slug`   | Full system — user management, analytics, all projects      |
-| Project Manager | `/pm` and `/pm/:slug`         | Project planning, phases, tasks, budgets                    |
-| Site Engineer   | `/se` and `/se/:slug`         | Attendance, task updates, material consumption, site photos |
-| Client          | `/client` and `/client/:slug` | Read-only project visibility                                |
+| Role | Route Pattern | Functional Scope |
+|---|---|---|
+| Admin | `/admin` and `/admin/:slug` | System administration, analytics, cross-project visibility |
+| Project Manager | `/pm` and `/pm/:slug` | Project planning, phase management, task allocation, budgeting |
+| Site Engineer | `/se` and `/se/:slug` | Labor attendance, task progression, material consumption, image ingestion |
+| Client | `/client` and `/client/:slug` | Read-only project monitoring |
 
-Unauthenticated or unmatched routes redirect to the landing page (`/`).
+Unauthenticated or unauthorized route access redirects to the root path (`/`).
 
 ---
 
-## Local Development
+## Local Development Execution
 
 ### Prerequisites
 
-- Node.js 20+
-- The backend API running locally (see [`../backend/README.md`](../backend/README.md))
+- Node.js (≥ 20)
+- Local backend API initialization (reference [`../backend/README.md`](../backend/README.md))
 
-### Install and run
+### Initialization
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the Vite development server (with hot-module replacement)
 npm run dev
 ```
 
-The development server starts at **http://localhost:5173** by default.
+The Vite development server binds to **http://localhost:5173**.
 
-### Build for production
+### Production Compilation
 
 ```bash
-npm run build        # outputs to dist/
-npm run preview      # preview the production build locally
+npm run build        # Outputs artifacts to dist/
+npm run preview      # Executes local preview of production build
 ```
 
 ---
 
-## Docker
+## Containerization
 
-### Build and run the container
+### Standalone Container Execution
 
 ```bash
 cd frontend
-
-# Build the image
 docker build -t assemblemonitor-frontend .
-
-# Run the container
 docker run -p 3000:80 assemblemonitor-frontend
 ```
 
-Access at **http://localhost:3000**.
+Application binds to **http://localhost:3000**.
 
-### Docker Compose (full stack)
+### Docker Compose Stack
 
-Run from the repository root to start the complete local stack:
+Initialize the complete application stack from the repository root:
 
 ```bash
-# From repository root
 docker compose up --build -d
 ```
 
-| Service          | URL                            |
-| ---------------- | ------------------------------ |
-| Frontend         | http://localhost:3000          |
-| Backend API      | http://localhost:8000/api/docs |
-| Adminer (DB GUI) | http://localhost:8080          |
+| Service | Local Endpoint |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000/api/docs |
+| Adminer (Database UI) | http://localhost:8080 |
 
 ---
 
-## Dockerfile
+## Multi-Stage Dockerfile Architecture
 
-The frontend uses a **two-stage build**:
+The frontend utilizes a multi-stage container build to minimize the runtime attack surface:
 
-```
-Stage 1 (build):  node:20-alpine
-    - npm install
-    - npm run build
-    - Output: /app/dist (compiled static assets)
+```text
+Stage 1 (Compilation): node:20-alpine
+    - Executes `npm install` and `npm run build`
+    - Artifacts output to `/app/dist`
 
-Stage 2 (runtime):  nginx:alpine
-    - Copies dist/ to /usr/share/nginx/html
-    - Copies nginx.conf to /etc/nginx/conf.d/default.conf
-    - EXPOSE 80
-    - CMD: nginx -g "daemon off;"
+Stage 2 (Runtime): nginx:alpine
+    - Ingests `dist/` into `/usr/share/nginx/html`
+    - Applies `nginx.conf` to `/etc/nginx/conf.d/default.conf`
+    - Exposes port 80
 ```
 
-The final image contains only Nginx and the compiled static files — no Node.js, no source code, no development dependencies.
+The runtime image contains exclusively the compiled static assets and the Nginx web server; Node.js runtimes and source code are excluded.
 
 ---
 
-## Nginx Configuration
+## Nginx Proxy Configuration
 
-Nginx handles all routing for the React SPA. The `nginx.conf` is configured to:
+Nginx executes routing and reverse proxy functions for the application:
 
-- Serve static assets from `/usr/share/nginx/html`
-- Fall back to `index.html` for all unmatched paths (required for React Router client-side routing)
-- Forward `/api/` requests to the backend service (in production, this is handled by the Kubernetes ClusterIP service)
+- Serves static artifacts from `/usr/share/nginx/html`.
+- Implements `index.html` fallback for React Router client-side path resolution.
+- Proxies `/api/` ingress to the backend service. (In production, this routes to the Kubernetes ClusterIP service).
 
 ---
 
-## Kubernetes Deployment (EKS GitOps Path)
+## Kubernetes Deployment Topology (EKS)
 
-In the EKS environment, the frontend container is managed by the Helm chart:
+Within the Amazon EKS environment, the frontend container is provisioned via Helm chart:
 
-| Resource       | Detail                                                                                  |
-| -------------- | --------------------------------------------------------------------------------------- |
-| **Deployment** | `k8s/helm-chart/templates/frontend-deployment.yaml`                                     |
-| **Service**    | NodePort on port `30080` — bound to the AWS ALB target group                            |
-| **HPA**        | 2 minimum replicas, scales to 5 at 70% CPU                                              |
-| **Image**      | `fire2686/assemblemonitor-frontend:<BUILD_NUMBER>` — updated by Jenkins GitOps pipeline |
-| **Probes**     | Readiness: `GET /` (10s delay, 10s period) — Liveness: `GET /` (30s delay, 20s period)  |
-| **Resources**  | Requests: 50m CPU / 128Mi — Limits: 300m CPU / 512Mi                                    |
+| Resource | Implementation Detail |
+|---|---|
+| **Deployment** | `k8s/helm-chart/templates/frontend-deployment.yaml` |
+| **Service** | NodePort (`30080`) — target group binding for AWS ALB |
+| **HPA** | Minimum 2 replicas, scales to 5 replicas at 70% CPU threshold |
+| **Image Tag** | `fire2686/assemblemonitor-frontend:<BUILD_NUMBER>` (Updated via GitOps) |
+| **Probes** | Readiness: `GET /` (10s delay). Liveness: `GET /` (30s delay) |
+| **Resources** | Requests: 50m CPU / 128Mi. Limits: 300m CPU / 512Mi |
 
-Traffic flow:
-
-```
-Internet → AWS WAF → Application Load Balancer → EKS NodePort 30080 → Frontend Pod (Nginx:80)
-                                                                            ↓
-                                                          Backend ClusterIP (FastAPI:8000)
+Ingress flow:
+```text
+Internet → AWS WAF → AWS ALB → EKS NodePort (30080) → Frontend Pod (Nginx:80)
 ```
 
 ---
 
-## Kubernetes Deployment (K3s Path)
+## Interface Previews
 
-On the K3s cluster, the frontend is deployed using raw Kubernetes manifests:
+Asset registry for UI components:
 
-```bash
-kubectl apply -f k8s/frontend-deployment.yaml
-kubectl apply -f k8s/frontend-service.yaml
-```
-
-The service type is `NodePort` on port `30080`.
-
-Access: `http://<K3S_PUBLIC_IP>:30080`
-
----
-
-## Screenshots
-
-> Add frontend screenshots to `../docs/screenshots/` and update the links below.
-
-| Screenshot                            | Description                               |
-| ------------------------------------- | ----------------------------------------- |
-| _(app-landing-page.png)_              | Public landing page                       |
-| _(app-login-page.png)_                | Login screen                              |
-| _(app-admin-dashboard.png)_           | Admin KPIs and project management         |
-| _(app-project-manager-dashboard.png)_ | PM — project planning and task assignment |
-| _(app-site-engineer-dashboard.png)_   | SE — attendance, updates, photo uploads   |
-| _(app-client-dashboard.png)_          | Client read-only view                     |
-| _(app-photo-gallery-s3.png)_          | Site photos stored and served from S3     |
+| Asset Reference | Scope |
+|---|---|
+| _app-landing-page.png_ | Public landing interface |
+| _app-login-page.png_ | Authentication portal |
+| _app-admin-dashboard.png_ | Administrator telemetry |
+| _app-project-manager-dashboard.png_ | Project Manager planning interface |
+| _app-site-engineer-dashboard.png_ | Site Engineer operational interface |
+| _app-client-dashboard.png_ | Client read-only interface |
+| _app-photo-gallery-s3.png_ | S3-backed image gallery |

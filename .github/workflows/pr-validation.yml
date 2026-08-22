@@ -1,0 +1,229 @@
+---
+# =============================================================================
+# AssembleMonitor — Pull Request Validation
+#
+# Triggered on:
+#   - Every push to feature branches matching hardening/*
+#   - Every pull request targeting main
+#   - Manual dispatch from the GitHub Actions UI
+#
+# Jobs (run in parallel):
+#   1. backend-test       — Python compile check + pytest (23 tests, no real DB)
+#   2. frontend-build     — Vite production build (npm ci + npm run build)
+#   3. terraform-validate — provider init + HCL validate (no AWS creds needed)
+#   4. helm-validate      — dependency build + lint + template render
+#   5. secret-scan        — Gitleaks secret detection scan
+#
+# All 5 jobs are enforced as required status checks by the active `main-protection` branch ruleset.
+# =============================================================================
+name: PR Validation
+
+on:
+  push:
+    branches:
+      - "hardening/*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+# Cancel any in-progress run for the same branch when a newer push arrives.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only repository access plus PR-comment permission for Gitleaks.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 — Backend: Python syntax check + pytest suite
+  # Uses Python 3.11 to match the production Dockerfile (python:3.11-slim).
+  # All DB calls are mocked — no real PostgreSQL instance is required.
+  # ---------------------------------------------------------------------------
+  backend-test:
+    name: Backend — Compile & Test
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install production and dev dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Compile check — verify Python syntax across all modules
+        run: python -m compileall app -q
+
+      - name: Run pytest — health and auth test suite
+        run: python -m pytest tests/ -v
+
+  # ---------------------------------------------------------------------------
+  # Job 2 — Frontend: Vite production build
+  # Validates that the React + TypeScript application compiles without errors.
+  # ---------------------------------------------------------------------------
+  frontend-build:
+    name: Frontend — Build
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Install dependencies from lock file
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Job 3 — Terraform: provider init + HCL validation
+  # Validates that all Terraform HCL syntax is correct and all resource
+  # references resolve. Uses -backend=false so no AWS credentials are needed.
+  # Provider binaries are downloaded based on .terraform.lock.hcl.
+  # ---------------------------------------------------------------------------
+  terraform-validate:
+    name: Terraform — Validate
+    runs-on: ubuntu-24.04
+    env:
+      TF_IN_AUTOMATION: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Terraform 1.15.8
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.8"
+
+      - name: Check Terraform formatting
+        # terraform fmt -recursive also processes .tftest.hcl files whose
+        # canonical style may differ across Terraform patch versions.
+        # Scope the check to .tf files only, excluding .terraform plugin caches.
+        run: |
+          set -euo pipefail
+          mapfile -t tf_files < <(find terraform -name "*.tf" -not -path "*/.terraform/*")
+          if [[ ${#tf_files[@]} -gt 0 ]]; then
+            terraform fmt -check "${tf_files[@]}"
+          fi
+
+      - name: Terraform init (no remote backend — no AWS credentials needed)
+        run: terraform -chdir=terraform init -backend=false -no-color
+
+      - name: Terraform validate (checks HCL syntax and resource references)
+        run: terraform -chdir=terraform validate -no-color
+
+      - name: Init network module (no backend)
+        run: terraform -chdir=terraform/modules/network init -backend=false -no-color
+
+      - name: Terraform test — network module unit tests (mock_provider, no AWS creds needed)
+        run: terraform -chdir=terraform/modules/network test -no-color
+
+      - name: Init modular-network example (no backend)
+        run: terraform -chdir=terraform/examples/modular-network init -backend=false -no-color
+
+      - name: Validate modular-network example
+        run: terraform -chdir=terraform/examples/modular-network validate -no-color
+
+  # ---------------------------------------------------------------------------
+  # Job 4 — Helm: chart dependency build + lint + dry-run template render
+  # Validates that the Helm chart is syntactically correct and renders
+  # without errors for the production values files.
+  # ---------------------------------------------------------------------------
+  helm-validate:
+    name: Helm — Validate
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Helm 3.21.3 (curl + SHA-256 verified)
+        shell: bash
+        run: |
+          set -euo pipefail
+          HELM_VERSION="v3.21.3"
+          curl -fsSLO "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          echo "15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0  helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+            | sha256sum -c -
+          tar -xzf "helm-${HELM_VERSION}-linux-amd64.tar.gz"
+          sudo install -m 0755 linux-amd64/helm /usr/local/bin/helm
+          helm version
+
+      - name: Register Helm chart repositories
+        run: |
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+          helm repo update
+
+      - name: Build chart dependencies (loki, tempo, kube-state-metrics, otel-collector)
+        run: helm dependency build k8s/helm-chart
+
+      - name: Lint chart against production values
+        run: |
+          helm lint k8s/helm-chart \
+            -f k8s/helm-chart/values/app.yaml \
+            -f k8s/helm-chart/values/observability.yaml \
+            -f k8s/helm-chart/values/hardening-validation.yaml
+
+      - name: Template render smoke test
+        # Renders all templates and discards output — validates template syntax
+        # without requiring a live Kubernetes cluster.
+        run: |
+          helm template assemblemonitor k8s/helm-chart \
+            -f k8s/helm-chart/values/app.yaml \
+            -f k8s/helm-chart/values/observability.yaml \
+            -f k8s/helm-chart/values/hardening-validation.yaml \
+            > /dev/null
+
+  # ---------------------------------------------------------------------------
+  # Job 5 — Secret Scan: Gitleaks
+  # Scans the repository for hardcoded secrets (AWS keys, private keys, tokens,
+  # passwords). Fails the PR if any credential pattern is detected.
+  # ---------------------------------------------------------------------------
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository (full history for complete scan)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Gitleaks — scan for hardcoded secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

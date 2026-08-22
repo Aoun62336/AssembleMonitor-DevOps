@@ -1,24 +1,24 @@
-# 🚀 Option 3: Amazon EKS Production Architecture (Primary)
+# Amazon EKS Production Architecture (Primary)
 
 > [!IMPORTANT]
-> This is the **primary, production-grade deployment strategy** for AssembleMonitor. It represents the culmination of all DevOps and Cloud engineering efforts. The application is orchestrated by an Amazon EKS cluster, utilizing highly secure and scalable AWS infrastructure.
+> This represents the primary AWS EKS deployment strategy for AssembleMonitor. The application is orchestrated by an Amazon Elastic Kubernetes Service (EKS) cluster utilizing secure and scalable AWS infrastructure.
 
-**Best For:** Enterprise Production, High Availability, Auto-Scaling
+**Execution Scope:** Primary AWS EKS Deployment, Autoscaling, Managed AWS Services
 **Complexity:** Very High
-**Tech Stack:** Amazon EKS, Terraform, ArgoCD, Helm, AWS Application Load Balancer (ALB), AWS WAF, Horizontal Pod Autoscaler (HPA), Kubernetes Metrics Server
+**Architecture:** Amazon EKS, Terraform, ArgoCD, Helm, AWS Application Load Balancer (ALB), AWS WAF, Horizontal Pod Autoscaler (HPA), Kubernetes Metrics Server
 
-## 🏗️ Architecture Overview
+## Architectural Overview
 
-Unlike the standalone K3s deployment, this architecture is fully integrated into the AWS ecosystem:
+This architecture is fully integrated into the AWS ecosystem:
 
-1. **Managed Control Plane**: AWS manages the Kubernetes control plane for maximum reliability.
+1. **Managed Control Plane**: AWS manages control-plane provisioning, availability, and operational maintenance for the EKS control plane.
 2. **Managed Node Groups**: EC2 instances (`c7i-flex.large`) are dynamically provisioned into private subnets by EKS.
-3. **ALB NodePort Integration**: To bypass strict AWS account limits on new LoadBalancers, a pre-existing, Terraform-managed Application Load Balancer routes traffic _directly_ to the Kubernetes `NodePort 30080` via an Auto Scaling Group attachment.
-4. **AWS WAF**: The ALB is protected by an AWS WAFv2. The managed rule groups (CommonRuleSet, KnownBadInputs) run in **count/monitor mode** — they log SQLi and XSS payloads without blocking requests. The rate-limit rule actively **blocks** any single IP sending more than 2,000 requests within a 5-minute window.
-5. **Horizontal Pod Autoscaling**: The Kubernetes Metrics Server monitors CPU load. If CPU spikes above 70%, the HPA automatically scales the frontend and backend pods from 2 up to 5 replicas.
-6. **GitOps CD (ArgoCD)**: Instead of manual `kubectl` applies, ArgoCD runs inside the cluster and continuously synchronizes the deployment state with the Helm charts stored in the GitHub repository.
+3. **ALB NodePort Integration**: A pre-existing, Terraform-managed Application Load Balancer routes external traffic directly to the Kubernetes `NodePort 30080` via an Auto Scaling Group attachment.
+4. **AWS WAF**: The ALB is protected by an AWS WAFv2 instance. Managed rule groups (CommonRuleSet, KnownBadInputs) are configured in count/monitor mode to log SQLi and XSS payloads without blocking requests. A rate-limit rule actively blocks any single IP generating more than 2,000 requests within a 5-minute window.
+5. **Horizontal Pod Autoscaling**: The Kubernetes Metrics Server monitors CPU utilization. If CPU exceeds 70%, the HPA automatically scales the frontend and backend pods from a minimum of 2 up to 5 replicas.
+6. **GitOps CD (ArgoCD)**: ArgoCD operates within the cluster and continuously synchronizes the deployment state with the Helm charts stored in the GitHub repository.
 
-## 🚀 Deployment Instructions
+## Deployment Procedure
 
 ### 1. Terraform Provisioning
 
@@ -29,9 +29,9 @@ cd terraform
 terraform apply -auto-approve
 ```
 
-### 2. Connect to the EKS Cluster
+### 2. Cluster Authentication
 
-Once Terraform completes, configure your local `kubectl` to communicate with the new EKS cluster:
+Upon Terraform completion, configure the local `kubectl` context to authenticate with the EKS cluster:
 
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name assemblemonitor-am-dev-eks
@@ -39,9 +39,9 @@ aws eks update-kubeconfig --region us-east-1 --name assemblemonitor-am-dev-eks
 
 ### 3. Verify GitOps Synchronization
 
-Because Terraform natively installs the ArgoCD controller and provisions the `argocd-apps` configuration during the `apply` phase, there is **zero manual setup required**!
+ArgoCD is natively installed by Terraform, which also provisions the `argocd-apps` configuration during the `apply` phase.
 
-Simply verify that ArgoCD has automatically detected the Git repository and is booting your pods:
+Verify that ArgoCD has detected the remote repository and initialized the application pods:
 
 ```bash
 kubectl get pods -n assemblemonitor
@@ -49,30 +49,43 @@ kubectl get pods -n assemblemonitor
 
 ### 4. Verify Autoscaling (HPA)
 
-Ensure the Metrics Server is running and the HPA is successfully tracking CPU load:
+Verify the Metrics Server is active and the HPA is successfully tracking CPU load:
 
 ```bash
 kubectl get hpa -n assemblemonitor
 ```
 
-## 🌐 Accessing the Application
+## Application Access Endpoints
 
-### 1. Administrative UIs (GitOps & Observability)
+### 1. Administrative Interfaces (GitOps & Observability)
 
-Because this cluster is ephemeral, the AWS LoadBalancers for ArgoCD and Grafana are provisioned dynamically. To access them instantly without manual port-forwarding, run the included helper script:
+The AWS LoadBalancers for ArgoCD and Grafana are provisioned dynamically. To retrieve the endpoints without manual port-forwarding, execute the helper script:
 
 ```bash
 ./get-urls.sh
 ```
 
-### 2. Public Frontend (Client UI)
+### 2. Public Frontend Interface
 
-The main construction management application is exposed securely via the AWS Application Load Balancer. You do not connect directly to the EC2 instances.
+The application is exposed securely via the AWS Application Load Balancer. Direct access to EC2 instances is prohibited.
 
-Get your Live URL by running:
+Retrieve the ALB endpoint:
 
 ```bash
 terraform output alb_url
 ```
 
-Navigate to the outputted URL (e.g., `http://<ALB_DNS_NAME>`) in your browser. Traffic is routed from the ALB to the EKS Nodes on Port 30080, and internally proxied to the Nginx and FastAPI pods.
+Navigate to the output URL (e.g., `http://<ALB_DNS_NAME>`). Traffic is routed from the ALB to the EKS Nodes on Port 30080, and internally proxied to the Nginx and FastAPI pods.
+
+---
+
+## August 2026 Hardening
+
+Subsequent to the primary EKS deployment, the following reliability and security hardening measures were implemented. Consult [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md) for full evidence.
+
+- CI workflow hardening: ubuntu-24.04 runner, SHA-pinned actions, Helm 3.21.3 (curl+SHA256 verification), Terraform 1.15.8.
+- Pre-merge branch ruleset enforcing 5 required status checks (pending ruleset configuration).
+- Kubernetes NetworkPolicy and PodDisruptionBudget appended to the Helm chart.
+- Terraform network module extracted with 5 native unit tests (`mock_provider`).
+- 3 controlled fault drills executed (INC-001, INC-002, INC-003) recording controlled local recovery durations ranging from 2 min 9 sec to 2 min 35 sec.
+- NetworkPolicy and PodDisruptionBudget runtime validation was performed against disposable local k3d/K3s test workloads and is documented separately from the historical EKS runtime evidence.

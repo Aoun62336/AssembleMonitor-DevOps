@@ -1,6 +1,7 @@
 # ============================================================
 # AssembleMonitor — Root Docker Compose
 # Full local stack: Frontend + Backend + PostgreSQL + Adminer
+#                   + OpenTelemetry Collector (local observability)
 # ============================================================
 
 services:
@@ -44,6 +45,9 @@ services:
     environment:
       PYTHONPATH: /app
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-assembleuser}:${POSTGRES_PASSWORD_ENCODED:-assemblepass}@db:5432/${POSTGRES_DB:-assemblemonitor}
+      # Override the K8s DNS default in app/main.py so local traces reach the
+      # local OTel Collector instead of timing out on an unresolvable hostname.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "otel-collector:4317"
     ports:
       - "8000:8000"
     volumes:
@@ -51,6 +55,28 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - assemblemonitor_net
+
+  # ----------------------------------------------------------
+  # OpenTelemetry Collector (local development)
+  # Receives traces/metrics/logs from the FastAPI backend via
+  # OTLP/gRPC on port 4317 and prints them to stdout.
+  # View with: docker compose logs otel-collector
+  # ----------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    container_name: assemblemonitor_otel_collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./docker/otel-collector-config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC — used by FastAPI backend
+      - "4318:4318"   # OTLP HTTP — available for other tools
+      - "8888:8888"   # Prometheus metrics about the collector
     networks:
       - assemblemonitor_net
 
