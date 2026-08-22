@@ -1,0 +1,23 @@
+# =============================================================================
+# Example: modular-network — Sample Variable Values
+#
+# Copy this file to terraform.tfvars and replace with real values from
+# your AWS account before running terraform plan / apply.
+#
+# NEVER commit terraform.tfvars — it is listed in the root .gitignore.
+# This file is committed only as documentation.
+# =============================================================================
+
+project_name = "assemblemonitor"
+environment  = "dev"
+aws_region   = "us-east-1"
+
+# Replace with real resource IDs from your AWS account:
+vpc_id           = "vpc-0000000000000001"
+public_subnet_id = "subnet-0000000000000001"
+
+# One entry per Availability Zone you want a private subnet in:
+private_subnet_cidr_map = {
+  a = "10.0.1.0/24"
+  b = "10.0.2.0/24"
+}
