@@ -1,0 +1,19 @@
+# =============================================================================
+# Gitleaks Configuration — AssembleMonitor
+# https://github.com/gitleaks/gitleaks#configuration
+#
+# Gitleaks scans the repository for hardcoded secrets on every PR.
+# This file defines allowlists for known false positives so that
+# intentional patterns do not block legitimate commits.
+# =============================================================================
+
+[allowlist]
+  description = "Repository-level allowlist for known false positives"
+
+  paths = [
+    # The detect-secrets baseline stores SHA1 hashes of detected patterns
+    # (hashed_secret fields) for review and audit purposes. These 40-char
+    # hex strings match Gitleaks' generic-api-key rule but contain no
+    # real credentials — they are one-way hashes of the originals.
+    '''\.secrets\.baseline''',
+  ]
