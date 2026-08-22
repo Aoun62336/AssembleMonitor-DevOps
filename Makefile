@@ -1,18 +1,18 @@
 # =============================================================================
 # AssembleMonitor — Developer Makefile
 #
-# Single entry point for all common developer tasks.
-# Mirrors what GitHub Actions runs in CI so local == CI.
+# Provides a local validation subset matching the core build, test,
+# Terraform, and Helm checks used by GitHub Actions.
 #
 # Usage:
 #   make          → show this help
 #   make test     → run backend pytest suite
-#   make ci-local → run everything CI runs (before pushing)
+#   make ci-local → run core local validation before pushing
 #
 # Requirements: python, pip, helm, terraform, docker, docker compose
 # =============================================================================
 
-.PHONY: help test lint helm-lint tf-test stack-up stack-down ci-local
+.PHONY: help test frontend-build lint helm-lint tf-test stack-up stack-down ci-local
 
 # Default target — prints all available targets with descriptions
 help:
@@ -25,7 +25,8 @@ help:
 
 # -----------------------------------------------------------------------------
 # test — Backend pytest suite
-# Runs all 23 tests against the in-memory SQLite mock (no real DB needed).
+# Runs 23 backend tests with mocked SQLAlchemy AsyncSession dependencies;
+# no external PostgreSQL instance is required.
 # Mirrors: GitHub Actions job "Backend — Compile & Test"
 # -----------------------------------------------------------------------------
 test: ## Run backend pytest suite (no database required)
@@ -75,6 +76,16 @@ tf-test: ## Run terraform test on the network module (no AWS creds needed)
 	@echo "--- terraform test complete ---"
 
 # -----------------------------------------------------------------------------
+# frontend-build — Reproducible frontend production build
+# Mirrors: GitHub Actions job "Frontend — Build"
+# -----------------------------------------------------------------------------
+frontend-build: ## Run npm ci and build the frontend
+	@echo "--- Frontend production build ---"
+	cd frontend && npm ci
+	cd frontend && npm run build
+	@echo "--- frontend build complete ---"
+
+# -----------------------------------------------------------------------------
 # stack-up — Start local Docker Compose stack
 # Starts the API, database, and frontend locally.
 # IMPORTANT: Never use 'docker compose down -v' — it deletes the postgres volume.
@@ -94,18 +105,20 @@ stack-down: ## Stop local Docker Compose stack (keeps data volumes)
 	@echo "--- Stack stopped. Data volume preserved. ---"
 
 # -----------------------------------------------------------------------------
-# ci-local — Run everything CI runs, locally, before pushing
-# This is the recommended pre-push check.
-# Equivalent to triggering all 5 GitHub Actions jobs on your machine.
+# ci-local — Run core local CI subset before pushing
+# Runs the core local CI subset. The GitHub-hosted Gitleaks Secret Scan
+# continues to run remotely in GitHub Actions.
 # -----------------------------------------------------------------------------
-ci-local: ## Run full local CI: pytest + lint + helm-lint + tf-test
+ci-local: ## Run local CI subset: backend + frontend + lint + helm-lint + tf-test
 	@echo "======================================================"
 	@echo "  AssembleMonitor — Local CI Run"
 	@echo "======================================================"
 	$(MAKE) test
+	$(MAKE) frontend-build
 	$(MAKE) lint
 	$(MAKE) helm-lint
 	$(MAKE) tf-test
 	@echo "======================================================"
-	@echo "  All checks passed. Safe to push."
+	@echo "  Core local checks passed."
+	@echo "  GitHub-hosted Secret Scan still runs remotely."
 	@echo "======================================================"

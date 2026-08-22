@@ -23,8 +23,9 @@ repos:
         exclude: "docs/assets/screenshots/"
       - id: end-of-file-fixer            # Ensure files end with newline
         exclude: "docs/assets/screenshots/"
-      - id: check-yaml                   # Validate YAML syntax
-        args: ["--unsafe"]               # Allow custom YAML tags (Helm uses !!)
+      - id: check-yaml
+        args: ["--unsafe"]               # Helm templates contain Go-template expressions and are validated separately with helm lint/template.
+        exclude: ^k8s/helm-chart/templates/
       - id: check-json                   # Validate JSON syntax
       - id: check-merge-conflict         # Block accidental merge conflict markers
       - id: detect-private-key           # Block PEM private keys from being committed

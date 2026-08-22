@@ -9,12 +9,12 @@
 #
 # Jobs (run in parallel):
 #   1. backend-test       — Python compile check + pytest (23 tests, no real DB)
-#   2. frontend-build     — Vite production build (npm install + npm run build)
+#   2. frontend-build     — Vite production build (npm ci + npm run build)
 #   3. terraform-validate — provider init + HCL validate (no AWS creds needed)
 #   4. helm-validate      — dependency build + lint + template render
 #   5. secret-scan        — Gitleaks secret detection scan
 #
-# All 5 jobs must pass before a PR can be merged (enforced via branch protection).
+# All 5 jobs are intended to become required status checks through the final main-branch ruleset.
 # =============================================================================
 name: PR Validation
 
@@ -32,10 +32,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Minimum permissions — read for validation, security-events for Gitleaks SARIF upload.
+# Read-only repository access plus PR-comment permission for Gitleaks.
 permissions:
   contents: read
-  security-events: write
+  pull-requests: write
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -96,8 +96,8 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies from lock file
+        run: npm ci
 
       - name: Build production bundle
         run: npm run build
@@ -124,6 +124,9 @@ jobs:
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_version: "1.15.8"
+
+      - name: Check Terraform formatting
+        run: terraform -chdir=terraform fmt -check -recursive
 
       - name: Terraform init (no remote backend — no AWS credentials needed)
         run: terraform -chdir=terraform init -backend=false -no-color
@@ -204,7 +207,7 @@ jobs:
   # ---------------------------------------------------------------------------
   secret-scan:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository (full history for complete scan)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -213,6 +216,6 @@ jobs:
           persist-credentials: false
 
       - name: Gitleaks — scan for hardcoded secrets
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

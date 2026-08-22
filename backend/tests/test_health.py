@@ -99,7 +99,9 @@ class TestReadiness:
         """
         THE key readiness contract:
         Kubernetes must stop routing traffic to this pod when the database
-        is unavailable. HTTP 503 triggers that pod eviction from load balancer.
+        is unavailable. HTTP 503 causes the Kubernetes readiness probe to fail,
+        removing the pod from Ready Service endpoints until readiness recovers.
+        A readiness failure does not evict the pod.
         """
         response = client_db_down.get("/api/health/ready")
         assert response.status_code == 503
