@@ -41,7 +41,7 @@ The platform provisions distinct access across four Role-Based Access Control (R
 | **GitOps** | Jenkins → GitHub → ArgoCD → EKS · Imperative `kubectl` commands eliminated from CI · ArgoCD autonomous drift remediation |
 | **DevSecOps** | SonarQube static analysis and Trivy CVE scanning enforced during build phase (shift-left security) |
 | **FinOps** | Ephemeral cluster execution: Daily `terraform destroy` and `terraform apply` cycles limit compute expenditure (Restoration RTO: ~8–10 minutes) |
-| **Reliability** | 23-test Pytest suite · GitHub Actions parallel CI execution (4 concurrent jobs) · PodDisruptionBudgets (PDB) prevent zero-replica deployments · `terraform test` module validation · Declarative Grafana dashboards |
+| **Reliability** | 23-test Pytest suite · GitHub Actions 5-job parallel CI (backend-test, frontend-build, terraform-validate, helm-validate, secret-scan) · PodDisruptionBudgets governing voluntary pod eviction · `terraform test` module validation · Declarative Grafana dashboards |
 
 ## Architecture Overview
 
@@ -353,5 +353,5 @@ The following reliability enhancements were implemented and validated via GitHub
 
 ## Operational Retrospective
 
-- **Observability Stack Integration:** Establishing the OpenTelemetry pipeline across Tempo, Loki, and Amazon Managed Prometheus required extensive version alignment between the OTEL collector, Prometheus receivers, and backend APIs. Resolution necessitated precise configuration of the OTEL DaemonSet to ensure reliable, lossless telemetry transmission into the Grafana visualization layer.
-- **GitOps and Ephemeral Infrastructure:** The requirement for daily infrastructure suspension to enforce FinOps cost limits necessitated comprehensive automation of the cluster initialization sequence. Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns.
+- **Observability Stack Integration:** Establishing the OpenTelemetry pipeline across Tempo, Loki, and Amazon Managed Prometheus required extensive version alignment between the OTEL collector, Prometheus receivers, and backend APIs. Resolution necessitated precise configuration of the OTEL DaemonSet to ensure validated telemetry routing into the Grafana visualization layer.
+- **GitOps and Ephemeral Infrastructure:** Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns. The cluster is periodically torn down and reprovisioned to maintain IaC hygiene and control costs.

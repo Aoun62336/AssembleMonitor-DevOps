@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > This represents the primary AWS EKS deployment strategy for AssembleMonitor. The application is orchestrated by an Amazon Elastic Kubernetes Service (EKS) cluster utilizing secure and scalable AWS infrastructure.
 
-**Execution Scope:** Enterprise Production, High Availability, Auto-Scaling
+**Execution Scope:** Primary AWS EKS Deployment, Autoscaling, Managed AWS Services
 **Complexity:** Very High
 **Architecture:** Amazon EKS, Terraform, ArgoCD, Helm, AWS Application Load Balancer (ALB), AWS WAF, Horizontal Pod Autoscaler (HPA), Kubernetes Metrics Server
 
@@ -11,7 +11,7 @@
 
 This architecture is fully integrated into the AWS ecosystem:
 
-1. **Managed Control Plane**: AWS manages the Kubernetes control plane for maximum reliability.
+1. **Managed Control Plane**: AWS manages control-plane provisioning, availability, and operational maintenance for the EKS control plane.
 2. **Managed Node Groups**: EC2 instances (`c7i-flex.large`) are dynamically provisioned into private subnets by EKS.
 3. **ALB NodePort Integration**: A pre-existing, Terraform-managed Application Load Balancer routes external traffic directly to the Kubernetes `NodePort 30080` via an Auto Scaling Group attachment.
 4. **AWS WAF**: The ALB is protected by an AWS WAFv2 instance. Managed rule groups (CommonRuleSet, KnownBadInputs) are configured in count/monitor mode to log SQLi and XSS payloads without blocking requests. A rate-limit rule actively blocks any single IP generating more than 2,000 requests within a 5-minute window.
@@ -84,7 +84,8 @@ Navigate to the output URL (e.g., `http://<ALB_DNS_NAME>`). Traffic is routed fr
 Subsequent to the primary EKS deployment, the following reliability and security hardening measures were implemented. Consult [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md) for full evidence.
 
 - CI workflow hardening: ubuntu-24.04 runner, SHA-pinned actions, Helm 3.21.3 (curl+SHA256 verification), Terraform 1.15.8.
-- Pre-merge branch ruleset enforcing 4 required status checks.
+- Pre-merge branch ruleset enforcing 5 required status checks (pending ruleset configuration).
 - Kubernetes NetworkPolicy and PodDisruptionBudget appended to the Helm chart.
 - Terraform network module extracted with 5 native unit tests (`mock_provider`).
-- 3 controlled fault drills executed (INC-001, INC-002, INC-003) yielding an MTTR range of 2m 9s – 2m 35s.
+- 3 controlled fault drills executed (INC-001, INC-002, INC-003) recording controlled local recovery durations ranging from 2 min 9 sec to 2 min 35 sec.
+- NetworkPolicy and PodDisruptionBudget runtime validation was performed against disposable local k3d/K3s test workloads and is documented separately from the historical EKS runtime evidence.

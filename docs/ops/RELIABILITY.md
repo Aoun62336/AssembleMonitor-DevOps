@@ -64,20 +64,21 @@ For a **99.5% availability SLO over 30 days** (43 200 minutes):
 
 ## Observed Reliability Data (Fault Drills — 2026-08-20)
 
-The following MTTR values were measured during controlled fault drill exercises against the local
+The following controlled recovery durations were measured during controlled fault drill exercises against the local
 Docker Compose environment. These figures represent the local development stack only and do not
 represent EKS production behaviour.
 
-| Drill | Fault Injected | MTTR | Postmortem |
+| Drill | Fault Injected | Observed Recovery Duration | Postmortem |
 |---|---|---|---|
 | INC-001 | PostgreSQL container stopped | **2 min 9 sec** | [`INC-001-database-outage.md`](incidents/INC-001-database-outage.md) |
 | INC-002 | FastAPI container stopped | **2 min 35 sec** | [`INC-002-api-outage-nginx-502.md`](incidents/INC-002-api-outage-nginx-502.md) |
 | INC-003 | Bad `DATABASE_URL` hostname (DNS failure) | **2 min 22 sec** | [`INC-003-database-dns-failure.md`](incidents/INC-003-database-dns-failure.md) |
 
 **Observations:**
-- All three faults were detected within 5 seconds of injection by the health probe separation (`/live` vs `/ready`).
-- All three recoveries were self-healing once the root cause was removed — no manual API restart required.
-- No data loss occurred in any drill. The PostgreSQL volume was preserved throughout.
+- Probe separation clearly distinguished application-process liveness from database-dependent readiness during INC-001 and INC-003.
+- INC-001 and INC-003 recovered after the injected dependency/configuration fault was removed.
+- INC-002 required an explicit API service restart, as expected after intentionally stopping the API container.
+- No data loss occurred during the drills; the PostgreSQL volume was preserved.
 
 ---
 
@@ -87,11 +88,11 @@ The following tooling is provisioned and available for SLI measurement:
 
 | Tool | Scope | Location |
 |---|---|---|
-| **Prometheus** | Scrapes application metrics from the API | Helm chart: `k8s/helm-chart/` |
+| **Prometheus-compatible application metrics** | FastAPI exposes `/metrics` through prometheus-fastapi-instrumentator; historical EKS application-metric scraping is not claimed unless the endpoint is wired into the Prometheus/AMP scrape configuration. | Helm chart: `k8s/helm-chart/` |
 | **Grafana** | Dashboards for request rate, latency, error rate | Helm chart: `k8s/helm-chart/dashboards/` |
 | **Tempo** | Distributed tracing for request flow | Helm chart: `k8s/helm-chart/` |
 | **Loki** | Log aggregation | Helm chart: `k8s/helm-chart/` |
-| **OpenTelemetry Collector** | Trace and metric pipeline | `docker/otel-collector-config.yaml` |
+| **OpenTelemetry Collector** | OTLP Collector pipeline; current local evidence specifically proves FastAPI trace ingestion. | `docker/otel-collector-config.yaml` |
 | **CloudWatch** | ALB, RDS, and EC2 alarms | Terraform: `terraform/` |
 
 ---

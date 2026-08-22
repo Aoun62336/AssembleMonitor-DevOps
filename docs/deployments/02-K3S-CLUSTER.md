@@ -36,6 +36,12 @@ cd ~/AssembleMonitor
 git pull origin main
 
 # Provision base configuration entities
+# Create the local Secret manifest from the committed template.
+cp k8s/secret.yaml.template k8s/secret.yaml
+
+# Populate the local secret values before applying.
+# k8s/secret.yaml is intentionally gitignored and must not be committed.
+
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/configmap.yaml

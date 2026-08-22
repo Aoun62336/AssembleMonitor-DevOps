@@ -104,7 +104,7 @@ Response payload post-recovery:
 |---|---|
 | `docker compose up --force-recreate api` executed | 19:55:55 IST |
 | `/api/health/ready` restored to 200 | 19:56:17 IST |
-| **Mean Time to Recovery (MTTR)** | **2 min 22 sec** |
+| **Observed Recovery Duration** | **2 min 22 sec** |
 
 ---
 

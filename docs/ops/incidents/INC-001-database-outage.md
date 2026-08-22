@@ -103,7 +103,7 @@ Response payload post-recovery:
 |---|---|
 | `docker compose start db` executed | 19:43:22 IST |
 | `/api/health/ready` restored to 200 | 19:43:37 IST |
-| **Mean Time to Recovery (MTTR)** | **2 min 9 sec** |
+| **Observed Recovery Duration** | **2 min 9 sec** |
 
 ---
 

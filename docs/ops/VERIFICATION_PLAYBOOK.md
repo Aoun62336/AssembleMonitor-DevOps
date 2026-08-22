@@ -41,7 +41,7 @@ grep "name:" .github/workflows/pr-validation.yml
 grep "concurrency" .github/workflows/pr-validation.yml
 ```
 
-**Success Criteria:** Output confirms 4 parallel job definitions (Backend, Frontend, Terraform, Helm). Remote pipeline execution status must report `[VERIFIED]` on all checks.
+**Success Criteria:** Output confirms 5 parallel job definitions (backend-test, frontend-build, terraform-validate, helm-validate, secret-scan). Remote pipeline execution status must report all 5 checks green.
 
 ---
 
@@ -122,3 +122,85 @@ print('Panels:', len(d['panels']))
 ```
 
 **Success Criteria:** JSON payload successfully parses and confirms 10 active panel definitions.
+
+---
+
+## 8. Runtime PDB Validation (M9)
+
+**Objective:** Prove that `kubectl drain` respects the Helm-rendered PodDisruptionBudget against the k3d/K3s test workloads. Run every command from the repository root.
+
+### Step 1 — Create the cluster with labeled agent nodes
+
+```bash
+k3d cluster create assemblemonitor-hardening \
+  --agents 2 \
+  --k3s-node-label "workload=hardening@agent:0,1"
+```
+
+### Step 2 — Deploy the Helm-rendered policies and test workloads
+
+```bash
+# Render and apply NetworkPolicy + PDB into the hardening-test namespace
+helm upgrade --install assemblemonitor k8s/helm-chart \
+  -f k8s/helm-chart/values/app.yaml \
+  -f k8s/helm-chart/values/observability.yaml \
+  -f k8s/helm-chart/values/hardening-validation.yaml
+
+# Deploy the smoke workloads (nodeSelector ensures they land on labeled agents)
+kubectl apply -f k8s/validation/hardening-smoke.yaml
+
+# Wait for backend pods to be Running and Ready
+kubectl rollout status deployment/hardening-backend \
+  -n assemblemonitor-hardening-test --timeout=120s
+```
+
+### Step 3 — Identify the node hosting PDB-selected backend pods
+
+```bash
+# Find which agent node is running hardening-backend pods
+PDB_NODE=$(kubectl get pods \
+  -n assemblemonitor-hardening-test \
+  -l app=assemblemonitor-backend \
+  -o jsonpath='{.items[0].spec.nodeName}')
+
+echo "Drain target: $PDB_NODE"
+```
+
+### Step 4 — Observe PDB state before drain
+
+```bash
+kubectl get pdb -n assemblemonitor-hardening-test
+```
+
+Expected: `ALLOWED DISRUPTIONS: 1` (maxUnavailable:1 with 2 replicas both Ready).
+
+### Step 5 — Drain the target node
+
+```bash
+kubectl drain "$PDB_NODE" \
+  --ignore-daemonsets \
+  --delete-emptydir-data \
+  --grace-period=5 \
+  --timeout=120s
+```
+
+Expected: Drain output shows eviction retrying while PDB budget is exhausted, then completing once a replacement pod is ready on the second agent node.
+
+### Step 6 — Verify pods rescheduled on surviving node
+
+```bash
+kubectl get pods -n assemblemonitor-hardening-test -o wide
+kubectl get pdb -n assemblemonitor-hardening-test
+```
+
+Expected: All backend pods Running on the non-drained node; `ALLOWED DISRUPTIONS: 1` restored.
+
+### Step 7 — Screenshot and clean up
+
+Capture the terminal output showing the drain log and final pod/PDB state as `hardening-pdb-k3d.png`.
+
+```bash
+k3d cluster delete assemblemonitor-hardening
+```
+
+**Success Criteria:** `kubectl drain` logs show eviction retries while PDB budget was exhausted. All backend pods rescheduled on the surviving agent. `ALLOWED DISRUPTIONS` restored after replacement pod became Ready.

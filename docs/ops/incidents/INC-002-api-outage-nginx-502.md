@@ -110,7 +110,7 @@ Response payload post-recovery (via Nginx):
 |---|---|
 | `docker compose start api` executed | 19:52:33 IST |
 | Port 3000 returned 200 via Nginx | 19:52:43 IST |
-| **Mean Time to Recovery (MTTR)** | **2 min 35 sec** |
+| **Observed Recovery Duration** | **2 min 35 sec** |
 
 ---
 

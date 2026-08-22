@@ -27,7 +27,7 @@ Operational procedures, disaster recovery, cost management, and CI/CD.
 | [Incident Response & Disaster Recovery](ops/INCIDENT_RESPONSE.md) | RTO/RPO targets, application rollback (Git revert + ArgoCD), and full infrastructure recovery |
 | [FinOps & Cost Management](ops/FINOPS_COST_MANAGEMENT.md)         | Cost breakdown, HPA efficiency, and environment suspension strategies                         |
 | [Troubleshooting Guide](ops/TROUBLESHOOTING.md)                   | Symptom-organized decision trees: 502, readiness 503, CrashLoopBackOff                       |
-| [Reliability Definitions](ops/RELIABILITY.md)                     | SLI/SLO design targets, error budget, observed MTTR from fault drills                        |
+| [Reliability Definitions](ops/RELIABILITY.md)                     | SLI/SLO design targets, error budget, controlled fault-drill recovery measurements                |
 
 ---
 

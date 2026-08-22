@@ -98,7 +98,7 @@ The core production environment running the application natively via Kubernetes 
 
 ### GitOps & Auto-Scaling
 
-- **ArgoCD**: The GitOps Continuous Delivery controller. It constantly monitors the GitHub repository and ensures the EKS cluster state perfectly matches the Helm templates stored in Git.
+- **ArgoCD**: The GitOps Continuous Delivery controller. It continuously reconciles the in-scope Git-defined Kubernetes desired state with the EKS cluster.
 - **Horizontal Pod Autoscaler (HPA)**: Dynamically scales the frontend and backend pods (from 2 up to 5) based on CPU utilization metrics collected by the Kubernetes Metrics Server.
 
 ### Security (IRSA & ESO)
@@ -149,11 +149,11 @@ flowchart TD
     subgraph K8s["Kubernetes Hardening (Helm chart)"]
         J["NetworkPolicy\nbackend + frontend isolation"]
         K["PodDisruptionBudget\nmaxUnavailable: 1"]
-        L["PodAntiAffinity\nspread across nodes"]
+        L["topologySpreadConstraints\nreplica distribution"]
     end
 
     subgraph Docs["Evidence & Documentation"]
-        M["docs/hardening/SYSTEM_RELIABILITY_REPORT.md\nDORA metrics, M01–M16"]
+        M["docs/hardening/SYSTEM_RELIABILITY_REPORT.md\nhardening measurements, M01–M16"]
         N["docs/ops/incidents/\nINC-001, INC-002, INC-003"]
         O["scripts/fault-drills/\n00-preflight … 04-recovery"]
     end
