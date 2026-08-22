@@ -34,7 +34,7 @@ pillow==12.2.0                     # image processing (photo uploads)
 boto3==1.36.19                     # AWS S3 client
 
 #Prometheus metric url
-prometheus-fastapi-instrumentator==8.1.0
+prometheus-fastapi-instrumentator==8.0.2
 
 # OpenTelemetry for Tempo Traces
 opentelemetry-distro==0.46b0
