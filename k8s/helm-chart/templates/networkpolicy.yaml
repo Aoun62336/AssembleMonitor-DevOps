@@ -12,7 +12,7 @@ Backend policy:
 
 Frontend policy:
   Ingress  — allow port {{ .Values.frontend.containerPort }} from anywhere
-             (ALB / nginx-ingress terminates TLS externally).
+             (External routing for the EKS path is handled by the Terraform-managed AWS ALB.)
   Egress   — allow DNS (53) + backend API port 8000.
 */}}
 
@@ -44,7 +44,7 @@ spec:
       ports:
         - port: 8000
           protocol: TCP
-    # OTel collector scraping /metrics
+    # Optional Prometheus/OTel scrape access to the backend metrics endpoint when application-metric scraping is enabled.
     - from:
         - podSelector:
             matchLabels:
@@ -68,7 +68,7 @@ spec:
     - ports:
         - port: 4317
           protocol: TCP
-    # HTTPS — AWS S3, Secrets Manager, and ECR image pulls
+    # HTTPS — AWS APIs such as S3 and Secrets Manager
     - ports:
         - port: 443
           protocol: TCP
@@ -98,7 +98,7 @@ spec:
     - Egress
 
   ingress:
-    # Allow inbound from anywhere — ALB / ingress-nginx terminates TLS externally
+    # Allow the frontend application port; external EKS routing is handled by the Terraform-managed ALB.
     - ports:
         - port: {{ .Values.frontend.containerPort }}
           protocol: TCP

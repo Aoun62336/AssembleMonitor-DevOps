@@ -49,6 +49,8 @@ spec:
       labels:
         app: assemblemonitor-backend
     spec:
+      nodeSelector:
+        workload: hardening
       containers:
         - name: backend
           image: python:3.11-slim-bookworm
@@ -107,8 +109,9 @@ spec:
       labels:
         app: assemblemonitor-frontend
     spec:
+      nodeSelector:
+        workload: hardening
       containers:
-        - name: frontend
           image: curlimages/curl:8.8.0
           command: ["sh", "-c", "sleep 3600"]
           resources:
@@ -140,6 +143,8 @@ spec:
       labels:
         app: untrusted
     spec:
+      nodeSelector:
+        workload: hardening
       containers:
         - name: untrusted
           image: curlimages/curl:8.8.0

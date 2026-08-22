@@ -12,9 +12,9 @@
 # DO NOT apply this file directly to the EKS production cluster.
 # =============================================================================
 
-# Enable NetworkPolicy — tested locally with k3d (Flannel CNI supports it).
-# EKS VPC CNI requires an explicit opt-in and policy engine; production
-# enablement is tracked separately.
+# Enable NetworkPolicy for local k3d/K3s runtime validation.
+# K3s includes a kube-router-based NetworkPolicy controller unless that
+# controller is explicitly disabled.
 networkPolicy:
   enabled: true
 

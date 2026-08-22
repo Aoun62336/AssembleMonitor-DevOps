@@ -5,9 +5,12 @@ A PDB is only meaningful when the HPA is running at least 2 replicas;
 we therefore gate on BOTH pdb.enabled AND hpa.enabled.
 
 With maxUnavailable: 1:
-  - Rolling deploys always keep at least (minReplicas - 1) pods live.
-  - Node drains (upgrades, cluster-autoscaler scale-in) are blocked
-    until a replacement pod is scheduled and healthy.
+  - Voluntary disruptions through the Kubernetes Eviction API may make
+    at most one selected replica unavailable at a time.
+  - kubectl drain respects the PodDisruptionBudget and may retry an
+    eviction while the disruption budget is exhausted.
+  - Deployment rolling-update availability is governed by the Deployment
+    rollout strategy rather than by the PodDisruptionBudget itself.
 
 API version: policy/v1 requires Kubernetes ≥ 1.21 (EKS 1.21+ / k3d 5+).
 */}}
