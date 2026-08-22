@@ -3,7 +3,7 @@
 **Execution Period:** 2026-08-20 — 2026-08-22
 **Branch Reference:** `hardening/reliability-ci`
 **Primary Engineer:** Aoun
-**Status:** In Progress — Branch pending final review and integration to `main`
+**Status:** In Progress — Branch pending final merge to `main`
 **Evidence Index:** Telemetry artifacts, execution SHAs, and architectural validations attached.
 
 ---
@@ -15,7 +15,7 @@ This hardening phase addressed five distinct capability dimensions to elevate th
 | Capability Dimension | Delivered Implementation | Operational Outcome |
 |---|---|---|
 | **Reliability Engineering** | Health probe segregation, PodDisruptionBudgets, NetworkPolicies, and structured fault injection (3 drills). | Failure manifestations are deterministic; three controlled local fault drills recorded recovery durations between 2 min 9 sec and 2 min 35 sec. |
-| **CI/CD Pipeline** | 5-stage parallel GitHub Actions pipeline; five-job GitHub Actions validation workflow; final main branch ruleset pending verification. | Mandatory static validation enforced prior to code integration. |
+| **CI/CD Pipeline** | 5-stage parallel GitHub Actions pipeline; five-job GitHub Actions validation workflow; `main-protection` branch ruleset active with 5 required status checks. | Mandatory static validation enforced prior to code integration. |
 | **Supply Chain Security** | Gitleaks Action v3 (immutable SHA-pinned reference), detect-secrets baselining, Dependabot automation, and pre-commit hooks. | Multilayered credential detection: local environment, ingress integration, and repository history. |
 | **Infrastructure as Code** | Selected private-network infrastructure modularization within an existing VPC, coupled with 5 native unit tests (`mock_provider`). | IaC logic is unit-testable within CI boundaries without necessitating AWS credential exposure. |
 | **Observability** | Declarative Grafana dashboards (Dashboard-as-Code); localized OpenTelemetry Collector integration. | Telemetry visualizations are version-controlled; distributed traces are available in local development. |
@@ -65,7 +65,7 @@ The following measurements were captured during the controlled August 2026 harde
 | M13 | Localized OpenTelemetry Collector integration | `a068a79` | Verified |
 | M14 | Operational runbook standardization | Current branch | Verified |
 | M15 | Documentation refactoring to enterprise standards | Current branch | Verified |
-| M16 | Enforcement of `main-protection` branch ruleset (5 required checks) | Pending | Pending |
+| M16 | Enforcement of `main-protection` branch ruleset (5 required checks) | Current branch | Verified |
 
 ---
 
@@ -106,7 +106,7 @@ PR Integration Trigger
   └── secret-scan         — Gitleaks historical credential detection
 ```
 
-**Merge Prerequisites (M16):** `backend-test`, `frontend-build`, `terraform-validate`, `helm-validate`, and `secret-scan` are mandatory status checks pending configuration of the main branch ruleset.
+**Merge Prerequisites (M16):** `backend-test`, `frontend-build`, `terraform-validate`, `helm-validate`, and `secret-scan` are enforced as required status checks by the active `main-protection` branch ruleset.
 
 ---
 

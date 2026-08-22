@@ -14,7 +14,7 @@
 #   4. helm-validate      — dependency build + lint + template render
 #   5. secret-scan        — Gitleaks secret detection scan
 #
-# All 5 jobs are intended to become required status checks through the final main-branch ruleset.
+# All 5 jobs are enforced as required status checks by the active `main-protection` branch ruleset.
 # =============================================================================
 name: PR Validation
 
