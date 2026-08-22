@@ -11,7 +11,7 @@
 
 [![Jenkins](https://img.shields.io/badge/Jenkins-%232C5263.svg?style=for-the-badge&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
 [![ArgoCD](https://img.shields.io/badge/ArgoCD-%23EF7B4D.svg?style=for-the-badge&logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
-[![CI](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions)
+[![PR Validation](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions/workflows/pr-validation.yml/badge.svg?branch=main)](https://github.com/Aoun62336/AssembleMonitor-DevOps/actions/workflows/pr-validation.yml)
 
 <!-- Observability -->
 

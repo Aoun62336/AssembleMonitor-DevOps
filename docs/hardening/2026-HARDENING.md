@@ -218,9 +218,9 @@ GET /api/health  d28b7e0c5a8f58ba  http.status_code=200  http.method=GET
 
 | ID | Fault | MTTR | Postmortem |
 |---|---|---|---|
-| INC-001 | PostgreSQL container stopped | 2 min 9 sec | [`INC-001-db-outage.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-001-db-outage.md) |
-| INC-002 | API container stopped | 2 min 35 sec | [`INC-002-api-outage.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-002-api-outage.md) |
-| INC-003 | Bad `DATABASE_URL` hostname (DNS failure) | 2 min 22 sec | [`INC-003-db-dns-failure.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-003-db-dns-failure.md) |
+| INC-001 | PostgreSQL container stopped | 2 min 9 sec | [`INC-001-database-outage.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-001-database-outage.md) |
+| INC-002 | API container stopped | 2 min 35 sec | [`INC-002-api-outage-nginx-502.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-002-api-outage-nginx-502.md) |
+| INC-003 | Bad `DATABASE_URL` hostname (DNS failure) | 2 min 22 sec | [`INC-003-database-dns-failure.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/incidents/INC-003-database-dns-failure.md) |
 
 Drill scripts: `scripts/fault-drills/overrides/`
 Postmortem template: [`docs/ops/POSTMORTEM_TEMPLATE.md`](file:///c:/Users/AOUN/Desktop/AssembleMonitor/docs/ops/POSTMORTEM_TEMPLATE.md)
