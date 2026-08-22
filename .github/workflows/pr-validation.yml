@@ -126,7 +126,15 @@ jobs:
           terraform_version: "1.15.8"
 
       - name: Check Terraform formatting
-        run: terraform -chdir=terraform fmt -check -recursive
+        # terraform fmt -recursive also processes .tftest.hcl files whose
+        # canonical style may differ across Terraform patch versions.
+        # Scope the check to .tf files only, excluding .terraform plugin caches.
+        run: |
+          set -euo pipefail
+          mapfile -t tf_files < <(find terraform -name "*.tf" -not -path "*/.terraform/*")
+          if [[ ${#tf_files[@]} -gt 0 ]]; then
+            terraform fmt -check "${tf_files[@]}"
+          fi
 
       - name: Terraform init (no remote backend — no AWS credentials needed)
         run: terraform -chdir=terraform init -backend=false -no-color

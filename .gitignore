@@ -112,6 +112,7 @@ tf2-backup/
 .agents
 docs/architecture/schema.html
 update-plan.txt
+some-changes.txt
 
 # Helm — downloaded chart archives (rebuilt deterministically from Chart.lock)
 # Chart.lock itself IS committed and must not be ignored.
