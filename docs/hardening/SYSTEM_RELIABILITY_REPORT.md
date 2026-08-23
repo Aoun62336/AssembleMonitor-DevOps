@@ -15,7 +15,7 @@ This hardening phase addressed five distinct capability dimensions to elevate th
 | Capability Dimension | Delivered Implementation | Operational Outcome |
 |---|---|---|
 | **Reliability Engineering** | Health probe segregation, PodDisruptionBudgets, NetworkPolicies, and structured fault injection (3 drills). | Failure manifestations are deterministic; three controlled local fault drills recorded recovery durations between 2 min 9 sec and 2 min 35 sec. |
-| **CI/CD Pipeline** | 5-stage parallel GitHub Actions pipeline; five-job GitHub Actions validation workflow; `main-protection` branch ruleset active with 5 required status checks. | Mandatory static validation enforced prior to code integration. |
+| **CI/CD Pipeline** | 5-job parallel GitHub Actions workflow; `main-protection` branch ruleset active with 5 required status checks. | Mandatory static validation enforced prior to code integration. |
 | **Supply Chain Security** | Gitleaks Action v3 (immutable SHA-pinned reference), detect-secrets baselining, Dependabot automation, and pre-commit hooks. | Multilayered credential detection: local environment, ingress integration, and repository history. |
 | **Infrastructure as Code** | Selected private-network infrastructure modularization within an existing VPC, coupled with 5 native unit tests (`mock_provider`). | IaC logic is unit-testable within CI boundaries without necessitating AWS credential exposure. |
 | **Observability** | Declarative Grafana dashboards (Dashboard-as-Code); localized OpenTelemetry Collector integration. | Telemetry visualizations are version-controlled; distributed traces are available in local development. |

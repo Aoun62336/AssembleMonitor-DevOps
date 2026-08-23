@@ -77,7 +77,7 @@ _Document the remediation commands and timeline:_
 |---|---|---|
 | Remediation command executed | HH:MM:SS | |
 | `/api/health/ready` restored to 200 | HH:MM:SS | |
-| **Mean Time to Recovery (MTTR)** | — | X min Y sec |
+| **Observed Recovery Duration** | — | X min Y sec |
 
 ---
 

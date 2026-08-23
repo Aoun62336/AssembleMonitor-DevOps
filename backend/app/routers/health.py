@@ -101,7 +101,7 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
 
     Kubernetes uses this endpoint to decide whether to route traffic to the
     pod. Returns HTTP 200 when PostgreSQL is reachable; HTTP 503 when it is
-    not. The pod is temporarily removed from the load-balancer rotation on
+    not. The pod is temporarily removed from Ready Service endpoints on
     503 and restored automatically once the database becomes available again.
 
     - **status**: ``ready`` (200) or ``not_ready`` (503).

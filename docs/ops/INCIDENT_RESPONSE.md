@@ -71,11 +71,11 @@ psql -h <RDS_ENDPOINT> -p 5432 -U <DB_USERNAME> -d <DB_NAME> < backup.sql
 
 The following fault injection exercises were executed against the local Docker Compose environment on 2026-08-20 to validate failure detection and probe separation.
 
-| Incident ID | Fault Injection | Telemetry / Outcome | MTTR | Postmortem |
+| Incident ID | Fault Injection | Telemetry / Outcome | Observed Recovery Duration | Postmortem |
 |---|---|---|---|---|
 | **INC-001** | PostgreSQL container termination | `/live` = 200, `/ready` = 503; auto-recovered | **2 min 9 sec** | [INC-001](incidents/INC-001-database-outage.md) |
 | **INC-002** | FastAPI container termination | Nginx returned 502 immediately; auto-recovered | **2 min 35 sec** | [INC-002](incidents/INC-002-api-outage-nginx-502.md) |
 | **INC-003** | DNS resolution failure (`DATABASE_URL`) | `/live` = 200, `/ready` = 503; recovered | **2 min 22 sec** | [INC-003](incidents/INC-003-database-dns-failure.md) |
 
 > [!NOTE]
-> MTTR metrics reflect local Docker Compose recovery times and do not represent production performance. Drill execution scripts are located in [`scripts/fault-drills/`](../../scripts/fault-drills/).
+> Controlled drill recovery durations reflect local Docker Compose execution and do not represent production performance. Drill execution scripts are located in [`scripts/fault-drills/`](../../scripts/fault-drills/).

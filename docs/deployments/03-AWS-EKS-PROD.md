@@ -84,7 +84,7 @@ Navigate to the output URL (e.g., `http://<ALB_DNS_NAME>`). Traffic is routed fr
 Subsequent to the primary EKS deployment, the following reliability and security hardening measures were implemented. Consult [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md) for full evidence.
 
 - CI workflow hardening: ubuntu-24.04 runner, SHA-pinned actions, Helm 3.21.3 (curl+SHA256 verification), Terraform 1.15.8.
-- Pre-merge branch ruleset enforcing 5 required status checks (pending ruleset configuration).
+- Pre-merge branch ruleset enforcing 5 required status checks (`main-protection` ruleset active).
 - Kubernetes NetworkPolicy and PodDisruptionBudget appended to the Helm chart.
 - Terraform network module extracted with 5 native unit tests (`mock_provider`).
 - 3 controlled fault drills executed (INC-001, INC-002, INC-003) recording controlled local recovery durations ranging from 2 min 9 sec to 2 min 35 sec.
