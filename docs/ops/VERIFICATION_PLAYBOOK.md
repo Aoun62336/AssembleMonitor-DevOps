@@ -140,67 +140,90 @@ k3d cluster create assemblemonitor-hardening \
 ### Step 2 — Deploy the Helm-rendered policies and test workloads
 
 ```bash
-# Render and apply NetworkPolicy + PDB into the hardening-test namespace
-helm upgrade --install assemblemonitor k8s/helm-chart \
-  -f k8s/helm-chart/values/app.yaml \
-  -f k8s/helm-chart/values/observability.yaml \
-  -f k8s/helm-chart/values/hardening-validation.yaml
-
 # Deploy the smoke workloads (nodeSelector ensures they land on labeled agents)
 kubectl apply -f k8s/validation/hardening-smoke.yaml
 
+# Build dependencies
+helm dependency build k8s/helm-chart
+
+# Render and apply PDB only
+helm template assemblemonitor k8s/helm-chart \
+  -f k8s/helm-chart/values/app.yaml \
+  -f k8s/helm-chart/values/hardening-validation.yaml \
+  --show-only templates/pdb.yaml \
+  | kubectl apply -f -
+
+# Render and apply NetworkPolicy only
+helm template assemblemonitor k8s/helm-chart \
+  -f k8s/helm-chart/values/app.yaml \
+  -f k8s/helm-chart/values/hardening-validation.yaml \
+  --show-only templates/networkpolicy.yaml \
+  | kubectl apply -f -
+
 # Wait for backend pods to be Running and Ready
+NS=assemblemonitor-hardening-test
 kubectl rollout status deployment/hardening-backend \
-  -n assemblemonitor-hardening-test --timeout=120s
+  -n "$NS" --timeout=120s
 ```
 
-### Step 3 — Identify the node hosting PDB-selected backend pods
+### Step 3 — Identify the ACTUAL node hosting a PDB-selected backend pod
 
 ```bash
-# Find which agent node is running hardening-backend pods
-PDB_NODE=$(kubectl get pods \
-  -n assemblemonitor-hardening-test \
-  -l app=assemblemonitor-backend \
-  -o jsonpath='{.items[0].spec.nodeName}')
+NS=assemblemonitor-hardening-test
+
+PDB_NODE=$(
+  kubectl get pods \
+    -n "$NS" \
+    -l app=assemblemonitor-backend \
+    -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' \
+  | grep 'agent-' \
+  | head -n 1
+)
 
 echo "Drain target: $PDB_NODE"
 ```
 
+> **IMPORTANT:** If the command above returns nothing, do NOT proceed with the drain. It means no backend pods landed on an agent node. Check pod scheduling and fix it first.
+
 ### Step 4 — Observe PDB state before drain
 
 ```bash
-kubectl get pdb -n assemblemonitor-hardening-test
+kubectl get pods -n "$NS" -o wide
+kubectl get pdb -n "$NS"
 ```
 
-Expected: `ALLOWED DISRUPTIONS: 1` (maxUnavailable:1 with 2 replicas both Ready).
+Expected: Both backend pods Running. PDB shows `ALLOWED DISRUPTIONS: 1`.
 
 ### Step 5 — Drain the target node
+
+*Open a WIDE terminal window before running this command, as it is the one you will screenshot.*
 
 ```bash
 kubectl drain "$PDB_NODE" \
   --ignore-daemonsets \
   --delete-emptydir-data \
   --grace-period=5 \
-  --timeout=120s
+  --timeout=180s
 ```
 
-Expected: Drain output shows eviction retrying while PDB budget is exhausted, then completing once a replacement pod is ready on the second agent node.
+Expected: If the PDB temporarily blocks an eviction (e.g. because the other pod is not ready yet), Kubernetes will log eviction retries. Once permitted by the PDB, the pod will be evicted and the node drained.
 
 ### Step 6 — Verify pods rescheduled on surviving node
 
 ```bash
-kubectl get pods -n assemblemonitor-hardening-test -o wide
-kubectl get pdb -n assemblemonitor-hardening-test
+kubectl get pdb -n "$NS"
+kubectl get pods -n "$NS" -o wide
 ```
 
-Expected: All backend pods Running on the non-drained node; `ALLOWED DISRUPTIONS: 1` restored.
+Expected: `ALLOWED DISRUPTIONS: 1` restored after replacement pod becomes Ready. All backend pods Running on the non-drained node.
 
-### Step 7 — Screenshot and clean up
+### Step 7 — Uncordon and Clean up
 
 Capture the terminal output showing the drain log and final pod/PDB state as `hardening-pdb-k3d.png`.
 
 ```bash
+kubectl uncordon "$PDB_NODE"
 k3d cluster delete assemblemonitor-hardening
 ```
 
-**Success Criteria:** `kubectl drain` logs show eviction retries while PDB budget was exhausted. All backend pods rescheduled on the surviving agent. `ALLOWED DISRUPTIONS` restored after replacement pod became Ready.
+**Success Criteria:** `kubectl drain` targets the correct node hosting the backend pod. If the PDB budget is temporarily exhausted, eviction retries are logged. Pods successfully reschedule, and `ALLOWED DISRUPTIONS` recovers.
