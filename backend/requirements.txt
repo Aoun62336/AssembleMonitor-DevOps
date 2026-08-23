@@ -38,7 +38,7 @@ prometheus-fastapi-instrumentator==7.0.0
 
 # OpenTelemetry for Tempo Traces
 opentelemetry-distro==0.46b0
-opentelemetry-exporter-otlp==1.25.0
+opentelemetry-exporter-otlp==1.44.0
 opentelemetry-instrumentation-fastapi==0.46b0
 
 
