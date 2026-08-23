@@ -316,7 +316,7 @@ The following artifacts document the operational status of the primary system co
 |---|---|
 | [01 — Local Environment](docs/deployments/01-LOCAL-DOCKER.md) | Localized Docker Compose emulation |
 | [02 — K3s Cluster](docs/deployments/02-K3S-CLUSTER.md) | Lightweight EC2 Kubernetes orchestration |
-| [03 — Amazon EKS (Primary)](docs/deployments/03-AWS-EKS-PROD.md) | Production-grade GitOps EKS architecture |
+| [03 — Amazon EKS (Primary)](docs/deployments/03-AWS-EKS-PROD.md) | Primary AWS EKS GitOps architecture |
 
 ---
 
@@ -328,7 +328,7 @@ The following artifacts document the operational status of the primary system co
 | **ArgoCD GitOps vs. Imperative CI Deployments** | Introduces ArgoCD controller compute overhead; eliminates Jenkins requirement for cluster-admin credentials; ensures deployment immutability and visualizes configuration drift. |
 | **Amazon EKS vs. Self-Managed K3s** | Incurs managed control plane costs ($73/month); eliminates etcd maintenance overhead; provides native integration with AWS IAM (IRSA) and Horizontal Pod Autoscaler. |
 | **External Secrets Operator vs. Native Secrets** | Introduces operational dependency on the ESO controller; completely eliminates base64 encoded secrets from source control; enables dynamic secret rotation without application redeployment. |
-| **Self-Hosted Jenkins vs. SaaS CI (GitHub Actions)** | Imposes server maintenance overhead; provides secure, isolated network execution and facilitates direct SonarQube integration without public egress requirements. |
+| **GitHub Actions + Jenkins separation of responsibilities** | GitHub Actions provides repository-native pre-merge validation (5-job parallel CI). Jenkins remains the deeper CI/release orchestrator: SonarQube SAST, Trivy image gates, Docker registry publishing, manual approval gate, and GitOps handoff to ArgoCD. |
 
 ---
 
@@ -340,10 +340,10 @@ The following reliability enhancements were implemented and validated via GitHub
 |---|---|---|
 | **M1 — Probe Isolation** | Segregated `/api/health` into `/api/health/live` (process liveness) and `/api/health/ready` (database connectivity readiness). | `grep health/live backend/Dockerfile` |
 | **M2 — Pytest Implementation** | Implemented 23 pytest scenarios validating authentication and probe endpoints, utilizing Python 3.12 mock shims for OTEL. | `cd backend && python -m pytest tests/ -v` |
-| **M3 — GitHub Actions Pipeline** | Configured concurrent execution (4 jobs): Backend compilation, Frontend build, Terraform validation, Helm linting. | CI Pipeline Execution Log Validation |
+| **M3 — GitHub Actions Pipeline** | Five parallel jobs: backend test, frontend build, Terraform validation and unit tests, Helm validation, and secret scanning. | CI Pipeline Execution Log Validation |
 | **M4 — Helm Dependency Locking** | Implemented `Chart.lock` to enforce exact version constraints for upstream dependencies (Loki, Tempo, Kube-State-Metrics, OTEL Collector). | `cat k8s/helm-chart/Chart.lock` |
 | **M5 — PDB & Network Policies** | Configured `PodDisruptionBudget` (maxUnavailable: 1) for application workloads; structured `NetworkPolicy` templates for optional deployment isolation. | `helm template ... \| grep PodDisruptionBudget` |
-| **M6 — Jenkinsfile Security** | Applied `options {}` enforcement (timeouts, concurrent build prevention), enabled `DOCKER_BUILDKIT=1`, and integrated unit test execution within container build context. | `grep "Backend Unit Tests" Jenkinsfile-gitops` |
+| **M6 — Supply Chain Security** | Integrated Gitleaks v3 (SHA-pinned), Dependabot weekly dependency updates, detect-secrets baselining, and 9-hook pre-commit enforcement. | `cat .pre-commit-config.yaml` |
 | **M7 — Terraform Module Extraction** | Abstracted network topology into a reusable Terraform module; implemented 5 unit tests utilizing `terraform test` against a mocked provider state. | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
 | **M8 — Declarative Grafana Dashboards** | Configured application telemetry dashboard (RPS, latency percentiles, resource utilization) as an immutable JSON artifact loaded via Helm ConfigMap. | JSON Parser Validation |
 
@@ -354,4 +354,4 @@ The following reliability enhancements were implemented and validated via GitHub
 ## Operational Retrospective
 
 - **Observability Stack Integration:** Establishing the OpenTelemetry pipeline across Tempo, Loki, and Amazon Managed Prometheus required extensive version alignment between the OTEL collector, Prometheus receivers, and backend APIs. Resolution necessitated precise configuration of the OTEL DaemonSet to ensure validated telemetry routing into the Grafana visualization layer.
-- **GitOps and Ephemeral Infrastructure:** Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns. The cluster is periodically torn down and reprovisioned to maintain IaC hygiene and control costs.
+- **GitOps and Ephemeral Infrastructure:** Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns. The paid AWS environment was torn down after implementation and validation for cost control; the repository preserves the declarative infrastructure and documented reprovisioning process.
