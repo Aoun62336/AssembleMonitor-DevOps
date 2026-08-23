@@ -12,4 +12,4 @@ anyio==4.9.0          # async support used internally by TestClient
 # setuptools is required by opentelemetry-instrumentation-fastapi==0.46b0 which
 # imports pkg_resources. Python 3.11 (used in the Dockerfile) includes it;
 # Python 3.12+ does not — this entry ensures the test environment always has it.
-setuptools>=70.0
+setuptools>=84.0.0
