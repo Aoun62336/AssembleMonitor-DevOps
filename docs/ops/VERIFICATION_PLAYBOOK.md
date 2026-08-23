@@ -149,6 +149,7 @@ helm dependency build k8s/helm-chart
 # Render and apply PDB only
 helm template assemblemonitor k8s/helm-chart \
   -f k8s/helm-chart/values/app.yaml \
+  -f k8s/helm-chart/values/observability.yaml \
   -f k8s/helm-chart/values/hardening-validation.yaml \
   --show-only templates/pdb.yaml \
   | kubectl apply -f -
@@ -156,6 +157,7 @@ helm template assemblemonitor k8s/helm-chart \
 # Render and apply NetworkPolicy only
 helm template assemblemonitor k8s/helm-chart \
   -f k8s/helm-chart/values/app.yaml \
+  -f k8s/helm-chart/values/observability.yaml \
   -f k8s/helm-chart/values/hardening-validation.yaml \
   --show-only templates/networkpolicy.yaml \
   | kubectl apply -f -
