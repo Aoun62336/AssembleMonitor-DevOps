@@ -112,6 +112,8 @@ spec:
       nodeSelector:
         workload: hardening
       containers:
+        - name: frontend
+          
           image: curlimages/curl:8.8.0
           command: ["sh", "-c", "sleep 3600"]
           resources:
