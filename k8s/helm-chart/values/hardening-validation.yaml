@@ -1,15 +1,17 @@
 # =============================================================================
 # AssembleMonitor — Hardening Validation Values (k3d local testing only)
 #
-# Enables hardening features that are disabled by default in production
-# (app.yaml) for EKS historical compatibility.
+# Enables hardening features that remain disabled by default in app.yaml
+# for historical EKS compatibility.
 #
-# Usage — local k3d smoke test:
-#   helm upgrade --install assemblemonitor k8s/helm-chart \
-#     -f k8s/helm-chart/values/app.yaml \
-#     -f k8s/helm-chart/values/hardening-validation.yaml
+# Local k3d/K3s validation uses:
+#   1. k8s/validation/hardening-smoke.yaml for disposable test workloads.
+#   2. Helm-rendered templates/pdb.yaml for voluntary-disruption testing.
+#   3. Helm-rendered templates/networkpolicy.yaml for traffic-isolation testing.
 #
-# DO NOT apply this file directly to the EKS production cluster.
+# See docs/ops/VERIFICATION_PLAYBOOK.md for the complete procedure.
+# Do not use this file to imply that the later hardening revision was
+# deployed to the historical AWS EKS environment.
 # =============================================================================
 
 # Enable NetworkPolicy for local k3d/K3s runtime validation.

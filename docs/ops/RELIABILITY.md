@@ -19,7 +19,7 @@ ongoing measurement in this system, based on the monitoring infrastructure alrea
 | **HTTP Availability** | Proportion of requests to `/api/health` that return `2xx` over a rolling window | ALB access logs, Prometheus `http_requests_total` |
 | **HTTP 5xx Error Rate** | Proportion of requests returning `5xx` status codes | CloudWatch `HTTPCode_Target_5XX_Count` alarm (threshold > 5) |
 | **Request Latency (p99)** | 99th-percentile response time for API requests | OpenTelemetry traces → Tempo → Grafana |
-| **Backend Readiness** | Proportion of `/api/health/ready` calls returning `200` | Prometheus scrape of the health endpoint |
+| **Backend Readiness** | Ratio of Ready backend replicas to desired backend replicas | kube-state-metrics (`kube_deployment_status_replicas_ready` / `kube_deployment_spec_replicas`); controlled `/api/health/ready` fault drills validate probe semantics |
 | **ALB Unhealthy Targets** | Count of EKS node targets failing ALB health checks | CloudWatch `UnHealthyHostCount` alarm (threshold > 0) |
 | **RDS Availability** | PostgreSQL responding to connections (no `TimeoutError` in health probe) | Application logs, CloudWatch `RDS CPU` and `FreeStorageSpace` alarms |
 
@@ -38,7 +38,7 @@ An SLO is a target range for an SLI. The following targets represent design goal
 | **API Availability** | ≥ 99.5% | 30-day rolling | Appropriate for an internal web application without SLA commitments |
 | **5xx Error Rate** | < 0.5% of requests | 7-day rolling | Aligns with the existing CloudWatch alarm threshold of > 5 errors |
 | **p99 Latency** | < 2 000 ms | 1-hour rolling | Baseline for acceptable interactive response time |
-| **Readiness Probe Success Rate** | ≥ 99% | 30-day rolling | Ensures Kubernetes traffic gating is working as intended |
+| **Backend Ready Replica Ratio** | ≥ 99% | 30-day rolling | Ensures Kubernetes traffic gating is working as intended |
 | **ALB Unhealthy Target Count** | 0 sustained for > 5 min | Real-time | Matches the provisioned CloudWatch alarm for `UnHealthyHostCount > 0` |
 | **RDS Storage Free** | > 2 GB at all times | Real-time | Matches the provisioned CloudWatch alarm for `FreeStorageSpace < 2 GB` |
 

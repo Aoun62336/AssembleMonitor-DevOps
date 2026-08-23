@@ -63,6 +63,6 @@ While Jenkins orchestrates the primary CI/CD and deployment pipeline, GitHub Act
 | **Frontend Build** | `npm ci` and Vite production build validation |
 | **Terraform Validate** | Configuration formatting (`fmt -check`), native module unit tests (`terraform test`), and initialization validation |
 | **Helm Validate** | Dependency resolution, `helm lint`, and template rendering validation |
-| **Secret Scan** | Gitleaks historical credential scan (informational output) |
+| **Secret Scan** | Gitleaks v3 full-history credential scan; fails validation when unallowlisted secret findings are detected |
 
-The `main-protection` branch ruleset enforces successful execution of the Backend, Frontend, Terraform, and Helm validation jobs prior to allowing a merge operation.
+The `main-protection` branch ruleset requires successful execution of all five GitHub Actions jobs — Backend, Frontend, Terraform, Helm, and Secret Scan — before changes can be merged into `main`.

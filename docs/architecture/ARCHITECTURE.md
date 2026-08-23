@@ -36,7 +36,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Diagram 3 — AWS Network & Infrastructure Deployment
 
-> Full AWS VPC topology in `us-east-1`: Internet Gateway and NAT Gateway sit in public subnets; an Application Load Balancer protected by AWS WAF (Web Application Firewall) is the single public entry point; the EKS Managed Node Group (3 × `c7i-flex.large`) and RDS PostgreSQL are fully isolated in private subnets; two S3 buckets serve application file uploads and observability backend storage separately; IAM + OIDC + IRSA enforce least-privilege identity at the pod level; and supporting EC2 servers (Jenkins, SonarQube, K3s) operate as external actors. A Route 53 hosted zone and ACM certificate exist in `terraform/route53.tf` but are **not applied** — no custom domain is registered, and public access uses the ALB DNS name directly.
+> Full AWS VPC topology in `us-east-1`: Internet Gateway and NAT Gateway sit in public subnets; an Application Load Balancer protected by AWS WAF (Web Application Firewall) is the single public entry point; the EKS Managed Node Group (configured min/desired/max 2/2/3; captured runtime evidence shows two Ready `c7i-flex.large` worker nodes) and RDS PostgreSQL are fully isolated in private subnets; two S3 buckets serve application file uploads and observability backend storage separately; IAM + OIDC + IRSA enforce least-privilege identity at the pod level; and supporting EC2 servers (Jenkins, SonarQube, K3s) operate as external actors. A Route 53 hosted zone and ACM certificate exist in `terraform/route53.tf` but are **not applied** — no custom domain is registered, and public access uses the ALB DNS name directly.
 
 ![AWS Network and Infrastructure Deployment](03-aws-network-deployment.jpeg)
 
@@ -44,7 +44,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Diagram 4 — EKS Internal Architecture
 
-> Kubernetes cluster internals at full depth: the EKS Control Plane manages four namespaces — `assemblemonitor` (Frontend Deployment, Backend Deployment, both HPAs, OTel Collector DaemonSet, ExternalSecret, and two Kubernetes Secrets), `external-secrets` (ESO Controller with IRSA), `argocd` (ArgoCD Application Controller), and `kube-system` (Metrics Server, EBS CSI Driver, gp3 StorageClass). Five IRSA-enabled ServiceAccounts (Backend, ESO, OTel Collector, Grafana, EBS CSI Controller) map to dedicated IAM roles. The Managed Node Group runs 3 worker nodes with a desired/min/max of 2/2/3.
+> Kubernetes cluster internals at full depth: the EKS Control Plane manages four namespaces — `assemblemonitor` (Frontend Deployment, Backend Deployment, both HPAs, OTel Collector DaemonSet, ExternalSecret, and two Kubernetes Secrets), `external-secrets` (ESO Controller with IRSA), `argocd` (ArgoCD Application Controller), and `kube-system` (Metrics Server, EBS CSI Driver, gp3 StorageClass). Five IRSA-enabled ServiceAccounts (Backend, ESO, OTel Collector, Grafana, EBS CSI Controller) map to dedicated IAM roles. The Managed Node Group is configured with min/desired/max capacity of 2/2/3; captured runtime evidence shows two Ready worker nodes.
 
 ![EKS Internal Architecture](04-eks-internal-architecture.jpeg)
 

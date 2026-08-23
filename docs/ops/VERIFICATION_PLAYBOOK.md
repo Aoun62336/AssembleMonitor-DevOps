@@ -221,7 +221,10 @@ Expected: `ALLOWED DISRUPTIONS: 1` restored after replacement pod becomes Ready.
 
 ### Step 7 — Uncordon and Clean up
 
-Capture the terminal output showing the drain log and final pod/PDB state as `hardening-pdb-k3d.png`.
+The captured PDB runtime evidence is stored in two existing artifacts:
+
+- `hardening-pdb-k3d.1.jpg` — pre-drain PDB state and selected-workload placement.
+- `hardening-pdb-k3d.2.jpg` — voluntary drain execution, eviction/rescheduling, and post-drain PDB state.
 
 ```bash
 kubectl uncordon "$PDB_NODE"

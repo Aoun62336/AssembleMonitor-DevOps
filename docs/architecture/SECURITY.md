@@ -31,19 +31,22 @@ Kubernetes `NetworkPolicy` and `PodDisruptionBudget` resources are codified in t
 
 ### NetworkPolicy
 
-Two policies enforce pod-level traffic isolation in the `assemblemonitor` namespace:
+When `networkPolicy.enabled` is enabled, two policies apply pod-level traffic isolation to the selected frontend and backend workloads:
 
 | Policy | Ingress | Egress |
 |---|---|---|
 | **Backend** | Port 8000 from frontend pods and OTel collector pods only | DNS (53), PostgreSQL (5432), OTLP gRPC (4317), HTTPS/AWS APIs (443), SMTP (587/465) |
-| **Frontend** | Port 80 from anywhere (ALB/ingress-nginx terminates TLS externally) | DNS (53) and backend port 8000 only |
+| **Frontend** | Application port 8080; external EKS routing is handled by the Terraform-managed AWS ALB | DNS (53) and backend port 8000 only |
 
 Policies are disabled by default (`networkPolicy.enabled: false`) for EKS historical compatibility and enabled via `values/hardening-validation.yaml` for k3d testing.
 
 ### PodDisruptionBudget
 
-Both backend and frontend Deployments have a `PodDisruptionBudget` with `maxUnavailable: 1`, gated on `pdb.enabled` AND `hpa.enabled`. This ensures:
-- Rolling deployments always keep at least `(minReplicas - 1)` pods live.
-- Node drains (cluster upgrades, autoscaler scale-in) are blocked until a replacement pod is healthy.
+Both backend and frontend Deployments define a `PodDisruptionBudget` with `maxUnavailable: 1`, gated on `pdb.enabled` AND `hpa.enabled`.
 
-Requires Kubernetes ≥ 1.21 (`policy/v1`).
+When enabled:
+- voluntary disruptions through the Kubernetes Eviction API may make at most one selected replica unavailable at a time;
+- `kubectl drain` respects the disruption budget and may retry evictions while the budget is exhausted;
+- Deployment rolling-update availability remains governed by the Deployment rollout strategy rather than by the PodDisruptionBudget.
+
+The manifests use the stable `policy/v1` API.

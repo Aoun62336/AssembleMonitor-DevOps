@@ -23,7 +23,7 @@ bash scripts/fault-drills/00-preflight.sh
 
 ## Drill Inventory
 
-| Script | Failure Scenario | Postmortem Reference | MTTR |
+| Script | Failure Scenario | Postmortem Reference | Observed Recovery Duration |
 |---|---|---|---|
 | `00-preflight.sh` | Pre-execution health verification | — | — |
 | `01-database-outage.sh` | PostgreSQL container termination. Validates API liveness preservation and readiness degradation. | [`INC-001`](../../docs/ops/incidents/INC-001-database-outage.md) | 2 min 9 sec |

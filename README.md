@@ -40,8 +40,8 @@ The platform provisions distinct access across four Role-Based Access Control (R
 | **Observability** | End-to-end OpenTelemetry integration: Metrics → AMP, Logs → Loki, Traces → Tempo, unified within Grafana |
 | **GitOps** | Jenkins → GitHub → ArgoCD → EKS · Imperative `kubectl` commands eliminated from CI · ArgoCD autonomous drift remediation |
 | **DevSecOps** | SonarQube static analysis and Trivy CVE scanning enforced during build phase (shift-left security) |
-| **FinOps** | Ephemeral cluster execution: Daily `terraform destroy` and `terraform apply` cycles limit compute expenditure (Restoration RTO: ~8–10 minutes) |
-| **Reliability** | 23-test Pytest suite · GitHub Actions 5-job parallel CI (backend-test, frontend-build, terraform-validate, helm-validate, secret-scan) · PodDisruptionBudgets governing voluntary pod eviction · `terraform test` module validation · Declarative Grafana dashboards |
+| **FinOps** | Paid AWS infrastructure was torn down after implementation and validation to control personal cloud costs; Terraform preserves the infrastructure definition and documented reprovisioning workflow. |
+| **Reliability** | 23-test Pytest suite · GitHub Actions 5-job parallel CI (backend-test, frontend-build, terraform-validate, helm-validate, secret-scan) · runtime-tested PodDisruptionBudget and NetworkPolicy controls in disposable k3d/K3s · `terraform test` module validation · declarative Grafana dashboards |
 
 ## Architecture Overview
 
@@ -193,7 +193,7 @@ kubectl get pods -n assemblemonitor
 terraform output alb_url
 ```
 
-> **Ephemeral Cluster Lifecycle:** The EKS cluster is decommissioned nightly for cost optimization. All system components are provisioned automatically during `terraform apply`. Imperative Kubernetes commands (`helm install`, `kubectl apply`) are not required during environment initialization.
+> **Cost-Controlled AWS Lifecycle:** The paid AWS environment was torn down after implementation and validation to control personal cloud costs. Terraform, Helm, GitOps configuration, runbooks, and captured runtime evidence preserve the deployment design and documented reprovisioning workflow; the repository does not claim a scheduled nightly destroy/recreate cycle.
 
 ---
 
@@ -214,7 +214,7 @@ The `Jenkinsfile-k3s` pipeline executes the CI/CD sequence against a K3s cluster
 |---|---|
 | **Kubernetes** | K3s distribution on a singular AWS EC2 instance |
 | **Manifest Definitions** | Explicit Kubernetes YAML (`k8s/` directory) |
-| **Secret Management** | Kubernetes `Secret` resources (Base64 encoded via `k8s/secret.yaml`) |
+| **Secret Management** | Kubernetes Secret generated locally from `k8s/secret.yaml.template`; the populated `k8s/secret.yaml` remains gitignored and is not committed. |
 | **Service Exposure** | Frontend: NodePort `30080` — Backend: NodePort `30081` |
 | **Telemetry** | Prometheus Node Exporter (systemd daemon via Ansible) |
 
@@ -339,12 +339,12 @@ The following reliability enhancements were implemented and validated via GitHub
 | Milestone | Implementation Details | Validation Mechanism |
 |---|---|---|
 | **M1 — Probe Isolation** | Segregated `/api/health` into `/api/health/live` (process liveness) and `/api/health/ready` (database connectivity readiness). | `grep health/live backend/Dockerfile` |
-| **M2 — Pytest Implementation** | Implemented 23 pytest scenarios validating authentication and probe endpoints, utilizing Python 3.12 mock shims for OTEL. | `cd backend && python -m pytest tests/ -v` |
+| **M2 — Backend Test Suite** | Implemented 23 automated backend tests validating authentication and health/probe behavior with mocked SQLAlchemy `AsyncSession` dependencies. | `cd backend && python -m pytest tests/ -v` |
 | **M3 — GitHub Actions Pipeline** | Five parallel jobs: backend test, frontend build, Terraform validation and unit tests, Helm validation, and secret scanning. | CI Pipeline Execution Log Validation |
 | **M4 — Helm Dependency Locking** | Implemented `Chart.lock` to enforce exact version constraints for upstream dependencies (Loki, Tempo, Kube-State-Metrics, OTEL Collector). | `cat k8s/helm-chart/Chart.lock` |
-| **M5 — PDB & Network Policies** | Configured `PodDisruptionBudget` (maxUnavailable: 1) for application workloads; structured `NetworkPolicy` templates for optional deployment isolation. | `helm template ... \| grep PodDisruptionBudget` |
+| **M5 — Kubernetes Resilience & Network Hardening** | Configured `PodDisruptionBudget` (`maxUnavailable: 1`) and selected-workload `NetworkPolicy` controls for frontend/backend workloads. | k3d/K3s runtime validation (voluntary node drain + backend ingress isolation) and Helm template validation |
 | **M6 — Supply Chain Security** | Integrated Gitleaks v3 (SHA-pinned), Dependabot weekly dependency updates, detect-secrets baselining, and 9-hook pre-commit enforcement. | `cat .pre-commit-config.yaml` |
-| **M7 — Terraform Module Extraction** | Abstracted network topology into a reusable Terraform module; implemented 5 unit tests utilizing `terraform test` against a mocked provider state. | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
+| **M7 — Terraform Module Extraction** | Refactored the private-networking layer within an existing VPC into a reusable Terraform module; implemented 5 native `terraform test` cases using `mock_provider`. | `grep "^run " terraform/modules/network/tests/network_unit.tftest.hcl` |
 | **M8 — Declarative Grafana Dashboards** | Configured application telemetry dashboard (RPS, latency percentiles, resource utilization) as an immutable JSON artifact loaded via Helm ConfigMap. | JSON Parser Validation |
 
 → [Comprehensive Verification Procedures](docs/ops/VERIFICATION_PLAYBOOK.md)
@@ -354,4 +354,4 @@ The following reliability enhancements were implemented and validated via GitHub
 ## Operational Retrospective
 
 - **Observability Stack Integration:** Establishing the OpenTelemetry pipeline across Tempo, Loki, and Amazon Managed Prometheus required extensive version alignment between the OTEL collector, Prometheus receivers, and backend APIs. Resolution necessitated precise configuration of the OTEL DaemonSet to ensure validated telemetry routing into the Grafana visualization layer.
-- **GitOps and Ephemeral Infrastructure:** Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns. The paid AWS environment was torn down after implementation and validation for cost control; the repository preserves the declarative infrastructure and documented reprovisioning process.
+- **GitOps and Cost-Controlled Infrastructure:** Managing the state transition from Terraform infrastructure provisioning to ArgoCD application synchronization validated the necessity of declarative infrastructure and immutable deployment patterns. The paid AWS environment was torn down after implementation and validation for cost control; the repository preserves the declarative infrastructure and documented reprovisioning process.
