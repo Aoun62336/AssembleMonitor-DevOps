@@ -1,10 +1,10 @@
-# AssembleMonitor — Performance Tests
+# Performance Testing Suite
 
-This directory contains [k6](https://k6.io/) load test scripts for validating HPA autoscaling behavior and baseline response times under load.
+This directory contains [k6](https://k6.io/) load testing scripts designed to validate Horizontal Pod Autoscaler (HPA) behavior and measure baseline API response times under load.
 
-## Test Scripts
+## Test Matrix
 
-| Script | Endpoint | VUs | Duration |
+| Script | Target Endpoint | Virtual Users (VUs) | Duration |
 |---|---|---|---|
 | `health-test.js` | `GET /api/health` | 5 | 30s |
 | `frontend-test.js` | `GET /` | 5 | 30s |
@@ -12,40 +12,43 @@ This directory contains [k6](https://k6.io/) load test scripts for validating HP
 
 ## Prerequisites
 
-- [k6](https://k6.io/docs/get-started/installation/) installed locally
-- A running deployment with a reachable ALB DNS name or local URL
+- [k6](https://k6.io/docs/get-started/installation/) binary installed on the execution host.
+- A functional deployment accessible via an ALB DNS endpoint or local host URL.
 
-## Running Tests
+## Execution Procedure
 
 ```bash
-# Health endpoint
+# Health endpoint validation
 k6 run -e BASE_URL=http://<ALB_DNS_NAME> performance-tests/health-test.js
 
-# Frontend
+# Frontend index validation
 k6 run -e BASE_URL=http://<ALB_DNS_NAME> performance-tests/frontend-test.js
 
-# Login (Auth + DB read)
+# Authentication flow validation (Auth + DB read)
 k6 run -e BASE_URL=http://<ALB_DNS_NAME> \
   -e LOGIN_EMAIL=admin@example.com \
   -e LOGIN_PASSWORD=your_password \
   performance-tests/login-test.js
 ```
 
-## What to Watch During Tests
+## Infrastructure Telemetry
+
+To correlate load generation with auto-scaling events, execute the following monitoring commands concurrently:
 
 ```bash
-# Monitor HPA scaling decisions
+# Monitor HPA scaling threshold evaluations
 kubectl get hpa -n assemblemonitor -w
 
-# Monitor pod count changes
+# Monitor pod provisioning and termination events
 kubectl get pods -n assemblemonitor -w
 ```
 
-## Key Metrics
+## Key Metrics Interpretation
 
-- `http_req_duration` — total request round-trip time
-- `http_req_failed` — percentage of failed requests
-- `checks` — pass/fail rate on defined thresholds
-- `p95` — 95th percentile response time
+- `http_req_duration`: End-to-end request latency
+- `http_req_failed`: Error rate percentage
+- `checks`: Success rate against predefined thresholds
+- `p95`: 95th percentile response latency
 
-> Tests are run manually post-deployment. They are not currently integrated into the Jenkins CI/CD pipeline.
+> [!NOTE]
+> Tests are executed manually post-deployment. Automated execution within the Jenkins CI/CD pipeline is not currently implemented.

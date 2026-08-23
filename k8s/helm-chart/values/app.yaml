@@ -22,17 +22,20 @@ backend:
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
   readinessProbe:
-    path: /api/health
+    path: /api/health/ready
     initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 6
   livenessProbe:
-    path: /api/health
+    path: /api/health/live
     initialDelaySeconds: 40
     periodSeconds: 20
     timeoutSeconds: 5
     failureThreshold: 3
+  pdb:
+    enabled: true
+    maxUnavailable: 1
   resources:
     requests:
       cpu: "100m"
@@ -65,6 +68,9 @@ frontend:
     periodSeconds: 20
     timeoutSeconds: 5
     failureThreshold: 3
+  pdb:
+    enabled: true
+    maxUnavailable: 1
   resources:
     requests:
       cpu: "50m"
@@ -87,3 +93,8 @@ externalNodes:
   sonarqube:
     ip: "REPLACE_WITH_SONARQUBE_PRIVATE_IP"
 
+# NetworkPolicy — disabled by default for EKS historical compatibility.
+# Set enabled: true in k8s/helm-chart/values/hardening-validation.yaml
+# for k3d runtime testing only.
+networkPolicy:
+  enabled: false

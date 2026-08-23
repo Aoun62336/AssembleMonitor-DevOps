@@ -1,0 +1,121 @@
+{{/*
+NetworkPolicy — backend and frontend.
+
+Disabled by default (networkPolicy.enabled: false in app.yaml) for
+EKS historical compatibility. Enable via hardening-validation.yaml for
+k3d local testing.
+
+Backend policy:
+  Ingress  — allow port 8000 from frontend pods and OTel collector pods.
+  Egress   — allow DNS (53), PostgreSQL (5432), OTLP gRPC (4317),
+             HTTPS for AWS APIs (443), SMTP for email (587).
+
+Frontend policy:
+  Ingress  — allow port {{ .Values.frontend.containerPort }} from anywhere
+             (External routing for the EKS path is handled by the Terraform-managed AWS ALB.)
+  Egress   — allow DNS (53) + backend API port 8000.
+*/}}
+
+{{- if .Values.networkPolicy.enabled }}
+# ── Backend NetworkPolicy ────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-backend-netpol
+  namespace: {{ .Values.namespace }}
+  labels:
+    component: backend
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: assemblemonitor-backend
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Frontend → backend API
+    - from:
+        - podSelector:
+            matchLabels:
+              app: assemblemonitor-frontend
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Optional Prometheus/OTel scrape access to the backend metrics endpoint when application-metric scraping is enabled.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: opentelemetry-collector
+      ports:
+        - port: 8000
+          protocol: TCP
+
+  egress:
+    # DNS — required for service discovery and AWS SDK endpoint resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # PostgreSQL — RDS in production / postgres container in k3d
+    - ports:
+        - port: 5432
+          protocol: TCP
+    # OTLP gRPC — export traces to OTel collector DaemonSet
+    - ports:
+        - port: 4317
+          protocol: TCP
+    # HTTPS — AWS APIs such as S3 and Secrets Manager
+    - ports:
+        - port: 443
+          protocol: TCP
+    # SMTP — password-reset email (Milestone: preserved from original auth flow)
+    - ports:
+        - port: 587
+          protocol: TCP
+        - port: 465
+          protocol: TCP
+---
+# ── Frontend NetworkPolicy ───────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}-frontend-netpol
+  namespace: {{ .Values.namespace }}
+  labels:
+    component: frontend
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  podSelector:
+    matchLabels:
+      app: assemblemonitor-frontend
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow the frontend application port; external EKS routing is handled by the Terraform-managed ALB.
+    - ports:
+        - port: {{ .Values.frontend.containerPort }}
+          protocol: TCP
+
+  egress:
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Backend API
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assemblemonitor-backend
+      ports:
+        - port: 8000
+          protocol: TCP
+{{- end }}

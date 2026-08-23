@@ -1,0 +1,51 @@
+# =============================================================================
+# AssembleMonitor — Dependabot Auto-Update Configuration
+#
+# Dependabot opens automated PRs to keep dependencies current:
+#   - GitHub Actions actions (weekly)
+#   - Python pip packages in backend/ (weekly)
+#   - Node.js npm packages in frontend/ (weekly)
+#
+# Each PR goes through the full pr-validation.yml CI gate before merge.
+# =============================================================================
+version: 2
+
+updates:
+  # GitHub Actions — keeps pinned action versions current
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    commit-message:
+      prefix: "ci(deps)"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Python pip — backend service dependencies
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    commit-message:
+      prefix: "build(deps)"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Node.js npm — frontend React application dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    commit-message:
+      prefix: "build(deps)"
+    labels:
+      - "dependencies"
+      - "javascript"

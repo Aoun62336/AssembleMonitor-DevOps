@@ -2,7 +2,7 @@
 
 ## Architectural Evolution
 
-The architecture of AssembleMonitor has progressively evolved to handle increased scale, ensure zero downtime, and implement strict enterprise cloud-native standards:
+The architecture of AssembleMonitor has progressively evolved to handle increased scale, implement rolling Kubernetes deployments, and apply cloud-native security standards:
 
 1. **Legacy Auto Scaling**: The initial cloud deployment ran raw Docker containers on EC2 instances managed by an AWS Auto Scaling Group (ASG), fetching credentials dynamically via IAM instance profiles.
 2. **Staging Environment (K3s)**: We introduced a standalone Kubernetes (K3s) server to transition the workloads to container orchestration, enabling automated rolling updates via Jenkins CI/CD.
@@ -36,7 +36,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Diagram 3 — AWS Network & Infrastructure Deployment
 
-> Full AWS VPC topology in `us-east-1`: Internet Gateway and NAT Gateway sit in public subnets; an Application Load Balancer protected by AWS WAF (Web Application Firewall) is the single public entry point; the EKS Managed Node Group (3 × `c7i-flex.large`) and RDS PostgreSQL are fully isolated in private subnets; two S3 buckets serve application file uploads and observability backend storage separately; IAM + OIDC + IRSA enforce least-privilege identity at the pod level; and supporting EC2 servers (Jenkins, SonarQube, K3s) operate as external actors. A Route 53 hosted zone and ACM certificate exist in `terraform/route53.tf` but are **not applied** — no custom domain is registered, and public access uses the ALB DNS name directly.
+> Full AWS VPC topology in `us-east-1`: Internet Gateway and NAT Gateway sit in public subnets; an Application Load Balancer protected by AWS WAF (Web Application Firewall) is the single public entry point; the EKS Managed Node Group (configured min/desired/max 2/2/3; captured runtime evidence shows two Ready `c7i-flex.large` worker nodes) and RDS PostgreSQL are fully isolated in private subnets; two S3 buckets serve application file uploads and observability backend storage separately; IAM + OIDC + IRSA enforce least-privilege identity at the pod level; and supporting EC2 servers (Jenkins, SonarQube, K3s) operate as external actors. A Route 53 hosted zone and ACM certificate exist in `terraform/route53.tf` but are **not applied** — no custom domain is registered, and public access uses the ALB DNS name directly.
 
 ![AWS Network and Infrastructure Deployment](03-aws-network-deployment.jpeg)
 
@@ -44,7 +44,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Diagram 4 — EKS Internal Architecture
 
-> Kubernetes cluster internals at full depth: the EKS Control Plane manages four namespaces — `assemblemonitor` (Frontend Deployment, Backend Deployment, both HPAs, OTel Collector DaemonSet, ExternalSecret, and two Kubernetes Secrets), `external-secrets` (ESO Controller with IRSA), `argocd` (ArgoCD Application Controller), and `kube-system` (Metrics Server, EBS CSI Driver, gp3 StorageClass). Five IRSA-enabled ServiceAccounts (Backend, ESO, OTel Collector, Grafana, EBS CSI Controller) map to dedicated IAM roles. The Managed Node Group runs 3 worker nodes with a desired/min/max of 2/2/3.
+> Kubernetes cluster internals at full depth: the EKS Control Plane manages four namespaces — `assemblemonitor` (Frontend Deployment, Backend Deployment, both HPAs, OTel Collector DaemonSet, ExternalSecret, and two Kubernetes Secrets), `external-secrets` (ESO Controller with IRSA), `argocd` (ArgoCD Application Controller), and `kube-system` (Metrics Server, EBS CSI Driver, gp3 StorageClass). Five IRSA-enabled ServiceAccounts (Backend, ESO, OTel Collector, Grafana, EBS CSI Controller) map to dedicated IAM roles. The Managed Node Group is configured with min/desired/max capacity of 2/2/3; captured runtime evidence shows two Ready worker nodes.
 
 ![EKS Internal Architecture](04-eks-internal-architecture.jpeg)
 
@@ -52,7 +52,7 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Diagram 5 — CI/CD & GitOps Pipeline
 
-> End-to-end delivery pipeline from source code to production: a developer pushes to GitHub, which triggers a Jenkins webhook; Jenkins runs the full CI pipeline — source checkout, Trivy filesystem security scan, SonarQube static code analysis with a quality gate, Docker image build, and Docker Hub publish. The pipeline then branches: the **Primary GitOps Path** commits updated Helm image tags to the repository, ArgoCD detects the change and performs a zero-downtime rolling deployment to the EKS production cluster; the **Secondary SSH Path** deploys directly to the K3s staging cluster via SSH and `kubectl apply` after manual approval.
+> End-to-end delivery pipeline from source code to production: a developer pushes to GitHub, which triggers a Jenkins webhook; Jenkins runs the full CI pipeline — source checkout, Trivy filesystem security scan, SonarQube static code analysis with a quality gate, Docker image build, and Docker Hub publish. The pipeline then branches: the **Primary GitOps Path** commits updated Helm image tags to the repository, ArgoCD detects the change and performs a Kubernetes rolling deployment to the EKS production cluster; the **Secondary SSH Path** deploys directly to the K3s staging cluster via SSH and `kubectl apply` after manual approval.
 
 ![CI/CD and GitOps Pipeline](05-cicd-gitops-pipeline.jpeg)
 
@@ -92,31 +92,39 @@ The architecture of AssembleMonitor has progressively evolved to handle increase
 
 ## Component Explanation
 
-### ☁️ Amazon EKS (Elastic Kubernetes Service)
+### Amazon EKS (Elastic Kubernetes Service)
 
 The core production environment running the application natively via Kubernetes pods. Nodes are provisioned dynamically in an EKS Managed Node Group within private subnets. Traffic is managed by a Terraform-owned AWS Application Load Balancer (ALB) bound directly to the EKS NodePorts, and protected by an AWS Web Application Firewall (WAF).
 
-### 🤖 GitOps & Auto-Scaling
+### GitOps & Auto-Scaling
 
-- **ArgoCD**: The GitOps Continuous Delivery controller. It constantly monitors the GitHub repository and ensures the EKS cluster state perfectly matches the Helm templates stored in Git.
+- **ArgoCD**: The GitOps Continuous Delivery controller. It continuously reconciles the in-scope Git-defined Kubernetes desired state with the EKS cluster.
 - **Horizontal Pod Autoscaler (HPA)**: Dynamically scales the frontend and backend pods (from 2 up to 5) based on CPU utilization metrics collected by the Kubernetes Metrics Server.
 
-### 🔒 Security (IRSA & ESO)
+### Security (IRSA & ESO)
 
 - **Metadata Security**: The EC2 instance metadata endpoint hop limit is restricted (`hop_limit = 1`) to prevent containers from assuming the node's IAM role.
 - **IRSA (IAM Roles for Service Accounts)**: A secure, OIDC-backed AWS token is injected directly into the Backend pod, granting it precise permissions to interact with AWS S3 via `boto3`.
 - **External Secrets Operator (ESO)**: Also leveraging IRSA, this operator dynamically fetches database credentials and JWT secrets from AWS Secrets Manager and safely mounts them as native Kubernetes Secrets, preventing hardcoded Base64 credentials.
 
-### 💻 Frontend & Backend
+### Frontend & Backend
 
 - **Frontend**: React and Vite, containerized and served using Nginx inside the frontend Kubernetes Pods. The Nginx reverse-proxy configuration is dynamically injected at runtime via Kubernetes ConfigMaps.
 - **Backend API**: Python FastAPI exposing REST APIs. Environment variables are injected securely via Kubernetes Secrets pulled by ESO.
 
-### 🗄️ Database & Storage
+### Database & Storage
 
 - **AWS RDS PostgreSQL**: Managed database deployed securely within private subnets.
 - **AWS S3**: Secure object storage for construction site photos.
 
-### 🏗️ Infrastructure as Code
+### Infrastructure as Code
 
 Terraform is utilized extensively to codify the VPC, ALB, WAF, RDS, S3, Secrets Manager, IAM Roles (including OIDC Trust Policies), and the EKS Cluster. A Route 53 hosted zone and ACM certificate configuration is written and plan-validated (`terraform/route53.tf`) but not applied — the project currently uses the ALB DNS name for public access.
+
+---
+
+## 10 Post-Deployment Hardening
+
+> This section documents the reliability and security hardening applied to the repository after the primary EKS deployment. Changes are evidenced in [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md).
+
+![Post-Deployment Hardening](10-post-deployment-hardening.png)

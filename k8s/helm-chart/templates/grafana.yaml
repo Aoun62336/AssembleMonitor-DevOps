@@ -43,6 +43,8 @@ data:
 {{ .Files.Get "dashboards/kubernetes-overview.json" | indent 4 }}
   ec2-fleet-health.json: |
 {{ .Files.Get "dashboards/ec2-fleet-health.json" | indent 4 }}
+  application-overview.json: |
+{{ .Files.Get "dashboards/application-overview.json" | indent 4 }}
 ---
 apiVersion: v1
 kind: ConfigMap

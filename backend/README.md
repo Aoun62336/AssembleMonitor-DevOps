@@ -5,259 +5,262 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?style=flat-square)](https://www.sqlalchemy.org/)
 
-Async Python REST API for the AssembleMonitor construction management platform. Built with FastAPI and SQLAlchemy 2.0, deployed inside an Amazon EKS cluster with full Prometheus metrics and OpenTelemetry distributed tracing.
+Async Python REST API for the AssembleMonitor platform. Compiled via FastAPI and SQLAlchemy 2.0, orchestrated within Amazon EKS featuring Prometheus telemetry and OpenTelemetry distributed tracing.
 
 ---
 
-## Tech Stack
+## Technology Stack
 
-| Layer                    | Library                               | Version       |
-| ------------------------ | ------------------------------------- | ------------- |
-| Web framework            | FastAPI                               | 0.115         |
-| ASGI server              | Uvicorn (with websockets + httptools) | 0.34          |
-| ORM                      | SQLAlchemy (async engine)             | 2.0           |
-| Async DB driver          | asyncpg                               | 0.31          |
-| Sync DB driver (Alembic) | psycopg2-binary                       | 2.9           |
-| Migrations               | Alembic                               | 1.15          |
-| Auth                     | python-jose + passlib/bcrypt          | JWT HS256     |
-| Configuration            | pydantic-settings v2                  | 2.9           |
-| Validation               | Pydantic                              | 2.13          |
-| AWS SDK                  | boto3                                 | 1.36          |
-| Metrics                  | prometheus-fastapi-instrumentator     | unpinned      |
-| Tracing                  | opentelemetry-distro + OTLP exporter  | 0.46b0 / 1.25 |
+| Layer | Library | Version |
+|---|---|---|
+| Web Framework | FastAPI | 0.115 |
+| ASGI Server | Uvicorn (websockets + httptools) | 0.34 |
+| ORM | SQLAlchemy (async engine) | 2.0 |
+| Async DB Driver | asyncpg | 0.31 |
+| Sync DB Driver | psycopg2-binary | 2.9 |
+| Migrations | Alembic | 1.15 |
+| Authentication | python-jose + passlib/bcrypt | JWT HS256 |
+| Configuration | pydantic-settings v2 | 2.9 |
+| Validation | Pydantic | 2.13 |
+| AWS Integration | boto3 | 1.36 |
+| Metrics | prometheus-fastapi-instrumentator | unpinned |
+| Tracing | opentelemetry-distro + OTLP exporter | 0.46b0 / 1.25 |
 
 ---
 
-## Project Structure
+## Directory Structure
 
-```
+```text
 backend/
 ├── app/
 │   ├── core/
-│   │   ├── config.py           # pydantic-settings — loads .env, validates all settings
-│   │   └── security.py         # JWT creation/verification, bcrypt password hashing
+│   │   ├── config.py           # Configuration validation (pydantic-settings)
+│   │   └── security.py         # JWT issuance and cryptographic hashing
 │   ├── db/
-│   │   ├── base.py             # SQLAlchemy DeclarativeBase (shared metadata)
-│   │   └── session.py          # Async engine + AsyncSession factory
-│   ├── models/                 # ORM models (import-ordered to resolve FK dependencies)
-│   │   ├── user.py             # User — roles: admin, pm, se, client
-│   │   ├── project.py          # Project + ProjectAssignment (many-to-many)
-│   │   ├── phase.py            # Phase — child of Project
-│   │   ├── task.py             # Task — child of Phase, assigned to User
-│   │   ├── material.py         # Material + MaterialStock + MaterialUsage
-│   │   ├── attendance.py       # Attendance — engineer hours per project
-│   │   ├── expense.py          # Expense — non-material project costs
-│   │   ├── site_photo.py       # SitePhoto — S3-backed photo uploads
-│   │   ├── notification.py     # Notification — per-user in-app alerts
-│   │   └── mixins.py           # TimestampMixin, UUIDPrimaryKeyMixin
-│   ├── routers/                # 14 FastAPI routers (registered under /api/v1/)
-│   │   ├── health.py           # GET /api/health (public — ALB + probe target)
-│   │   ├── auth.py             # POST /login, /refresh, /logout
-│   │   ├── users.py            # User CRUD + role management
-│   │   ├── projects.py         # Project CRUD + assignment
-│   │   ├── phases.py           # Phase management per project
-│   │   ├── tasks.py            # Task CRUD, assignment, status
-│   │   ├── materials.py        # Inventory, stock, usage logs
-│   │   ├── attendance.py       # Attendance records
+│   │   ├── base.py             # SQLAlchemy DeclarativeBase metadata
+│   │   └── session.py          # Async engine and AsyncSession factory
+│   ├── models/                 # ORM entities
+│   │   ├── user.py             # User authorization roles
+│   │   ├── project.py          # Project topology
+│   │   ├── phase.py            # Phase hierarchy
+│   │   ├── task.py             # Task allocation
+│   │   ├── material.py         # Material inventory
+│   │   ├── attendance.py       # Labor tracking
+│   │   ├── expense.py          # Financial ledger
+│   │   ├── site_photo.py       # S3 object metadata
+│   │   ├── notification.py     # System alerts
+│   │   └── mixins.py           # Universal ORM mixins
+│   ├── routers/                # FastAPI routing controllers (/api/v1/)
+│   │   ├── health.py           # Infrastructure health probes
+│   │   ├── auth.py             # Authentication endpoints
+│   │   ├── users.py            # User management
+│   │   ├── projects.py         # Project management
+│   │   ├── phases.py           # Phase tracking
+│   │   ├── tasks.py            # Task execution
+│   │   ├── materials.py        # Inventory control
+│   │   ├── attendance.py       # Labor management
 │   │   ├── expenses.py         # Expense tracking
-│   │   ├── site_photos.py      # S3 upload/download with IRSA Web Identity Token
-│   │   ├── analytics.py        # Aggregated KPIs across projects and costs
-│   │   ├── admin.py            # Admin-only system operations
-│   │   ├── notifications.py    # Notification management
+│   │   ├── site_photos.py      # S3 ingestion
+│   │   ├── analytics.py        # Aggregated telemetry
+│   │   ├── admin.py            # Administrative overrides
+│   │   ├── notifications.py    # Alert delivery
 │   │   └── __init__.py
-│   ├── schemas/                # Pydantic request/response models (one file per domain)
+│   ├── schemas/                # Pydantic serialization models
 │   ├── utils/
-│   │   ├── s3.py               # S3 upload/download helpers (boto3)
-│   │   ├── email.py            # SMTP email sending (password reset)
-│   │   ├── logic.py            # Business logic helpers
-│   │   ├── pagination.py       # Cursor-based pagination utilities
-│   │   ├── notifications.py    # Notification dispatch helpers
-│   │   └── datetime_utils.py   # Timezone-aware datetime helpers
-│   ├── dependencies.py         # FastAPI Depends() callables (auth, DB session)
-│   └── main.py                 # App factory — CORS, routers, OTEL, Prometheus
+│   │   ├── s3.py               # AWS S3 integration
+│   │   ├── email.py            # SMTP transport
+│   │   ├── logic.py            # Domain logic encapsulation
+│   │   ├── pagination.py       # Result pagination
+│   │   ├── notifications.py    # Alert dispatch
+│   │   └── datetime_utils.py   # Temporal normalization
+│   ├── dependencies.py         # Dependency injection definitions
+│   └── main.py                 # ASGI application factory
 ├── alembic/
-│   ├── env.py                  # Alembic config — async engine, autogenerate support
-│   ├── script.py.mako          # Migration script template
-│   └── versions/               # Generated migration files
-├── .env.example                # All environment variables with descriptions
-├── alembic.ini
-├── Dockerfile                  # Multi-stage production build (see below)
-├── requirements.txt
-└── seed_admin.py               # Bootstrap script to create the initial admin user
+│   ├── env.py                  # Migration execution environment
+│   ├── script.py.mako          # Migration templating
+│   └── versions/               # Generated schema migrations
+├── .env.example                # Environment variable schema
+├── alembic.ini                 # Alembic execution configuration
+├── Dockerfile                  # Multi-stage container definition
+├── requirements.txt            # Dependency manifest
+└── seed_admin.py               # Initial credential bootstrapping
 ```
 
 ---
 
-## API Endpoints
+## API Interfaces
 
-All protected routes require a `Bearer` JWT token obtained from `POST /api/v1/auth/login`.
+Protected routes require `Bearer` token authorization issued by `POST /api/v1/auth/login`.
 
-| Method     | Path                    | Access            |
-| ---------- | ----------------------- | ----------------- |
-| `GET`      | `/api/health`           | Public            |
-| `POST`     | `/api/v1/auth/login`    | Public            |
-| `POST`     | `/api/v1/auth/refresh`  | Public            |
-| `GET/POST` | `/api/v1/users`         | Admin             |
-| `GET/POST` | `/api/v1/projects`      | Admin, PM         |
-| `GET/POST` | `/api/v1/phases`        | Admin, PM         |
-| `GET/POST` | `/api/v1/tasks`         | Admin, PM, SE     |
-| `GET/POST` | `/api/v1/materials`     | Admin, PM, SE     |
-| `GET/POST` | `/api/v1/attendance`    | Admin, PM, SE     |
-| `GET/POST` | `/api/v1/expenses`      | Admin, PM         |
-| `GET/POST` | `/api/v1/site-photos`   | Admin, PM, SE     |
-| `GET`      | `/api/v1/analytics`     | Admin, PM         |
-| `GET/POST` | `/api/v1/notifications` | All authenticated |
-| `GET/POST` | `/api/v1/admin`         | Admin only        |
+| Method | Path | Authorization |
+|---|---|---|
+| `GET` | `/api/health` | Public |
+| `GET` | `/api/health/live` | Public |
+| `GET` | `/api/health/ready` | Public |
+| `POST` | `/api/v1/auth/login` | Public |
+| `POST` | `/api/v1/auth/refresh` | Public |
+| `GET/POST` | `/api/v1/users` | Admin |
+| `GET/POST` | `/api/v1/projects` | Admin, PM |
+| `GET/POST` | `/api/v1/phases` | Admin, PM |
+| `GET/POST` | `/api/v1/tasks` | Admin, PM, SE |
+| `GET/POST` | `/api/v1/materials` | Admin, PM, SE |
+| `GET/POST` | `/api/v1/attendance` | Admin, PM, SE |
+| `GET/POST` | `/api/v1/expenses` | Admin, PM |
+| `GET/POST` | `/api/v1/site-photos` | Admin, PM, SE |
+| `GET` | `/api/v1/analytics` | Admin, PM |
+| `GET/POST` | `/api/v1/notifications` | All Authenticated |
+| `GET/POST` | `/api/v1/admin` | Admin |
 
-Interactive documentation: `GET /api/docs` (Swagger) · `GET /api/redoc`
+OpenAPI Specification: `GET /api/docs` (Swagger UI) · `GET /api/redoc`
 
----
+### Infrastructure Probes
 
-## Environment Variables
+| Probe Endpoint | Evaluation Scope | Database Dependency | Expected Status | Target Failure Status |
+|---|---|---|---|---|
+| `GET /api/health` | Diagnostic baseline | Optional | 200 | 200 |
+| `GET /api/health/live` | Liveness validation | None | 200 | N/A |
+| `GET /api/health/ready` | Readiness validation | Required | 200 | 503 |
 
-Copy `.env.example` to `.env` and fill in all values. Key variables:
-
-| Variable                      | Description                                 | Example                                       |
-| ----------------------------- | ------------------------------------------- | --------------------------------------------- |
-| `DATABASE_URL`                | Async PostgreSQL connection string          | `postgresql+asyncpg://user:pass@host:5432/db` |
-| `SECRET_KEY`                  | JWT signing key — 32-byte random hex string | `openssl rand -hex 32`                        |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT access token TTL                        | `60`                                          |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | JWT refresh token TTL                       | `7`                                           |
-| `CORS_ORIGINS`                | Comma-separated allowed frontend origins    | `http://localhost:3000`                       |
-| `AWS_REGION`                  | AWS region for S3 and Secrets Manager       | `us-east-1`                                   |
-| `S3_BUCKET_NAME`              | S3 bucket for photo uploads                 | `assemblemonitor-uploads`                     |
-| `SMTP_HOST`                   | SMTP host for password reset emails         | `smtp.gmail.com`                              |
-| `APP_ENV`                     | Runtime environment                         | `development` / `production`                  |
-
-> **Production note:** In the EKS deployment, secrets are injected via the External Secrets Operator from AWS Secrets Manager — the `.env` file is not used in-cluster.
+**Kubernetes Integration:**
+- **Liveness:** Validated against `/api/health/live`. Triggers container restart on failure. Isolates API process health from downstream database stability.
+- **Readiness:** Validated against `/api/health/ready`. Triggers endpoint isolation from ingress routing upon database connectivity failure without forcing container restart.
+- **Legacy:** The `/api/health` endpoint serves legacy automation targets (Jenkins, Terraform) requiring guaranteed HTTP 200 responses.
 
 ---
 
-## Observability
+## Configuration Variables
 
-### Prometheus Metrics
+Target deployment environments necessitate the specification of the following key parameters:
 
-The API exposes a `/metrics` endpoint automatically via `prometheus-fastapi-instrumentator`. This is scraped by the OpenTelemetry DaemonSet and remote-written to Amazon Managed Prometheus (AMP).
+| Variable | Definition | Example Format |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql+asyncpg://user:pass@host:5432/db` |
+| `SECRET_KEY` | Cryptographic signing key | `openssl rand -hex 32` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token Time-To-Live | `60` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token Time-To-Live | `7` |
+| `CORS_ORIGINS` | Cross-Origin authorized domains | `http://localhost:3000` |
+| `AWS_REGION` | Target AWS infrastructure region | `us-east-1` |
+| `S3_BUCKET_NAME` | Target S3 bucket identifier | `assemblemonitor-uploads` |
+| `SMTP_HOST` | Outbound email relay | `smtp.gmail.com` |
+| `APP_ENV` | Execution profile | `development` / `production` |
 
-### Distributed Tracing (OpenTelemetry)
-
-The app is instrumented with `FastAPIInstrumentor` and exports spans via OTLP gRPC to the OpenTelemetry Collector running in the cluster:
-
-```
-FastAPI app → OTLP gRPC (port 4317)
-    → otel-collector.assemblemonitor.svc.cluster.local
-        → Tempo → S3 → Grafana
-```
-
-The OTLP endpoint is configured via the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable, injected by the Helm chart at deployment time.
+> [!NOTE]
+> Within the EKS architecture, application secrets are securely injected via the External Secrets Operator interacting with AWS Secrets Manager. File-based `.env` sourcing is strictly for localized execution.
 
 ---
 
-## Dockerfile
+## Telemetry & Observability
 
-The backend uses a **two-stage multi-stage build**:
+### Prometheus Telemetry
 
+Application metrics are automatically exposed via `prometheus-fastapi-instrumentator` at the `/metrics` endpoint. This data is ingested by the cluster-internal OpenTelemetry DaemonSet and dispatched to Amazon Managed Prometheus (AMP).
+
+### Distributed Tracing (OTLP)
+
+Trace instrumentation is executed via `FastAPIInstrumentor`, exporting spans through OTLP gRPC protocol to the internal OpenTelemetry Collector:
+
+```text
+FastAPI → OTLP gRPC (4317) → otel-collector.assemblemonitor.svc.cluster.local → Tempo → S3 → Grafana
 ```
-Stage 1 (builder):  python:3.11-slim
+
+The OTLP endpoint is dynamically bound via the `OTEL_EXPORTER_OTLP_ENDPOINT` variable during Helm chart deployment.
+
+---
+
+## Multi-Stage Dockerfile Architecture
+
+The backend implements a two-stage container build to minimize runtime attack surface:
+
+```text
+Stage 1 (Compilation): python:3.11-slim
     - Installs build-essential + libpq-dev
-    - Creates /opt/venv
-    - pip install -r requirements.txt
-    - opentelemetry-bootstrap -a install (auto-installs OTEL instrumentors)
+    - Provisions /opt/venv
+    - Executes `pip install -r requirements.txt`
+    - Executes `opentelemetry-bootstrap -a install`
 
-Stage 2 (runtime):  python:3.11-slim
-    - Copies /opt/venv from builder (no build tools in final image)
-    - Runs as non-root appuser:appgroup
-    - HEALTHCHECK via urllib.request to /api/health
-    - CMD: opentelemetry-instrument uvicorn app.main:app --workers 2
+Stage 2 (Runtime): python:3.11-slim
+    - Imports /opt/venv (excluding build tools)
+    - Executes as unprivileged user (appuser)
+    - Implements HEALTHCHECK via `/api/health`
+    - Executes via `opentelemetry-instrument uvicorn`
 ```
 
-The `opentelemetry-instrument` wrapper activates auto-instrumentation for SQLAlchemy, asyncpg, and httpx in addition to FastAPI.
+The OTEL wrapper provisions auto-instrumentation across SQLAlchemy, asyncpg, httpx, and FastAPI subsystems.
 
 ---
 
-## Local Development
+## Local Development Execution
 
-### Option A — Without Docker
+### Option A — Bare Metal
 
-**Prerequisites:** Python 3.11+, PostgreSQL 14+ running locally.
+**Prerequisites:** Python 3.11+, PostgreSQL 14+.
 
 ```bash
 cd backend
 
-# Create and activate virtualenv
+# Initialize virtual environment
 python -m venv .venv
-source .venv/bin/activate        # Linux/macOS
-# .venv\Scripts\activate         # Windows
+source .venv/bin/activate
 
-# Install dependencies
+# Provision dependencies
 pip install -r requirements.txt
 
-# Configure environment
-cp .env.example .env             # then edit with your DB credentials and SECRET_KEY
-
-# Run migrations
+# Execute schema migrations
 alembic upgrade head
 
-# Seed the admin user
+# Bootstrap root credentials
 python seed_admin.py
 
-# Start the development server
+# Execute ASGI server
 uvicorn app.main:app --reload --port 8000
 ```
 
-- Swagger UI: http://localhost:8000/api/docs
-- Health check: http://localhost:8000/api/health
+### Option B — Docker Compose Stack
 
-### Option B — Docker Compose (full stack)
-
-Run from the **repository root** to start the backend together with PostgreSQL, the frontend, and Adminer:
+Initialize the complete application stack from the repository root:
 
 ```bash
-# From repository root
 docker compose up --build -d
 
-# Run migrations inside the running API container
+# Execute schema migrations
 docker compose exec api alembic upgrade head
 
-# Seed admin user
+# Bootstrap root credentials
 docker compose exec api python seed_admin.py
 ```
 
-| Service               | URL                            |
-| --------------------- | ------------------------------ |
-| Frontend              | http://localhost:3000          |
-| Backend API + Swagger | http://localhost:8000/api/docs |
-| Adminer (DB GUI)      | http://localhost:8080          |
-| PostgreSQL            | localhost:5432                 |
+| Service | Local Endpoint |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000/api/docs |
+| Adminer | http://localhost:8080 |
 
 ---
 
-## Database Migrations
+## Schema Migrations (Alembic)
 
 ```bash
-# After adding or modifying a model, generate a migration:
-alembic revision --autogenerate -m "add_column_to_projects"
+# Generate revision
+alembic revision --autogenerate -m "revision_description"
 
-# Apply all pending migrations:
+# Execute pending revisions
 alembic upgrade head
 
-# Roll back the most recent migration:
+# Rollback single revision
 alembic downgrade -1
-
-# View migration history:
-alembic history --verbose
 ```
 
-> Alembic uses a **synchronous** psycopg2 connection (`SYNC_DATABASE_URL` property in `config.py`) for migration execution, while the application runtime uses asyncpg.
+> [!NOTE]
+> Alembic relies on the synchronous `psycopg2` driver (`SYNC_DATABASE_URL`), while the FastAPI runtime utilizes the asynchronous `asyncpg` driver.
 
 ---
 
-## Screenshots
+## Interface Previews
 
-> Add backend-specific screenshots to `../docs/screenshots/` and update the links below.
+Asset registry for backend-specific telemetry components:
 
-| Screenshot                       | Description                                       |
-| -------------------------------- | ------------------------------------------------- |
-| _(08-fastapi-swagger.png)_       | Swagger UI showing all API routes                 |
-| _(44-health-endpoint.png)_       | `/api/health` response confirming service is live |
-| _(45-rds-migration-success.png)_ | Alembic migration completed against RDS           |
+| Asset Reference | Scope |
+|---|---|
+| _08-fastapi-swagger.png_ | Swagger UI route inventory |
+| _44-health-endpoint.png_ | Successful infrastructure health probe |
+| _45-rds-migration-success.png_ | Successful Alembic execution against RDS |
