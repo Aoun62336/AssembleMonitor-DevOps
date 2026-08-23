@@ -79,3 +79,31 @@ The following fault injection exercises were executed against the local Docker C
 
 > [!NOTE]
 > Controlled drill recovery durations reflect local Docker Compose execution and do not represent production performance. Drill execution scripts are located in [`scripts/fault-drills/`](../../scripts/fault-drills/).
+
+---
+
+## Escalation Matrix
+
+If automated recovery (ArgoCD) and Level 1 remediation fails to restore service within 15 minutes, initiate the escalation protocol:
+
+1. **L1 On-Call:** Cloud Operations Engineer (Acknowledge within 5 min).
+2. **L2 Escalation:** Platform Engineering Lead (Engaged at T+15 min).
+3. **L3 Escalation:** AWS Enterprise Support (Severity 1 Ticket via AWS Console).
+
+---
+
+## Stakeholder Communication Templates
+
+*For use in the `#incident-response` Slack/Teams channel.*
+
+**Incident Declaration:**
+> 🚨 **SEV-2 INCIDENT DECLARED** 🚨
+> **Impact:** AssembleMonitor API is currently returning 5xx errors for core services.
+> **Current Status:** Investigating telemetry. ArgoCD sync confirmed healthy. Investigating database connectivity.
+> **Next Update:** 15 minutes.
+
+**Incident Resolution:**
+> ✅ **INCIDENT RESOLVED** ✅
+> **Impact:** API services fully restored.
+> **Root Cause:** Database connection saturation; recovered via automated RDS failover.
+> **Postmortem:** A postmortem document will be published within 48 hours.
