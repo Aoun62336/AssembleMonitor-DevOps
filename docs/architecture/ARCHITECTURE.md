@@ -123,45 +123,8 @@ Terraform is utilized extensively to codify the VPC, ALB, WAF, RDS, S3, Secrets 
 
 ---
 
-## 10 — August 2026 Post-Deployment Hardening
+## 10 Post-Deployment Hardening
 
-> This section documents the reliability and security hardening applied to the repository in August 2026, after the primary EKS deployment was complete. Changes are evidenced in [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md).
+> This section documents the reliability and security hardening applied to the repository after the primary EKS deployment. Changes are evidenced in [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md).
 
-```mermaid
-flowchart TD
-    subgraph PreMerge["Pre-Merge Gate — GitHub Actions (pr-validation.yml)"]
-        A["ubuntu-24.04 runner\nSHA-pinned actions\nTerraform 1.15.8\nHelm 3.21.3 (curl + SHA256)"] --> B["Backend Tests\nFrontend Build\nHelm Lint"]
-        A --> C["Terraform module\nunit tests (mock_provider)\nmodular-network example validate"]
-        A --> D["Gitleaks secret scan\n(.gitleaks.toml allowlist)"]
-    end
-
-    subgraph PreCommit["Pre-Commit Hooks (.pre-commit-config.yaml)"]
-        E["detect-secrets\n(.secrets.baseline)"]
-        F["terraform_fmt recursive"]
-        G["check-yaml / check-json\ndetect-private-key"]
-    end
-
-    subgraph IaC["IaC Hardening"]
-        H["terraform/modules/network\nreusable module + 5 unit tests"]
-        I["terraform/examples/modular-network\nvalidated in CI (init + validate)"]
-    end
-
-    subgraph K8s["Kubernetes Hardening (Helm chart)"]
-        J["NetworkPolicy\nbackend + frontend isolation"]
-        K["PodDisruptionBudget\nmaxUnavailable: 1"]
-        L["topologySpreadConstraints\nreplica distribution"]
-    end
-
-    subgraph Docs["Evidence & Documentation"]
-        M["docs/hardening/SYSTEM_RELIABILITY_REPORT.md\nhardening measurements, M01–M16"]
-        N["docs/ops/incidents/\nINC-001, INC-002, INC-003"]
-        O["scripts/fault-drills/\n00-preflight … 04-recovery"]
-    end
-
-    PreMerge --> IaC
-    PreMerge --> K8s
-    PreCommit --> PreMerge
-    IaC --> Docs
-    K8s --> Docs
-```
-
+![Post-Deployment Hardening](10-post-deployment-hardening.png)
