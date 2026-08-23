@@ -58,7 +58,7 @@ The following measurements were captured during the controlled August 2026 harde
 | M6 | Terraform network modularization and unit testing | `97e3071` | Verified |
 | M7 | Grafana application overview (Dashboard-as-Code) | `5b6eb25` | Verified |
 | M8 | Documentation standardization and playbook creation | `265907a` | Verified |
-| M9 | k3d runtime validation of NetworkPolicy and PDB | `b2700ee`, `c768bb7` | Verified |
+| M9 | k3d runtime validation of NetworkPolicy and PDB | `b2700ee`, `c768bb7` | Pending re-validation |
 | M10 | Supply chain security enforcement (Dependabot, Gitleaks, hooks) | `32984f5` | Verified |
 | M11 | Developer `Makefile` automation | `a5a4d86` | Verified |
 | M12 | Fault drill execution and postmortem analysis | `6fdd3f0` | Verified |
