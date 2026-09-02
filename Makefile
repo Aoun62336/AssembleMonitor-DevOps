@@ -25,8 +25,8 @@ help:
 
 # -----------------------------------------------------------------------------
 # test — Backend pytest suite
-# Runs 23 backend tests with mocked SQLAlchemy AsyncSession dependencies;
-# no external PostgreSQL instance is required.
+# Runs the backend pytest suite (authentication and health/readiness tests)
+# with mocked SQLAlchemy AsyncSession dependencies; no PostgreSQL instance required.
 # Mirrors: GitHub Actions job "Backend — Compile & Test"
 # -----------------------------------------------------------------------------
 test: ## Run backend pytest suite (no database required)

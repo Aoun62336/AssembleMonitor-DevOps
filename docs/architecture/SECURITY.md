@@ -4,10 +4,43 @@
 > Security in AssembleMonitor is implemented through a layered DevSecOps pipeline and AWS private networking. Application workloads run inside private subnets with no direct public access. Sensitive data is not stored in version control.
 
 ## 1. Identity & Access Management (IAM & IRSA)
+
 AssembleMonitor follows the principle of least privilege for all cloud interactions.
-- **Root Account Protection**: The AWS root account is secured and not utilized for daily provisioning.
+
+**Secret and identity delivery chain:**
+
+```
+EKS OIDC Provider
+      ↓
+IAM Role (with OIDC trust policy scoped to the service account)
+      ↓
+IRSA (Kubernetes ServiceAccount annotation → AWS STS issues temporary credentials)
+      ↓
+External Secrets Operator
+      ↓
+AWS Secrets Manager
+      ↓
+Kubernetes Secret (created and rotated by ESO)
+      ↓
+Backend Pod environment variables
+```
+
+**S3 access (site photo upload):**
+
+```
+Backend Pod
+      ↓
+IRSA temporary credentials (via projected ServiceAccount token)
+      ↓
+S3 API
+```
+
+This approach eliminates long-lived AWS access keys from pods entirely. Credentials are short-lived OIDC tokens issued by AWS STS, scoped to a single IAM role, and rotate automatically. Each workload has its own IAM role with only the permissions it needs — ESO cannot access S3, and the backend cannot access Secrets Manager without going through ESO.
+
+- **Root Account Protection**: The AWS root account is secured and not used for daily provisioning.
 - **IAM Roles for Service Accounts (IRSA)**: The EKS cluster leverages IRSA to grant specific Kubernetes pods an OIDC-backed Web Identity Token. This allows pods (like the backend API or External Secrets Operator) to assume an IAM role directly, entirely bypassing the need for long-lived access keys or node-level permissions.
 - **IMDSv2 Restriction**: The EKS Node Launch Template sets `http_put_response_hop_limit = 1`, preventing containers from unauthorized querying of the EC2 Instance Metadata Service (IMDSv2) to assume the underlying server's IAM role.
+
 
 ## 2. Network Boundary & Perimeter Defense
 All application resources are heavily shielded from the public internet.
