@@ -1,4 +1,4 @@
-# AssembleMonitor — DevOps Implementation & Troubleshooting
+# AssembleMonitor: DevOps Implementation and Troubleshooting
 
 This document is the primary technical reference for this Cloud/DevOps implementation. It covers what was built, why each decision was made, what problems were encountered, and where to find the supporting evidence in the repository.
 
@@ -31,7 +31,7 @@ Designed and provisioned the full AWS environment using Terraform. No manual con
 - **ALB**: External traffic entry point. Terminates HTTP and routes to EKS NodePort 30080. WAFv2 attached.
 - **WAF**: CommonRuleSet, KnownBadInputs managed rule groups. Rate-limit rule: 2000 requests per IP per 5-minute window.
 - **RDS**: PostgreSQL `db.t4g.micro` in private subnets. Security group allows connections from EKS node SG only.
-- **S3**: Two buckets — application artifact storage (site photos) and observability backend (Loki chunks, Tempo traces).
+- **S3**: Two buckets: application artifact storage (site photos) and observability backend (Loki chunks, Tempo traces).
 - **IAM + IRSA**: OIDC provider for EKS cluster. Six distinct IAM roles for service accounts: Backend, ESO, OTel Collector, Grafana, Loki/Tempo, EBS CSI.
 - **Secrets Manager**: Stores `DATABASE_URL`, `JWT_SECRET_KEY`, and RDS master password.
 - **CloudWatch**: ALB, RDS, and EKS alarms provisioned via Terraform.
@@ -40,7 +40,7 @@ Evidence: `terraform/*.tf`
 
 ### Terraform
 
-Wrote the complete infrastructure definition. Extracted the private-networking layer into a reusable module (`terraform/modules/network/`) so the networking logic can be tested independently with `mock_provider` — no AWS credentials required. The module creates private subnets, NAT Gateway, EIP, route tables, and associations given an existing VPC.
+Wrote the complete infrastructure definition. Extracted the private-networking layer into a reusable module (`terraform/modules/network/`) so the networking logic can be tested independently with `mock_provider` (no AWS credentials required). The module creates private subnets, NAT Gateway, EIP, route tables, and associations given an existing VPC.
 
 Evidence: `terraform/modules/network/`
 
@@ -64,7 +64,7 @@ Built the `Jenkinsfile-gitops` pipeline (primary EKS path) and `Jenkinsfile-k3s`
 7. Trivy image scans (HIGH/CRITICAL, `--exit-code 1`)
 8. Docker Hub push
 9. Manual approval gate (10-minute timeout)
-10. GitOps update: `sed` patches the image tag in `k8s/helm-chart/values/app.yaml`, commits, and pushes to GitHub — this is what triggers Argo CD
+10. GitOps update: `sed` patches the image tag in `k8s/helm-chart/values/app.yaml`, commits, and pushes to GitHub; this is what triggers Argo CD
 
 Evidence: `Jenkinsfile-gitops`
 
@@ -88,7 +88,7 @@ Evidence: `.github/workflows/pr-validation.yml`
 
 Provisioned via Terraform `helm_release`. Configured via `k8s/argocd-application.yaml`, which points Argo CD at the `k8s/helm-chart/` path in the GitHub repository.
 
-When Jenkins commits a new image tag, Argo CD detects the change and reconciles the EKS cluster to the new desired state. Jenkins never talks to the Kubernetes API directly in the primary path — the cluster's state is always determined by Git.
+When Jenkins commits a new image tag, Argo CD detects the change and reconciles the EKS cluster to the new desired state. Jenkins never talks to the Kubernetes API directly in the primary path: the cluster's state is always determined by Git.
 
 Evidence: `k8s/argocd-application.yaml` · `terraform/argocd.tf`
 
@@ -165,7 +165,7 @@ The following design characteristics shape every implementation decision in the 
 - Application workloads run in private subnets with no direct public ingress
 - All external traffic enters through a Terraform-managed ALB with WAFv2 attached
 - Kubernetes cluster state is defined exclusively by Git; Argo CD detects drift and reconciles
-- All pod-to-AWS API communication uses temporary IRSA credentials — no static keys
+- All pod-to-AWS API communication uses temporary IRSA credentials; no static keys
 
 ---
 
@@ -230,7 +230,7 @@ assemblymonitor_otel_collector | GET /api/health/live  http.status_code=200
 
 **Context:** Designing the health endpoint architecture for Kubernetes probe configuration.
 
-**Problem:** The initial design used a single `/health` endpoint. Kubernetes was configured to use it for both liveness and readiness. This created a failure mode: if the database went down temporarily, the readiness check would fail correctly, but eventually the liveness check would also fail, causing Kubernetes to restart the FastAPI process — even though the process itself was healthy.
+**Problem:** The initial design used a single `/health` endpoint. Kubernetes was configured to use it for both liveness and readiness. This created a failure mode: if the database went down temporarily, the readiness check would fail correctly, but eventually the liveness check would also fail, causing Kubernetes to restart the FastAPI process, even though the process itself was healthy.
 
 **Why this matters:** Restarting a healthy process does not restore a failed database. It adds unnecessary churn, can cause a restart loop, and slows recovery time once the database comes back.
 
@@ -264,52 +264,7 @@ Drill scripts: `scripts/fault-drills/` · Postmortems: `docs/ops/incidents/`
 
 ## 6. Troubleshooting Method
 
-```
-Symptom
-  ↓ identify affected layer (process / container / K8s / network / dependency)
-Check service / resource state
-  ↓
-Inspect events / logs
-  ↓
-Check network / connectivity / configuration
-  ↓
-Check health and readiness probes
-  ↓
-Identify root cause
-  ↓
-Apply smallest safe fix
-  ↓
-Verify recovery
-  ↓
-Document RCA
-```
-
-**Kubernetes application issue:**
-```bash
-kubectl get pods                          # state overview
-kubectl describe pod <name>               # events, probe results, resource pressure
-kubectl logs <name>                       # current logs
-kubectl logs <name> --previous            # logs from last crash
-# → verify probes, ConfigMap/Secret values, resource limits, Service endpoints
-```
-
-**Nginx 502:**
-```bash
-docker compose ps                         # which containers are up
-docker compose logs api                   # API process output
-curl http://localhost:8000/api/health     # direct API test, bypassing Nginx
-# → restore/restart the affected service, verify through Nginx
-```
-
-**Readiness 503:**
-```bash
-curl /api/health/ready    # 503 = dependency down
-curl /api/health/live     # 200 = process alive = database is the issue
-# → check DATABASE_URL, DNS resolution, network path to database
-# → restore dependency → /ready returns 200 automatically
-```
-
-→ [Full troubleshooting procedures](ops/TROUBLESHOOTING.md)
+Symptom-driven diagnostic procedures are organized by symptom type in [`ops/TROUBLESHOOTING.md`](ops/TROUBLESHOOTING.md): Nginx 502, readiness probe 503, and Kubernetes CrashLoopBackOff. Each section includes diagnostic commands, expected outputs, and recovery steps.
 
 ---
 
@@ -344,11 +299,11 @@ Each entry below states the trade-off that drove a specific design choice. The r
 
 ### Why Terraform over manual provisioning
 
-Every AWS resource is defined in code and version-controlled. Reprovisioning the full environment — EKS cluster, networking, RDS, ALB, WAF, IAM, observability stack — requires a single `terraform apply`. Manual provisioning creates configuration drift; there is no audit trail and no reliable way to recreate the environment identically.
+Every AWS resource is defined in code and version-controlled. Reprovisioning the full environment (EKS cluster, networking, RDS, ALB, WAF, IAM, observability stack) requires a single `terraform apply`. Manual provisioning creates configuration drift; there is no audit trail and no reliable way to recreate the environment identically.
 
 ### Why private subnets for EKS nodes and RDS
 
-EKS worker nodes and RDS should not be directly reachable from the public internet. Private subnets with no public IP auto-assignment ensure that even a misconfigured security group does not expose them — inbound access requires going through the ALB (application traffic) or a VPC-internal path (administrative). This is a defense-in-depth boundary enforced at the network layer, independent of security group rules.
+EKS worker nodes and RDS should not be directly reachable from the public internet. Private subnets with no public IP auto-assignment ensure that even a misconfigured security group does not expose them; inbound access requires going through the ALB (application traffic) or a VPC-internal path (administrative). This is a defense-in-depth boundary enforced at the network layer, independent of security group rules.
 
 ### Why ALB in front of EKS rather than exposing pods directly
 
@@ -356,7 +311,7 @@ The ALB is Terraform-managed, which means WAF attachment, certificate management
 
 ### Why Argo CD for CD rather than having Jenkins deploy directly
 
-If Jenkins applied Kubernetes manifests directly, it would require cluster-admin credentials stored in the Jenkins credential store — a significant security exposure. With Argo CD, Jenkins never communicates with the Kubernetes API at all; it only commits an updated image tag to Git. The cluster's desired state is always a Git commit, not a pipeline execution. As a consequence, any out-of-band manual change to the cluster is automatically detected and reconciled back to the Git-defined state.
+If Jenkins applied Kubernetes manifests directly, it would require cluster-admin credentials stored in the Jenkins credential store, a significant security exposure. With Argo CD, Jenkins never communicates with the Kubernetes API at all; it only commits an updated image tag to Git. The cluster's desired state is always a Git commit, not a pipeline execution. As a consequence, any out-of-band manual change to the cluster is automatically detected and reconciled back to the Git-defined state.
 
 ### Why IRSA instead of IAM users or instance-level roles
 
@@ -368,12 +323,12 @@ A Kubernetes Secret is base64-encoded, not encrypted. Committing it to Git expos
 
 ### Why separate liveness and readiness probes
 
-A single health endpoint cannot distinguish between two different failure modes. If the database becomes temporarily unreachable, the application process is still alive and will recover when the database comes back — restarting the container solves nothing and adds churn. The separated design means Kubernetes removes the pod from traffic routing (readiness failure) without restarting the process (liveness remains 200). Recovery is automatic once the dependency is restored.
+A single health endpoint cannot distinguish between two different failure modes. If the database becomes temporarily unreachable, the application process is still alive and will recover when the database comes back; restarting the container solves nothing and adds churn. The separated design means Kubernetes removes the pod from traffic routing (readiness failure) without restarting the process (liveness remains 200). Recovery is automatic once the dependency is restored.
 
 ### Why the Terraform network module was extracted
 
-Networking code inline in the root module cannot be tested without provisioning real AWS resources. Extracting it into a module with a defined input/output contract allows the configuration logic to be verified with `mock_provider` — no credentials, no cost, no infrastructure created. The five `terraform test` cases cover CIDR assignment, public-IP enforcement on private subnets, NAT Gateway placement, default route configuration, and input validation. They run in CI on every pull request.
+Networking code inline in the root module cannot be tested without provisioning real AWS resources. Extracting it into a module with a defined input/output contract allows the configuration logic to be verified with `mock_provider` (no credentials, no cost, no infrastructure created). The five `terraform test` cases cover CIDR assignment, public-IP enforcement on private subnets, NAT Gateway placement, default route configuration, and input validation. They run in CI on every pull request.
 
 ### Why GitHub Actions and Jenkins exist as separate systems
 
-GitHub Actions provides repository-native validation on every pull request: syntax, tests, Helm lint, Terraform validation, secret scanning. These run without any persistent infrastructure. Jenkins handles the release path — SonarQube SAST, Trivy image scanning, Docker registry publishing, the manual approval gate, and the GitOps commit. The separation means pre-merge feedback is fast and stateless, while the release pipeline has the depth, history, and control that Jenkins provides.
+GitHub Actions provides repository-native validation on every pull request: syntax, tests, Helm lint, Terraform validation, secret scanning. These run without any persistent infrastructure. Jenkins handles the release path: SonarQube SAST, Trivy image scanning, Docker registry publishing, the manual approval gate, and the GitOps commit. The separation means pre-merge feedback is fast and stateless, while the release pipeline has the depth, history, and control that Jenkins provides.

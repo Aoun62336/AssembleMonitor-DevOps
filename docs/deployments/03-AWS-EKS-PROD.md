@@ -1,7 +1,7 @@
 # Amazon EKS Production Architecture (Primary)
 
 > [!IMPORTANT]
-> This represents the primary AWS EKS deployment strategy for AssembleMonitor. The application is orchestrated by an Amazon Elastic Kubernetes Service (EKS) cluster utilizing secure and scalable AWS infrastructure.
+> This is the primary production deployment for AssembleMonitor. The application runs on an Amazon EKS cluster in `us-east-1`, accessed through a WAF-protected Application Load Balancer, with secrets managed by the External Secrets Operator and continuous delivery handled by Argo CD.
 
 **Execution Scope:** Primary AWS EKS Deployment, Autoscaling, Managed AWS Services
 **Complexity:** Very High

@@ -1,8 +1,11 @@
 # Reliability & CI Hardening: Verification Procedures
 
-> **Execution Context:** Run the following validation commands in a Bash shell from the repository root on the `hardening/reliability-ci` branch.
+> **Execution Context:** Run the following validation commands in a Bash shell from the repository root. The `hardening/reliability-ci` branch has been merged to `main`.
 
 ---
+
+> [!NOTE]
+> M-numbers in section headings (e.g., M5, M9) are milestone identifiers defined in [`docs/hardening/SYSTEM_RELIABILITY_REPORT.md`](../hardening/SYSTEM_RELIABILITY_REPORT.md). They are not section numbers in this document.
 
 ## 1. Health Endpoint Separation (M1)
 

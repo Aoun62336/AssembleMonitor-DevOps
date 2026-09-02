@@ -17,7 +17,7 @@ Symptom-driven decision matrices are fully documented in [`TROUBLESHOOTING.md`](
 
 ## 1. Local Development Environment
 
-The local Docker Compose stack provides a comprehensive environment for iteration without incurring cloud infrastructure costs.
+The local Docker Compose stack runs the full application without cloud infrastructure costs.
 
 ```bash
 # Provision local stack (FastAPI, React, PostgreSQL)

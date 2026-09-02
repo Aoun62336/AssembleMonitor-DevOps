@@ -10,7 +10,7 @@ Argo CD           =  continuous delivery / reconciliation into EKS
 EKS               =  runtime / orchestration
 ```
 
-> **Critical distinction:** A successful Jenkins build does not mean Jenkins deployed the application to EKS. In the primary GitOps path, Jenkins commits the updated image tag to `k8s/helm-chart/values/app.yaml` in Git. Argo CD detects that commit and reconciles the resulting desired state into EKS. The cluster's state is always a Git commit — not a pipeline execution.
+> **Critical distinction:** A successful Jenkins build does not mean Jenkins deployed the application to EKS. In the primary GitOps path, Jenkins commits the updated image tag to `k8s/helm-chart/values/app.yaml` in Git. Argo CD detects that commit and reconciles the resulting desired state into EKS. The cluster's state is always a Git commit, not a pipeline execution.
 
 ---
 
@@ -79,14 +79,14 @@ All five are enforced as required status checks by the `main-protection` branch 
 
 ---
 
-## What I Implemented
+## Implementation Notes
 
 - Implemented source checkout, build-info, and Docker validation stages.
 - Integrated Trivy filesystem scanning for both backend and frontend before any image is built.
-- Integrated SonarQube SAST for both components and enforced the quality gate — the pipeline aborts if the gate fails.
+- Integrated SonarQube SAST for both components and enforced the quality gate: the pipeline aborts if the gate fails.
 - Implemented Docker multi-stage builds and Trivy image scanning with `--exit-code 1` to block vulnerable images from reaching the registry.
 - Added a manual approval gate before the GitOps commit so no production change is automatic.
 - Implemented the GitOps handoff: `sed` updates the image tag in `k8s/helm-chart/values/app.yaml`, commits with `[skip ci]`, and pushes via a Jenkins-managed PAT. This commit is what Argo CD detects.
-- Configured the Jenkins credential store for Docker Hub, GitHub PAT, and SonarQube token — no credentials are hardcoded in the pipeline.
+- Configured the Jenkins credential store for Docker Hub, GitHub PAT, and SonarQube token; no credentials are hardcoded in the pipeline.
 
 Evidence: `Jenkinsfile-gitops`

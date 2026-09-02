@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Terraform defines the AWS infrastructure as code, ensuring consistent, repeatable, and automated provisioning. The entire cloud architecture is version-controlled and auditable — reprovisioning from scratch requires only `terraform apply`.
+Terraform defines the full AWS infrastructure as code. The complete cloud environment is version-controlled and auditable; reprovisioning from scratch requires only `terraform apply`.
 
 ## Provisioned Resources
 
@@ -18,7 +18,7 @@ Terraform defines the AWS infrastructure as code, ensuring consistent, repeatabl
 - **S3 Buckets**: Application artifact storage (site photos) and observability backend (Loki, Tempo).
 - **AWS Secrets Manager**: Database credentials and JWT keys.
 - **AWS CloudWatch**: ALB, RDS, and EKS alarms.
-- **Route 53 & ACM** _(configuration present, not applied)_: Exists in `route53.tf`, plan-validated. Not applied — no custom domain is registered; public access uses the ALB DNS name.
+- **Route 53 & ACM** _(configuration present, not applied)_: Exists in `route53.tf`, plan-validated. Not applied; no custom domain is registered and public access uses the ALB DNS name.
 - **Outputs**: ALB DNS name, RDS endpoint.
 
 ## Security & State Management
@@ -80,7 +80,7 @@ Operations
 
 The private-networking layer is extracted into `terraform/modules/network/` so it can be unit-tested independently of the rest of the infrastructure.
 
-The module creates private subnets, a NAT Gateway, an EIP, a private route table, and route table associations — all within a caller-provided existing VPC. Five native `terraform test` cases using `mock_provider` verify the configuration logic without requiring AWS credentials.
+The module creates private subnets, a NAT Gateway, an EIP, a private route table, and route table associations within a caller-provided existing VPC. Five native `terraform test` cases using `mock_provider` verify the configuration logic without requiring AWS credentials.
 
-→ [Network module documentation](../modules/network/README.md)
+→ [Network module documentation](../../terraform/modules/network/README.md)
 

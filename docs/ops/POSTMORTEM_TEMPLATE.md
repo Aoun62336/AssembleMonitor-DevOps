@@ -27,7 +27,7 @@ _Define the specific failure mode and architectural resilience mechanism being v
 
 ## Fault Injection Trigger
 
-_Document the exact command sequence utilized to inject the fault:_
+_Document the exact command sequence used to inject the fault:_
 
 ```bash
 # Insert execution commands

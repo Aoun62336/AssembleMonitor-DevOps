@@ -1,23 +1,23 @@
-# AssembleMonitor — System Reliability & CI Hardening Report
+# AssembleMonitor: System Reliability and CI Hardening Report
 
-**Execution Period:** 2026-08-20 — 2026-08-22
+**Execution Period:** 2026-08-20 to 2026-08-22
 **Branch Reference:** `hardening/reliability-ci`
 **Primary Engineer:** Aoun
-**Status:** In Progress — Branch pending final merge to `main`
+**Status:** Complete - Merged to `main`
 **Evidence Index:** Telemetry artifacts, execution SHAs, and architectural validations attached.
 
 ---
 
 ## Executive Summary
 
-This hardening phase addressed five distinct capability dimensions to elevate the operational maturity of the AssembleMonitor platform:
+This hardening phase addressed five capability dimensions:
 
 | Capability Dimension | Delivered Implementation | Operational Outcome |
 |---|---|---|
 | **Reliability Engineering** | Health probe segregation, PodDisruptionBudgets, NetworkPolicies, and structured fault injection (3 drills). | Failure manifestations are deterministic; three controlled local fault drills recorded recovery durations between 2 min 9 sec and 2 min 35 sec. |
 | **CI/CD Pipeline** | 5-job parallel GitHub Actions workflow; `main-protection` branch ruleset active with 5 required status checks. | Mandatory static validation enforced prior to code integration. |
 | **Supply Chain Security** | Gitleaks Action v3 (immutable SHA-pinned reference), detect-secrets baselining, Dependabot automation, and pre-commit hooks. | Multilayered credential detection: local environment, ingress integration, and repository history. |
-| **Infrastructure as Code** | Selected private-network infrastructure modularization within an existing VPC, coupled with 5 native unit tests (`mock_provider`). | IaC logic is unit-testable within CI boundaries without necessitating AWS credential exposure. |
+| **Infrastructure as Code** | Selected private-network infrastructure modularized within an existing VPC, with 5 native unit tests (`mock_provider`). | IaC logic is unit-testable in CI without requiring AWS credentials. |
 | **Observability** | Declarative Grafana dashboards (Dashboard-as-Code); localized OpenTelemetry Collector integration. | Telemetry visualizations are version-controlled; distributed traces are available in local development. |
 
 ---
@@ -161,7 +161,7 @@ A namespace-wide default deny would require an empty `podSelector: {}` selecting
 Refactored the private-networking layer into a reusable Terraform module that operates within an existing VPC (`terraform/modules/network/`).
 
 - Creates private subnets, NAT egress, private routing, and route-table associations within a caller-provided VPC.
-- Validated via `terraform test` leveraging `mock_provider` (bypassing AWS credential requirements).
+- Validated via `terraform test` using `mock_provider` (bypassing AWS credential requirements).
 - Validation Artifact: `terraform/modules/network/tests/network_unit.tftest.hcl`.
 
 ```text

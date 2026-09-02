@@ -2,11 +2,11 @@
 
 ## Architectural Evolution
 
-The architecture of AssembleMonitor has progressively evolved to handle increased scale, implement rolling Kubernetes deployments, and apply cloud-native security standards:
+The deployment architecture evolved across three phases:
 
-1. **Legacy Auto Scaling**: The initial cloud deployment ran raw Docker containers on EC2 instances managed by an AWS Auto Scaling Group (ASG), fetching credentials dynamically via IAM instance profiles.
-2. **Staging Environment (K3s)**: We introduced a standalone Kubernetes (K3s) server to transition the workloads to container orchestration, enabling automated rolling updates via Jenkins CI/CD.
-3. **Enterprise Production (Amazon EKS)**: The current architecture. We migrated the workloads to a managed Amazon EKS cluster with managed Node Groups (`c7i-flex.large`), integrating an AWS WAF-protected ALB directly into the Kubernetes NodePorts. This architecture implements GitOps (ArgoCD) for continuous deployment and IRSA for least-privilege security.
+1. **Legacy Auto Scaling**: The initial cloud deployment ran Docker containers on EC2 instances managed by an Auto Scaling Group (ASG), using IAM instance profiles for credential delivery.
+2. **Staging Environment (K3s)**: A standalone K3s server replaced the ASG to introduce container orchestration and automated rolling updates via Jenkins CI/CD.
+3. **Production (Amazon EKS)**: The current architecture. Workloads run on a managed EKS cluster with `c7i-flex.large` node groups, a WAF-protected ALB routing to Kubernetes NodePorts, Argo CD for GitOps delivery, and IRSA for least-privilege pod identity.
 
 ---
 
@@ -105,7 +105,7 @@ The core production environment running the application natively via Kubernetes 
 
 - **Metadata Security**: The EC2 instance metadata endpoint hop limit is restricted (`hop_limit = 1`) to prevent containers from assuming the node's IAM role.
 - **IRSA (IAM Roles for Service Accounts)**: A secure, OIDC-backed AWS token is injected directly into the Backend pod, granting it precise permissions to interact with AWS S3 via `boto3`.
-- **External Secrets Operator (ESO)**: Also leveraging IRSA, this operator dynamically fetches database credentials and JWT secrets from AWS Secrets Manager and safely mounts them as native Kubernetes Secrets, preventing hardcoded Base64 credentials.
+- **External Secrets Operator (ESO)**: Also using IRSA, this operator dynamically fetches database credentials and JWT secrets from AWS Secrets Manager and safely mounts them as native Kubernetes Secrets, preventing hardcoded Base64 credentials.
 
 ### Frontend & Backend
 
@@ -119,7 +119,7 @@ The core production environment running the application natively via Kubernetes 
 
 ### Infrastructure as Code
 
-Terraform is utilized extensively to codify the VPC, ALB, WAF, RDS, S3, Secrets Manager, IAM Roles (including OIDC Trust Policies), and the EKS Cluster. A Route 53 hosted zone and ACM certificate configuration is written and plan-validated (`terraform/route53.tf`) but not applied — the project currently uses the ALB DNS name for public access.
+Terraform defines the VPC, ALB, WAF, RDS, S3, Secrets Manager, IAM Roles (including OIDC Trust Policies), and the EKS Cluster. A Route 53 hosted zone and ACM certificate configuration is written and plan-validated (`terraform/route53.tf`) but not applied; the project uses the ALB DNS name for public access.
 
 ---
 
