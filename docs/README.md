@@ -1,6 +1,14 @@
 # AssembleMonitor Documentation
 
-Welcome to the AssembleMonitor documentation directory. This repository contains technical documentation covering architecture design, infrastructure, CI/CD, security, operations, and deployment guides.
+This directory contains technical documentation covering the application domain, architecture design, infrastructure, CI/CD, security, operations, and deployment guides.
+
+---
+
+## Application
+
+| Document | Purpose |
+|----------|---------|
+| [Application Overview](APPLICATION.md) | Domain model, role model, calculated fields, business rules, and dashboard screenshots |
 
 ---
 
