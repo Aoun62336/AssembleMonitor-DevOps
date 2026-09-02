@@ -35,17 +35,16 @@ IRSA temporary credentials (via projected ServiceAccount token)
 S3 API
 ```
 
-This approach eliminates long-lived AWS access keys from pods entirely. Credentials are short-lived OIDC tokens issued by AWS STS, scoped to a single IAM role, and rotate automatically. Each workload has its own IAM role with only the permissions it needs — ESO cannot access S3, and the backend cannot access Secrets Manager without going through ESO.
+This approach eliminates long-lived AWS access keys from pods entirely. Credentials are short-lived OIDC tokens issued by AWS STS, scoped to a single IAM role, and rotate automatically. Each workload has its own IAM role with only the permissions it needs; ESO cannot access S3, and the backend cannot access Secrets Manager without going through ESO.
 
 - **Root Account Protection**: The AWS root account is secured and not used for daily provisioning.
-- **IAM Roles for Service Accounts (IRSA)**: The EKS cluster leverages IRSA to grant specific Kubernetes pods an OIDC-backed Web Identity Token. This allows pods (like the backend API or External Secrets Operator) to assume an IAM role directly, entirely bypassing the need for long-lived access keys or node-level permissions.
-- **IMDSv2 Restriction**: The EKS Node Launch Template sets `http_put_response_hop_limit = 1`, preventing containers from unauthorized querying of the EC2 Instance Metadata Service (IMDSv2) to assume the underlying server's IAM role.
-
+- **IAM Roles for Service Accounts (IRSA)**: The EKS cluster uses IRSA to grant specific Kubernetes pods an OIDC-backed Web Identity Token. This allows pods (like the backend API or External Secrets Operator) to assume an IAM role directly, bypassing the need for long-lived access keys or node-level permissions.
+- **IMDSv2 Restriction**: The EKS node launch template sets `http_put_response_hop_limit = 1`, blocking pod-level queries to the EC2 instance metadata service. Without this restriction, a pod could assume the underlying node IAM role.
 
 ## 2. Network Boundary & Perimeter Defense
 All application resources are isolated from the public internet.
 - **VPC & Subnets**: EKS Nodes and the RDS database reside deep within private subnets. External egress is routed securely through a NAT Gateway.
-- **Application Load Balancer (ALB) & WAF**: External traffic must flow through the ALB. The ALB is protected by an AWS Web Application Firewall (WAFv2). Managed rule groups (CommonRuleSet, KnownBadInputs) actively monitor and log SQLi and XSS requests, while a rate-limit rule actively blocks any single IP exceeding 2,000 requests per 5-minute window.
+- **Application Load Balancer (ALB) & WAF**: External traffic must flow through the ALB, which is protected by AWS WAFv2. Both managed rule groups (CommonRuleSet, KnownBadInputs) are configured in count mode: matching requests are logged and sampled but not blocked. The rate-limit rule blocks any single IP exceeding 2,000 requests per 5-minute window.
 - **Security Groups**: Granular network isolation ensures the EKS Nodes only accept HTTP traffic from the ALB, and the RDS database exclusively permits PostgreSQL connections from the EKS Node Security Group.
 
 ## 3. Data Security & Secrets Management
@@ -56,7 +55,7 @@ All application resources are isolated from the public internet.
 ## 4. DevSecOps & Pipeline Integrity
 Security is continuously enforced throughout the CI/CD lifecycle.
 - **Static Application Security Testing (SAST)**: SonarQube Quality Gates are configured to block Jenkins deployments if critical vulnerabilities or code smells are detected in the source code.
-- **Container Security**: Trivy container image scanning is enforced in the CI/CD pipeline. Images are scanned for HIGH and CRITICAL CVEs and embedded secrets before being pushed to the registry; the pipeline fails the build (`--exit-code 1`) if any are detected. The Backend FastAPI Dockerfile also utilizes a non-root, restricted user for execution.
+- **Container Security**: Trivy container image scanning is enforced in the CI/CD pipeline. Images are scanned for HIGH and CRITICAL CVEs and embedded secrets before being pushed to the registry; the pipeline fails the build (`--exit-code 1`) if any are detected. The backend FastAPI Dockerfile uses a non-root, restricted user for execution.
 
 ## 5. Kubernetes Network Segmentation
 

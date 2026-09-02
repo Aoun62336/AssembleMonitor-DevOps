@@ -1,4 +1,4 @@
-# AssembleMonitor — Construction Site Management Platform
+# AssembleMonitor: Construction Site Management Platform
 
 <!-- Infrastructure & Cloud -->
 
@@ -136,7 +136,7 @@ Rolling deployment → readiness probe validation
 OTel / AMP / Loki / Tempo / Grafana
 ```
 
-> **Key distinction:** Jenkins does not apply Kubernetes manifests directly. Jenkins builds the release and commits the new image tag to Git. Argo CD is the component that reconciles the Git-defined desired state into EKS. This separation is fundamental to the GitOps model — the cluster's desired state is always a Git commit, not a CI pipeline execution.
+> **Key distinction:** Jenkins does not apply Kubernetes manifests directly. Jenkins builds the release and commits the new image tag to Git. Argo CD is the component that reconciles the Git-defined desired state into EKS. This separation is fundamental to the GitOps model: the cluster's desired state is always a Git commit, not a CI pipeline execution.
 
 ---
 
@@ -182,6 +182,7 @@ The umbrella Helm chart (`k8s/helm-chart/`) manages the `assemblemonitor` namesp
 - **Security context**: non-root · no privilege escalation · dropped capabilities
 - **PDB**: `maxUnavailable: 1` for both deployments
 - **NetworkPolicy**: selected frontend/backend isolation (enabled via `values/hardening-validation.yaml`)
+- **Topology spread**: replicas distributed across AZs via `topologySpreadConstraints`
 
 ### EKS Deployment
 
@@ -216,52 +217,14 @@ FastAPI is instrumented for distributed traces. The OTel Collector DaemonSet rec
 
 ## Problems I Encountered
 
-### 1 — Jenkins K3s deployment: SSH target over private IP
+The four problems below are summarized here. Full root cause analysis, investigation steps, and evidence references are in [docs/DEVOPS_IMPLEMENTATION.md](docs/DEVOPS_IMPLEMENTATION.md#4-problems-i-encountered).
 
-**Problem:** The `Jenkinsfile-k3s` pipeline needed to SSH into the K3s EC2 instance to run `kubectl apply`. The deployment target had to be the instance's **private IP**, not the public IP, because Jenkins runs inside the same VPC and using the public IP is both unnecessary and unreliable across restarts.
-
-**Resolution:** Implemented a dedicated `Find K3s EC2` pipeline stage that uses `aws ec2 describe-instances` with tag and state filters to resolve the private IP dynamically at runtime, writes it to `k3s_private_ip.txt`, and all subsequent SSH stages read from that file. This makes the deployment path reliable regardless of EC2 instance restarts.
-
-**Evidence:** `Jenkinsfile-k3s` — stages `Find K3s EC2` through `Post-Deploy Verification`
-
----
-
-### 2 — OpenTelemetry collector configuration corrections
-
-**Problem:** The observability stack required configuration corrections to align the collector container path and Prometheus environment settings before telemetry routing worked end-to-end.
-
-**Resolution:** Corrected the collector container configuration and Prometheus-related environment syntax. Validated the telemetry pipeline by confirming FastAPI traces appearing in the OTel Collector output (`TracesExporter {"resource spans": 1, "spans": 3}`).
-
-**Evidence:** `docker/otel-collector-config.yaml` · `k8s/helm-chart/` · observability screenshots
-
----
-
-### 3 — Argo CD diff on ExternalSecret resource
-
-**Problem:** Argo CD reported a configuration difference for the `ExternalSecret` resource — the controller was adding default fields that were not present in the Git-defined resource, causing perpetual out-of-sync state.
-
-**Resolution:** Explicitly declared the defaulted ExternalSecret fields in the Helm template so the Git-defined resource matched the controller's expected representation. The diff resolved.
-
-**Evidence:** `k8s/helm-chart/templates/external-secret.yaml`
-
----
-
-### 4 — Health probe architecture: liveness must not depend on the database
-
-**Problem:** The original design used a single `/health` endpoint for both liveness and readiness. This meant a database outage would eventually cause Kubernetes to restart the FastAPI pod — even though the application process itself was healthy and capable of recovering once the database came back.
-
-**Why this matters:** A readiness failure should remove the pod from traffic routing without restarting it. A liveness failure should restart the process. Conflating the two causes unnecessary restarts and slows database recovery.
-
-**Resolution:**
-
-```
-/api/health/live   →  process-level check only  →  200 while FastAPI is alive
-/api/health/ready  →  database connectivity check  →  200 when ready, 503 when database unavailable
-```
-
-Kubernetes uses `/live` to decide whether to restart the container and `/ready` to decide whether to route traffic to the pod. With this design, a database outage removes the pod from the load balancer without triggering a restart, and readiness recovers automatically once the database is available.
-
-**Evidence:** `backend/app/routers/health.py` · `backend/tests/test_health.py` · `k8s/helm-chart/templates/backend-deployment.yaml`
+| Problem | Root cause | Resolution |
+|---|---|---|
+| **Jenkins K3s SSH target** | EC2 public IP changes on restart; using it inside the VPC is unreliable | Added a `Find K3s EC2` stage that queries `aws ec2 describe-instances` at runtime and writes the private IP to a file read by all subsequent SSH stages |
+| **OTel collector configuration** | Collector container path and Prometheus environment syntax were misaligned | Corrected container config; validated by confirming FastAPI trace output in collector logs |
+| **Argo CD perpetual diff on ExternalSecret** | ESO controller adds default fields absent from the Git manifest, causing continuous out-of-sync state | Explicitly declared the defaulted fields in the Helm template to match what the controller produces |
+| **Liveness probe checked the database** | A single `/health` endpoint served both probes; a database outage triggered pod restarts even when the process was healthy | Separated `/api/health/live` (process-only) from `/api/health/ready` (database check); database outages gate traffic without restarting the process |
 
 ---
 
@@ -301,35 +264,7 @@ Verify recovery
 Document RCA
 ```
 
-**Kubernetes application issue:**
-
-```bash
-kubectl get pods                          # pod state
-kubectl describe pod <name>              # events and probe failures
-kubectl logs <name>                      # current logs
-kubectl logs <name> --previous           # logs from crashed container
-# → check probes, ConfigMap/Secret, resource limits, Service endpoints
-```
-
-**Nginx 502:**
-
-```bash
-docker compose ps                        # container state
-docker compose logs api                  # API process output
-curl http://localhost:8000/api/health    # direct API test
-# → restore/restart affected service, verify through Nginx
-```
-
-**Readiness 503:**
-
-```bash
-curl /api/health/ready   # 503 → dependency unavailable
-curl /api/health/live    # if 200 → process alive, dependency is the issue
-# → check DATABASE_URL, DNS, connectivity
-# → restore dependency → verify /ready returns 200
-```
-
-→ [Detailed troubleshooting procedures](docs/ops/TROUBLESHOOTING.md)
+→ [Symptom-based diagnostic procedures: 502, readiness 503, CrashLoopBackOff](docs/ops/TROUBLESHOOTING.md)
 
 ---
 
@@ -406,16 +341,16 @@ docker compose exec api python seed_admin.py
 
 | Milestone                        | Implementation                                                                                             |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **M1 — Probe isolation**         | Separated `/api/health/live` (process) from `/api/health/ready` (database-aware)                           |
-| **M2 — Backend test suite**      | 23 tests covering authentication and health/readiness behavior; mocked SQLAlchemy AsyncSession             |
-| **M3 — GitHub Actions**          | 5-job parallel CI; `main-protection` branch ruleset enforces all checks before merge                       |
-| **M4 — Helm dependency locking** | `Chart.lock` pins exact versions for Loki, Tempo, kube-state-metrics, OTel Collector                       |
-| **M5 — Kubernetes hardening**    | `PodDisruptionBudget` (`maxUnavailable: 1`) and selected-workload `NetworkPolicy`; k3d runtime-validated   |
-| **M6 — Supply chain security**   | Gitleaks v3 (SHA-pinned), Dependabot, detect-secrets baseline, 9-hook pre-commit                           |
-| **M7 — Terraform module**        | Private-networking extracted to reusable module with 5 native `terraform test` cases using `mock_provider` |
-| **M8 — Grafana dashboards**      | Application overview dashboard (RPS, latency, resource utilization) as version-controlled JSON             |
+| **M1 — Probe isolation** | Separated `/api/health/live` (process) from `/api/health/ready` (database-aware) |
+| **M2 — Backend test suite** | 23 tests covering authentication and health/readiness behavior; mocked SQLAlchemy AsyncSession |
+| **M3 — GitHub Actions** | 5-job parallel CI; `main-protection` branch ruleset enforces all checks before merge |
+| **M4 — Helm dependency locking** | `Chart.lock` pins exact versions for Loki, Tempo, kube-state-metrics, OTel Collector |
+| **M5 — Kubernetes hardening** | `PodDisruptionBudget` (`maxUnavailable: 1`) and selected-workload `NetworkPolicy`; k3d runtime-validated |
+| **M6 — Terraform module** | Private-networking extracted to reusable module with 5 native `terraform test` cases using `mock_provider` |
+| **M7 — Grafana dashboards** | Application overview dashboard (RPS, latency, resource utilization) as version-controlled JSON |
+| **M8 — Documentation** | Operational runbooks, verification playbook, and postmortem templates standardized |
 
-→ [Full verification procedures](docs/ops/VERIFICATION_PLAYBOOK.md)
+→ [Full verification procedures](docs/ops/VERIFICATION_PLAYBOOK.md) · [Full milestone list M1-M16](docs/hardening/SYSTEM_RELIABILITY_REPORT.md)
 
 ---
 

@@ -1,7 +1,7 @@
 # Lightweight Kubernetes Deployment (K3s)
 
 > [!NOTE]
-> This deployment strategy utilizes K3s, a lightweight, production-ready Kubernetes distribution. This architecture represents the intermediate transition state toward full DevSecOps automation, integrated directly with the Jenkins CI/CD pipeline via SSH deployment.
+> This deployment uses K3s as an intermediate orchestration tier between local Docker Compose and Amazon EKS. The Jenkins pipeline (`Jenkinsfile-k3s`) builds images, scans them with Trivy, and applies Kubernetes manifests to the K3s node via SSH after manual approval.
 
 **Execution Scope:** Automated CI/CD, Lightweight Orchestration, Staging Environments
 **Complexity:** High
@@ -55,7 +55,7 @@ kubectl apply -f k8s/frontend-service.yaml
 
 ## Application Access Endpoints
 
-Kubernetes services in this architecture utilize `NodePort` exposure, routing traffic directly through the EC2 instance's public IP address:
+Kubernetes services in this architecture use `NodePort` exposure, routing traffic directly through the EC2 instance's public IP address:
 
 - **Frontend Application**: `http://<K3S_PUBLIC_IP>:30080`
 - **Backend API Validation**: `http://<K3S_PUBLIC_IP>:30081/api/health`

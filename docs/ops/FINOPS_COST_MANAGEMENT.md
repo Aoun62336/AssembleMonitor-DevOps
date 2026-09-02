@@ -1,11 +1,11 @@
 # FinOps & Cost Management
 
 > [!TIP]
-> Cost optimization is achieved by utilizing Kubernetes Horizontal Pod Autoscaling (HPA) to scale workloads down to minimum replicas during idle periods, and Terraform to execute total environmental suspension during non-operational hours.
+> HPA scales pods to minimum replicas during idle periods. Terraform destroys the full environment during non-operational hours to eliminate idle compute costs.
 
 ## Purpose
 
-This document outlines the financial operations (FinOps) strategies employed to manage and optimize AWS infrastructure costs for the AssembleMonitor platform, ensuring the Amazon EKS environment maintains cost-efficiency alongside high availability.
+This document outlines the cost management strategies used to keep AWS infrastructure costs under control for the AssembleMonitor platform.
 
 ## Cost-Generating Infrastructure
 

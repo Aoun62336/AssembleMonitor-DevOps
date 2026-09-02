@@ -81,7 +81,7 @@ The API initialized successfully and the Python process remained active. The `SE
 
 ## Root Cause Analysis
 
-The `DATABASE_URL` was overridden at container initialization via the Compose override file to point to `db-invalid` — an unresolvable hostname within the `assemblemonitor_net` Docker bridge network. During readiness probe execution, the async connection pool attempted to resolve `db-invalid` via Docker's embedded DNS. The resolution failed, preventing TCP connection establishment, and the health probe timed out. The FastAPI process itself was unaffected, and uvicorn continued to serve the liveness endpoint normally.
+The `DATABASE_URL` was overridden at container initialization via the Compose override file to point to `db-invalid`, an unresolvable hostname within the `assemblemonitor_net` Docker bridge network. During readiness probe execution, the async connection pool attempted to resolve `db-invalid` via Docker's embedded DNS. The resolution failed, preventing TCP connection establishment, and the health probe timed out. The FastAPI process itself was unaffected, and uvicorn continued to serve the liveness endpoint normally.
 
 ---
 

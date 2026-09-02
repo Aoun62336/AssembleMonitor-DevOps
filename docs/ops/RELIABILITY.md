@@ -11,7 +11,7 @@
 
 ## Service Level Indicators (SLIs)
 
-An SLI is a quantitative measure of service behaviour. The following indicators are candidates for
+An SLI is a quantitative measure of service behavior. The following indicators are candidates for
 ongoing measurement in this system, based on the monitoring infrastructure already provisioned.
 
 | SLI | Definition | Signal Source |
@@ -46,7 +46,7 @@ An SLO is a target range for an SLI. The following targets represent design goal
 
 ## Error Budget
 
-An error budget is the inverse of an SLO — the allowable amount of unreliability within the objective window.
+An error budget is the inverse of an SLO: the allowable amount of unreliability within the objective window.
 
 For a **99.5% availability SLO over 30 days** (43 200 minutes):
 
@@ -62,7 +62,7 @@ For a **99.5% availability SLO over 30 days** (43 200 minutes):
 
 ---
 
-## Observed Reliability Data (Fault Drills — 2026-08-20)
+## Observed Reliability Data (Fault Drills: 2026-08-20)
 
 The following controlled recovery durations were measured during controlled fault drill exercises against the local
 Docker Compose environment. These figures represent the local development stack only and do not

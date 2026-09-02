@@ -40,7 +40,7 @@ If GitHub is inaccessible, rollbacks can be triggered directly via the ArgoCD co
 
 ## Infrastructure Disaster Recovery
 
-Total cluster failure recovery leverages complete Terraform codification:
+Total cluster failure recovery uses complete Terraform codification:
 
 1. **Re-Provision**: Execute `terraform apply` to provision a replacement EKS Cluster and Node Group. Terraform handles the installation of ArgoCD, External Secrets Operator, and Metrics Server.
 2. **ALB Re-Attachment**: Terraform automatically binds the Load Balancer target groups to the new EKS instances.
@@ -69,16 +69,7 @@ psql -h <RDS_ENDPOINT> -p 5432 -U <DB_USERNAME> -d <DB_NAME> < backup.sql
 
 ## Validated Reliability Exercises
 
-The following fault injection exercises were executed against the local Docker Compose environment on 2026-08-20 to validate failure detection and probe separation.
-
-| Incident ID | Fault Injection | Telemetry / Outcome | Observed Recovery Duration | Postmortem |
-|---|---|---|---|---|
-| **INC-001** | PostgreSQL container termination | `/live` = 200, `/ready` = 503; auto-recovered | **2 min 9 sec** | [INC-001](incidents/INC-001-database-outage.md) |
-| **INC-002** | FastAPI container termination | Nginx returned 502 immediately; auto-recovered | **2 min 35 sec** | [INC-002](incidents/INC-002-api-outage-nginx-502.md) |
-| **INC-003** | DNS resolution failure (`DATABASE_URL`) | `/live` = 200, `/ready` = 503; recovered | **2 min 22 sec** | [INC-003](incidents/INC-003-database-dns-failure.md) |
-
-> [!NOTE]
-> Controlled drill recovery durations reflect local Docker Compose execution and do not represent production performance. Drill execution scripts are located in [`scripts/fault-drills/`](../../scripts/fault-drills/).
+Three controlled fault drills were executed on 2026-08-20 to validate probe separation and recovery behavior. Results, recovery durations, and individual postmortems are in [`RELIABILITY.md`](RELIABILITY.md) and [`incidents/`](incidents/).
 
 ---
 
@@ -97,13 +88,13 @@ If automated recovery (ArgoCD) and Level 1 remediation fails to restore service 
 *For use in the `#incident-response` Slack/Teams channel.*
 
 **Incident Declaration:**
-> 🚨 **SEV-2 INCIDENT DECLARED** 🚨
+> **SEV-2 INCIDENT DECLARED**
 > **Impact:** AssembleMonitor API is currently returning 5xx errors for core services.
 > **Current Status:** Investigating telemetry. ArgoCD sync confirmed healthy. Investigating database connectivity.
 > **Next Update:** 15 minutes.
 
 **Incident Resolution:**
-> ✅ **INCIDENT RESOLVED** ✅
+> **INCIDENT RESOLVED**
 > **Impact:** API services fully restored.
 > **Root Cause:** Database connection saturation; recovered via automated RDS failover.
 > **Postmortem:** A postmortem document will be published within 48 hours.
