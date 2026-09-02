@@ -2,17 +2,23 @@
 # =============================================================================
 # AssembleMonitor — Pull Request Validation
 #
+# Purpose: Pre-merge repository validation. These five jobs run on every pull
+# request targeting main and provide fast, stateless verification without
+# requiring the persistent Jenkins infrastructure. Jenkins handles the deeper
+# CI/release path (SonarQube, Trivy image gates, Docker publishing, GitOps
+# handoff) after merge.
+#
 # Triggered on:
 #   - Every push to feature branches matching hardening/*
 #   - Every pull request targeting main
 #   - Manual dispatch from the GitHub Actions UI
 #
 # Jobs (run in parallel):
-#   1. backend-test       — Python compile check + pytest (23 tests, no real DB)
+#   1. backend-test       — Python compileall + pytest suite (no real DB required)
 #   2. frontend-build     — Vite production build (npm ci + npm run build)
-#   3. terraform-validate — provider init + HCL validate (no AWS creds needed)
+#   3. terraform-validate — provider init + HCL validate + terraform test (no AWS creds)
 #   4. helm-validate      — dependency build + lint + template render
-#   5. secret-scan        — Gitleaks secret detection scan
+#   5. secret-scan        — Gitleaks full-history secret detection scan
 #
 # All 5 jobs are enforced as required status checks by the active `main-protection` branch ruleset.
 # =============================================================================
