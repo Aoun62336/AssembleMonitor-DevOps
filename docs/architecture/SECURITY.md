@@ -43,7 +43,7 @@ This approach eliminates long-lived AWS access keys from pods entirely. Credenti
 
 
 ## 2. Network Boundary & Perimeter Defense
-All application resources are heavily shielded from the public internet.
+All application resources are isolated from the public internet.
 - **VPC & Subnets**: EKS Nodes and the RDS database reside deep within private subnets. External egress is routed securely through a NAT Gateway.
 - **Application Load Balancer (ALB) & WAF**: External traffic must flow through the ALB. The ALB is protected by an AWS Web Application Firewall (WAFv2). Managed rule groups (CommonRuleSet, KnownBadInputs) actively monitor and log SQLi and XSS requests, while a rate-limit rule actively blocks any single IP exceeding 2,000 requests per 5-minute window.
 - **Security Groups**: Granular network isolation ensures the EKS Nodes only accept HTTP traffic from the ALB, and the RDS database exclusively permits PostgreSQL connections from the EKS Node Security Group.
