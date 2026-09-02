@@ -25,75 +25,21 @@
 
 ---
 
-AssembleMonitor is a construction site management platform for tracking construction projects, site operations, labor attendance, task progression, and material consumption. It supports four roles: Admin, Project Manager, Site Engineer, and Client.
+AssembleMonitor is a construction site management platform for tracking construction projects, site operations, labor attendance, task progression, and material consumption. Four roles provide scoped access to data and actions relevant to each user's function on a given project.
+
+**Admin** creates and manages user accounts and projects, assigns users to projects with a designated role, and has unrestricted access to all project data and platform-wide analytics.
+
+**Project Manager** creates and manages phases and tasks on assigned projects, manages expenses, records incoming material stock, and monitors budget consumption, task progress, Gantt timelines, and attendance.
+
+**Site Engineer** updates status on assigned tasks, records daily attendance check-in and check-out with optional notes, logs material usage against a phase or task, and uploads site photos.
+
+**Client** has read-only access to project status, task progress, and budget analytics on assigned projects.
+
+→ [Domain model, status lifecycles, calculated fields, and analytics](docs/APPLICATION.md)
 
 **Application layer:** React 18 + FastAPI + PostgreSQL 16
 
 **Cloud/DevOps layer:** AWS (EKS, VPC, ALB, WAF, RDS, S3, IAM, Secrets Manager, CloudWatch) + Terraform + Docker + Kubernetes + Jenkins + Helm + Argo CD + OpenTelemetry + Grafana
-
----
-
-## Application
-
-Construction projects require coordinating tasks, materials, attendance, and expenses across multiple teams with different responsibilities. Without a centralized system, project status, budget consumption, and material inventory levels are difficult to track as work progresses across concurrent sites and phases.
-
-AssembleMonitor provides a role-scoped web interface where each user sees only the data and actions relevant to their function on a given project.
-
-### Role Capabilities
-
-**Admin**
-- Create, activate, and deactivate user accounts
-- Assign and change user roles
-- View platform-wide analytics: total users, projects, active projects, total budget, and total spend
-- Access and modify all projects without project assignment
-
-**Project Manager**
-- Create and manage projects with budget, dates, and status lifecycle
-- Add ordered phases to a project (Foundation, Framing, Finishing, etc.)
-- Create tasks within phases and assign them to site engineers
-- Approve or reject submitted expenses
-- View budget analytics: total expenses, material costs, and `budget_used_pct`
-- View a Gantt chart of all phases and tasks with delay flags
-- Monitor attendance logs and total hours logged per project
-- Review material inventory and low-stock alerts
-
-**Site Engineer**
-- Update task status and record the completion date
-- Check in and check out of a project site, with optional GPS coordinates
-- Record material usage against a phase or task
-- Upload site photos for field documentation (stored in Amazon S3)
-
-**Client**
-- Read-only access to assigned projects
-- View project status, task progress (`progress_pct`), and budget summary
-- No write access to any project data
-
-### Main User Flows
-
-**Project setup**
-1. Admin creates user accounts and assigns roles.
-2. Admin or Project Manager creates a project with a budget, start date, and end date.
-3. Project Manager adds phases to the project in the required order.
-4. Project Manager creates tasks within each phase and assigns them to site engineers.
-
-**Daily site operations**
-1. Site Engineer checks in to the project site, recording location and check-in time.
-2. Site Engineer updates task status and records the completion date when a task is done.
-3. Site Engineer records material usage (quantity consumed, linked to a phase or task).
-4. Site Engineer uploads site photos for progress documentation.
-
-**Expense and budget tracking**
-1. Site Engineer or Project Manager submits an expense with a category, amount, vendor, and date.
-2. Project Manager or Admin approves or rejects the expense.
-3. Approved expenses contribute to `budget_used_pct`, visible in the project budget analytics view.
-
-**Progress monitoring**
-1. Project Manager views the project overview: `progress_pct`, delayed task count, and budget consumption.
-2. Project Manager uses the Gantt view to identify phases with overdue tasks.
-3. Project Manager reviews material analytics to identify low-stock items before they block site work.
-4. Client views the read-only project dashboard to check current status and budget.
-
-→ [Application domain model, business rules, and calculated fields](docs/APPLICATION.md)
 
 ---
 
