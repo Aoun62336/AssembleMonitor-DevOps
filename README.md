@@ -31,7 +31,7 @@ AssembleMonitor is a construction site management platform for tracking construc
 
 **Project Manager** creates and manages phases and tasks on assigned projects, manages expenses, records incoming material stock, and monitors budget consumption, task progress, Gantt timelines, and attendance.
 
-**Site Engineer** updates status on assigned tasks, records daily attendance check-in and check-out with optional notes, logs material usage against a phase or task, and uploads site photos.
+**Site Engineer** updates status on assigned tasks, records daily attendance check-in and check-out with optional notes, logs material usage against a phase or task, and can view uploaded site photos.
 
 **Client** has read-only access to project status, task progress, and budget analytics on assigned projects.
 
